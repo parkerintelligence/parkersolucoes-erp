@@ -579,6 +579,125 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Webhook Events */}
+      {(() => {
+        const totalWebhookPages = Math.ceil(webhookLogs.length / WEBHOOK_LOGS_PER_PAGE);
+        const pagedWebhookLogs = webhookLogs.slice(webhookPage * WEBHOOK_LOGS_PER_PAGE, (webhookPage + 1) * WEBHOOK_LOGS_PER_PAGE);
+
+        const handleClearWebhookHistory = async () => {
+          setClearingWebhooks(true);
+          try {
+            const { error } = await supabase.from('webhook_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            if (error) throw error;
+            toast.success('Histórico de webhooks limpo');
+            queryClient.invalidateQueries({ queryKey: ['dashboard-webhook-logs'] });
+            setWebhookPage(0);
+          } catch (e: any) {
+            toast.error('Erro ao limpar histórico');
+          } finally {
+            setClearingWebhooks(false);
+          }
+        };
+
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Webhook className="h-4 w-4" />
+                Últimos Eventos de Webhook
+              </h2>
+              {webhookLogs.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                  onClick={handleClearWebhookHistory}
+                  disabled={clearingWebhooks}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Limpar
+                </Button>
+              )}
+            </div>
+            {webhookLogs.length === 0 ? (
+              <Card className="bg-card/50 border-border max-w-md">
+                <CardContent className="p-6 text-center">
+                  <Webhook className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum evento de webhook registrado</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-card/50 border-border max-w-md">
+                <CardContent className="p-0">
+                  <div className="divide-y divide-border">
+                    {pagedWebhookLogs.map((log: any) => {
+                      const body = log.request_body;
+                      let summary = '';
+                      if (body && typeof body === 'object') {
+                        if (body.trigger) summary = String(body.trigger);
+                        else if (body.message) summary = String(body.message).substring(0, 60);
+                        else if (body.text) summary = String(body.text).substring(0, 60);
+                        else {
+                          const keys = Object.keys(body);
+                          summary = keys.slice(0, 3).join(', ');
+                        }
+                      }
+
+                      return (
+                        <div key={log.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {log.status === 'success' ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-xs text-foreground truncate">
+                                {(log as any).webhooks?.name || 'Webhook'}
+                                {log.is_test && <span className="text-muted-foreground ml-1">🧪</span>}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground truncate">
+                                {summary || 'Payload recebido'} • {format(parseISO(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-[9px] py-0 px-1.5 h-4 flex-shrink-0">
+                            {log.status === 'success' ? 'OK' : 'Erro'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {totalWebhookPages > 1 && (
+                    <div className="flex items-center justify-between px-3 py-2 border-t border-border">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        disabled={webhookPage === 0}
+                        onClick={() => setWebhookPage(p => p - 1)}
+                      >
+                        <ChevronLeft className="h-3 w-3 mr-1" /> Anterior
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground">{webhookPage + 1}/{totalWebhookPages}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        disabled={webhookPage >= totalWebhookPages - 1}
+                        onClick={() => setWebhookPage(p => p + 1)}
+                      >
+                        Próximo <ChevronRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Recent Logs - Compact Card with Pagination */}
       {logs.length > 0 && (() => {
         const limitedLogs = logs.slice(0, 20);
