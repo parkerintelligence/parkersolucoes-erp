@@ -202,40 +202,15 @@ serve(async (req) => {
       };
       console.log('Connection details:', connectionDetails);
 
-      // Try HTTPS first with enhanced SSL handling, then HTTP as fallback
-      let loginResponse: Response;
-      let usedHttpFallback = false;
-      let connectionMethod = '';
-      
-      // Determine if we should ignore SSL certificates
-      const shouldIgnoreSSL = requestBody.ignore_ssl;
-      
-      const fetchOptions: RequestInit = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Lovable-UniFi-Integration/1.0'
-        },
-        body: JSON.stringify({
-          username: normalizedUsername,
-          password: normalizedPassword,
-          remember: true
-        })
-      };
+      // Try local login with SSL bypass for self-signed certificates
+      let loginResponse: any;
 
-      // Note: In Deno runtime, we cannot set agent.rejectUnauthorized
-      // SSL bypass needs to be handled differently
-      if (shouldIgnoreSSL && loginUrl.startsWith('https://')) {
-        console.log('SSL certificate validation disabled (note: limited in serverless environment)');
+      if (requestBody.ignore_ssl && loginUrl.startsWith('https://')) {
+        console.log('SSL certificate validation disabled for local controller');
       }
       
-      // Use insecureFetch to handle self-signed certificates
       console.log('Attempting connection with SSL bypass (self-signed cert support)...');
-      
-      let loginResponse: any;
-      let usedLegacyEndpoint = false;
-      
+
       const loginBody = JSON.stringify({
         username: normalizedUsername,
         password: normalizedPassword,
@@ -267,7 +242,6 @@ serve(async (req) => {
             headers: loginHeaders,
             body: loginBody
           });
-          usedLegacyEndpoint = true;
           console.log(`Legacy login response: status=${loginResponse.status}`);
         }
       } catch (connError) {
