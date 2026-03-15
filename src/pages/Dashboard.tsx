@@ -202,6 +202,7 @@ const useDashboardData = () => {
     baculaErrors: baculaJobs.data || [],
     zabbixProblems: (zabbixProblems.data as any)?.active || [],
     zabbixDisasters: (zabbixProblems.data as any)?.disasters || [],
+    scheduleItems: scheduleItems.data || [],
     hasBacula: !!baculaIntegration,
     hasZabbix: !!zabbixIntegration,
     hasFtp: !!ftpIntegration,
@@ -214,6 +215,7 @@ const useDashboardData = () => {
       ftpFiles.refetch();
       baculaJobs.refetch();
       zabbixProblems.refetch();
+      scheduleItems.refetch();
     }
   };
 };
