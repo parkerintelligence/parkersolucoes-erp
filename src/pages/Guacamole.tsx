@@ -5,16 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Monitor, Users, Activity, Plus, RefreshCcw, Power, AlertTriangle, Settings, ExternalLink, Grid, List, FileText, FolderOpen } from 'lucide-react';
+import { Monitor, Activity, Plus, RefreshCcw, Power, AlertTriangle, Settings, ExternalLink, Grid, List, FileText, FolderOpen, Clock, User } from 'lucide-react';
 import { useGuacamoleAPI, GuacamoleConnection } from '@/hooks/useGuacamoleAPI';
-import { useGuacamoleLogs } from '@/hooks/useGuacamoleLogs';
 import { GuacamoleConnectionCard } from '@/components/guacamole/GuacamoleConnectionCard';
 import { GuacamoleStatusPopover } from '@/components/guacamole/GuacamoleStatusPopover';
 import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnectionTree';
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
-import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { RustDeskPanel } from '@/components/rustdesk/RustDeskPanel';
 import { useRustDeskConnections } from '@/hooks/useRustDesk';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
