@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Server, Wifi, Router, ShieldCheck, Send, SendHorizonal,
   AlertTriangle, CheckCircle2, XCircle, Clock, HardDrive,
   Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight,
-  Webhook, Trash2, Cpu, Camera
+  Webhook, Trash2, Cpu, Camera, Eye, Info
 } from 'lucide-react';
 import { MikrotikDashboardSummary } from '@/components/mikrotik/MikrotikDashboardSummary';
 import { Calendar } from 'lucide-react';
@@ -170,16 +171,17 @@ const useDashboardData = () => {
     queryKey: ['dashboard-zabbix-problems'],
     queryFn: async () => {
       if (!zabbixIntegration) return { active: [], disasters: [] };
-      // Fetch active problems
+      // Fetch active problems with more detail
       const { data, error } = await supabase.functions.invoke('zabbix-proxy', {
         body: {
           method: 'problem.get',
           params: {
-            output: ['eventid', 'name', 'severity', 'clock'],
-            selectHosts: ['name'],
+            output: ['eventid', 'name', 'severity', 'clock', 'acknowledged', 'opdata', 'r_eventid'],
+            selectHosts: ['name', 'host'],
+            selectTags: 'extend',
             sortfield: 'eventid',
             sortorder: 'DESC',
-            limit: 5,
+            limit: 10,
             recent: true,
           },
           integrationId: zabbixIntegration.id,
@@ -187,16 +189,17 @@ const useDashboardData = () => {
       });
       const activeProblems = !error ? (Array.isArray(data?.result || data) ? (data?.result || data) : []) : [];
 
-      // Fetch last 5 disaster events (severity 5) from event history
+      // Fetch last 10 disaster events (severity 5) with more detail
       const { data: evtData } = await supabase.functions.invoke('zabbix-proxy', {
         body: {
           method: 'event.get',
           params: {
-            output: ['eventid', 'name', 'severity', 'clock', 'r_eventid'],
-            selectHosts: ['name'],
+            output: ['eventid', 'name', 'severity', 'clock', 'r_eventid', 'acknowledged', 'opdata'],
+            selectHosts: ['name', 'host'],
+            selectTags: 'extend',
             sortfield: ['clock'],
             sortorder: 'DESC',
-            limit: 5,
+            limit: 10,
             severities: [5],
             value: 1,
           },
@@ -250,6 +253,7 @@ const Dashboard = () => {
   const [logsPage, setLogsPage] = useState(0);
   const [webhookPage, setWebhookPage] = useState(0);
   const [clearingWebhooks, setClearingWebhooks] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<any>(null);
   const queryClient = useQueryClient();
 
   // --- Compute stats ---
@@ -411,6 +415,14 @@ const Dashboard = () => {
             <CardTitle className="text-xs font-semibold text-orange-300 flex items-center gap-2">
               <Activity className="h-3.5 w-3.5" />
               {zabbixProblems.length > 0 ? 'Problemas Ativos Zabbix' : 'Últimos Alertas de Desastre'}
+              {(() => {
+                const items = zabbixProblems.length > 0 ? zabbixProblems : zabbixDisasters;
+                return items.length > 0 && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-orange-600/30 text-orange-300/70 ml-auto">
+                    {items.length}
+                  </Badge>
+                );
+              })()}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
@@ -430,14 +442,14 @@ const Dashboard = () => {
               }
 
               return (
-                <div className="space-y-1.5 mt-1">
+                <div className="space-y-1 mt-1">
                   {isDisasterFallback && (
                     <div className="flex items-center gap-1.5 mb-2">
                       <CheckCircle2 className="h-3 w-3 text-green-400" />
                       <span className="text-[10px] text-green-300/80">Sem problemas ativos — histórico recente:</span>
                     </div>
                   )}
-                  {items.slice(0, 5).map((problem: any, i: number) => {
+                  {items.slice(0, 7).map((problem: any, i: number) => {
                     const severity = parseInt(problem.severity || '0');
                     const severityColors: Record<number, string> = {
                       0: 'text-muted-foreground', 1: 'text-blue-300', 2: 'text-yellow-300',
@@ -448,9 +460,14 @@ const Dashboard = () => {
                     };
                     const hostName = problem.hosts?.[0]?.name || '';
                     const timestamp = problem.clock ? new Date(parseInt(problem.clock) * 1000) : null;
+                    const isAcknowledged = problem.acknowledged === '1' || problem.acknowledged === 1;
 
                     return (
-                      <div key={i} className="flex items-center justify-between text-xs gap-2">
+                      <div
+                        key={i}
+                        className="flex items-center justify-between text-xs gap-1 py-0.5 rounded px-1 -mx-1 cursor-pointer hover:bg-orange-500/10 transition-colors group"
+                        onClick={() => setSelectedAlert(problem)}
+                      >
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           <AlertTriangle className={`h-3 w-3 flex-shrink-0 ${severityColors[severity] || 'text-orange-400'}`} />
                           <span className={`truncate ${isDisasterFallback ? 'text-orange-200/60' : 'text-orange-200/80'}`} title={`${hostName}: ${problem.name}`}>
@@ -458,6 +475,9 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
+                          {isAcknowledged && (
+                            <span title="Reconhecido"><CheckCircle2 className="h-2.5 w-2.5 text-blue-400" /></span>
+                          )}
                           {timestamp && (
                             <span className="text-[8px] text-orange-300/40">
                               {format(timestamp, "dd/MM HH:mm", { locale: ptBR })}
@@ -466,6 +486,7 @@ const Dashboard = () => {
                           <Badge variant="outline" className={`text-[8px] py-0 px-1 h-3.5 border-orange-600/30 ${severityColors[severity]}`}>
                             {severityLabels[severity] || 'N/A'}
                           </Badge>
+                          <Eye className="h-3 w-3 text-orange-300/30 group-hover:text-orange-300/70 transition-colors" />
                         </div>
                       </div>
                     );
@@ -475,6 +496,133 @@ const Dashboard = () => {
             })()}
           </CardContent>
         </Card>
+
+        {/* Alert Detail Dialog */}
+        <Dialog open={!!selectedAlert} onOpenChange={(open) => !open && setSelectedAlert(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                Detalhes do Alerta
+              </DialogTitle>
+            </DialogHeader>
+            {selectedAlert && (() => {
+              const severity = parseInt(selectedAlert.severity || '0');
+              const severityLabels: Record<number, string> = {
+                0: 'Não classificado', 1: 'Informação', 2: 'Aviso', 3: 'Médio', 4: 'Alto', 5: 'Desastre'
+              };
+              const severityBg: Record<number, string> = {
+                0: 'bg-muted', 1: 'bg-blue-500/20 text-blue-300', 2: 'bg-yellow-500/20 text-yellow-300',
+                3: 'bg-orange-500/20 text-orange-300', 4: 'bg-red-500/20 text-red-300', 5: 'bg-red-600/30 text-red-400'
+              };
+              const hostName = selectedAlert.hosts?.[0]?.name || 'Desconhecido';
+              const hostId = selectedAlert.hosts?.[0]?.host || '';
+              const timestamp = selectedAlert.clock ? new Date(parseInt(selectedAlert.clock) * 1000) : null;
+              const isAcknowledged = selectedAlert.acknowledged === '1' || selectedAlert.acknowledged === 1;
+              const isResolved = !!selectedAlert.r_eventid && selectedAlert.r_eventid !== '0';
+              const tags = selectedAlert.tags || [];
+              const opdata = selectedAlert.opdata || '';
+
+              return (
+                <div className="space-y-4">
+                  {/* Severity Badge */}
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${severityBg[severity]} text-xs px-2 py-0.5`}>
+                      {severityLabels[severity]}
+                    </Badge>
+                    {isAcknowledged && (
+                      <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-500/40 text-blue-400">
+                        ✓ Reconhecido
+                      </Badge>
+                    )}
+                    {isResolved && (
+                      <Badge variant="outline" className="text-xs px-2 py-0.5 border-green-500/40 text-green-400">
+                        Resolvido
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Problem Name */}
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Problema</p>
+                    <p className="text-sm text-foreground">{selectedAlert.name}</p>
+                  </div>
+
+                  {/* Host */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Host</p>
+                      <p className="text-sm text-foreground font-medium">{hostName}</p>
+                      {hostId && <p className="text-[10px] text-muted-foreground font-mono">{hostId}</p>}
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Data/Hora</p>
+                      <p className="text-sm text-foreground">
+                        {timestamp ? format(timestamp, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }) : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Event ID */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Event ID</p>
+                      <p className="text-xs text-foreground font-mono">{selectedAlert.eventid}</p>
+                    </div>
+                    {selectedAlert.r_eventid && selectedAlert.r_eventid !== '0' && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Recovery Event</p>
+                        <p className="text-xs text-foreground font-mono">{selectedAlert.r_eventid}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Operational Data */}
+                  {opdata && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Dados Operacionais</p>
+                      <div className="bg-muted/50 rounded-md p-2 border border-border">
+                        <p className="text-xs text-foreground font-mono break-all">{opdata}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {tags.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tags</p>
+                      <div className="flex flex-wrap gap-1">
+                        {tags.map((tag: any, idx: number) => (
+                          <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {tag.tag}{tag.value ? `: ${tag.value}` : ''}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Duration */}
+                  {timestamp && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Duração</p>
+                      <p className="text-xs text-foreground">
+                        {(() => {
+                          const diffMs = Date.now() - timestamp.getTime();
+                          const days = Math.floor(diffMs / 86400000);
+                          const hours = Math.floor((diffMs % 86400000) / 3600000);
+                          const mins = Math.floor((diffMs % 3600000) / 60000);
+                          if (days > 0) return `${days}d ${hours}h ${mins}min`;
+                          if (hours > 0) return `${hours}h ${mins}min`;
+                          return `${mins}min`;
+                        })()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
 
         {/* MikroTik Resources */}
         <MikrotikDashboardSummary integrations={integrations} />
