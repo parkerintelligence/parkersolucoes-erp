@@ -430,11 +430,11 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">ID RustDesk</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">Senha</TableHead>
-                    <TableHead className="text-muted-foreground text-xs">GLPI</TableHead>
-                    <TableHead className="text-muted-foreground text-xs text-right">Ações</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">Nome</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">ID RustDesk</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">Senha</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium">GLPI</TableHead>
+                    <TableHead className="text-muted-foreground text-xs font-medium text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
