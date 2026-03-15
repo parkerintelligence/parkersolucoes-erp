@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnect
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { RustDeskPanel } from '@/components/rustdesk/RustDeskPanel';
+import { useRustDeskConnections } from '@/hooks/useRustDesk';
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,11 +22,25 @@ const Guacamole = () => {
   const {
     logs,
     clearLogs,
+    addLog,
     logRequest,
     logResponse,
     logError,
     logInfo
   } = useGuacamoleLogs();
+
+  // RustDesk connections for logs
+  const { data: rustDeskConnections = [] } = useRustDeskConnections();
+  
+  // Add RustDesk connection logs on load
+  useEffect(() => {
+    if (rustDeskConnections.length > 0) {
+      addLog('info', `${rustDeskConnections.length} conexões RustDesk carregadas`, {
+        source: 'rustdesk',
+        details: { total: rustDeskConnections.length, online: rustDeskConnections.filter(c => c.is_online).length }
+      });
+    }
+  }, [rustDeskConnections.length]);
   
   const {
     useConnections,
