@@ -308,16 +308,27 @@ const VPSCard = ({ vps, index, integrationId, onRestart, onStart, onStop, onSnap
               )}
 
               {/* Actions */}
-              <div className="flex gap-1.5 pt-1">
-                <Button onClick={onRestart} variant="outline" size="sm" disabled={restarting} className="flex-1 h-6 text-[10px] hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5 transition-colors">
-                  {restarting ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                {isOnline ? (
+                  <Button onClick={onStop} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5 transition-colors">
+                    {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Square className="h-3 w-3 mr-1" />}
+                    Parar
+                  </Button>
+                ) : (
+                  <Button onClick={onStart} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-emerald-500/50 hover:text-emerald-500 hover:bg-emerald-500/5 transition-colors">
+                    {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Play className="h-3 w-3 mr-1" />}
+                    Iniciar
+                  </Button>
+                )}
+                <Button onClick={onRestart} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-amber-500/50 hover:text-amber-500 hover:bg-amber-500/5 transition-colors">
+                  {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
                   Reiniciar
                 </Button>
                 <Button
                   onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')}
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-6 text-[10px] hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
+                  className="h-6 text-[10px] hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
                 >
                   <Camera className="h-3 w-3 mr-1" />
                   Snapshot
