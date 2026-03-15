@@ -361,8 +361,8 @@ serve(async (req) => {
       if (endpoint.includes('/api/self/sites')) {
         siteManagerEndpoint = '/v1/hosts';
       } else if (endpoint.includes('/v1/hosts/') && endpoint.includes('/sites')) {
-        // Handle /v1/hosts/{hostId}/sites endpoint
-        siteManagerEndpoint = endpoint;
+        // /v1/hosts/{hostId}/sites has inconsistent availability; use official list-sites endpoint
+        siteManagerEndpoint = '/v1/sites';
       } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/device')) {
         // Extract site ID from local controller endpoint format
         const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/device/);
