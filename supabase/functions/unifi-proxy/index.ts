@@ -221,108 +221,85 @@ serve(async (req) => {
     if (useLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
       let activeBaseApiUrl = baseApiUrl;
-      let loginUrl = `${activeBaseApiUrl}/api/auth/login`;
+      let loginResponse: Response | null = null;
+      let lastConnectionError = '';
+
+      const controllerCandidates = buildLocalControllerCandidates(baseApiUrl, use_ssl ?? true);
+      const loginEndpoints = ['/api/auth/login', '/api/login'];
+
       console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
-      console.log('Controller URL:', activeBaseApiUrl);
-      console.log('Login endpoint:', loginUrl);
+      console.log('Controller candidates:', controllerCandidates);
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
       console.log('Use SSL configured:', use_ssl);
       console.log('Ignore SSL configured:', requestBody.ignore_ssl);
-      
-      // Enhanced connection diagnostics
-      const connectionDetails = {
-        originalUrl: activeBaseApiUrl,
-        loginUrl: loginUrl,
-        isHttps: loginUrl.startsWith('https://'),
-        hostname: new URL(activeBaseApiUrl).hostname,
-        port: new URL(activeBaseApiUrl).port || (loginUrl.startsWith('https://') ? '443' : '80'),
-        protocol: new URL(activeBaseApiUrl).protocol
-      };
-      console.log('Connection details:', connectionDetails);
-
-      // Try local login with SSL bypass for self-signed certificates
-      let loginResponse: Response;
-
-      if (requestBody.ignore_ssl && loginUrl.startsWith('https://')) {
-        console.log('SSL certificate validation disabled for local controller');
-      }
-      
-      console.log('Attempting connection with SSL bypass (self-signed cert support)...');
 
       const loginBody = JSON.stringify({
         username: normalizedUsername,
         password: normalizedPassword,
-        remember: true
+        remember: true,
       });
 
       const loginHeaders = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Lovable-UniFi-Integration/1.0'
+        'User-Agent': 'Lovable-UniFi-Integration/1.0',
       };
 
-      const executeLogin = async (targetLoginUrl: string, allowTlsFallback: boolean) => {
-        let response = await fetchWithTlsFallback(targetLoginUrl, {
-          method: 'POST',
-          headers: loginHeaders,
-          body: loginBody
-        }, allowTlsFallback);
+      for (const candidateBaseUrl of controllerCandidates) {
+        const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
-        if (response.status === 404) {
-          const legacyLoginUrl = `${targetLoginUrl.replace(/\/api\/auth\/login$/, '')}/api/login`;
-          console.log('Trying legacy login endpoint:', legacyLoginUrl);
-          response = await fetchWithTlsFallback(legacyLoginUrl, {
-            method: 'POST',
-            headers: loginHeaders,
-            body: loginBody
-          }, allowTlsFallback);
-          console.log(`Legacy login response: status=${response.status}`);
+        for (const loginEndpoint of loginEndpoints) {
+          const candidateLoginUrl = `${candidateBaseUrl}${loginEndpoint}`;
+
+          try {
+            console.log('[UNIFI-LOCAL] Testing login URL:', candidateLoginUrl);
+
+            const startTime = Date.now();
+            const response = await fetchWithTlsFallback(candidateLoginUrl, {
+              method: 'POST',
+              headers: loginHeaders,
+              body: loginBody,
+            }, allowTlsFallback);
+            const responseTime = Date.now() - startTime;
+
+            console.log(`[UNIFI-LOCAL] Login response ${response.status} in ${responseTime}ms for ${candidateLoginUrl}`);
+
+            if (response.status === 404) {
+              continue;
+            }
+
+            if (response.ok || response.status === 401 || response.status === 403) {
+              loginResponse = response;
+              activeBaseApiUrl = candidateBaseUrl;
+              break;
+            }
+
+            const errorBody = await response.text();
+            lastConnectionError = `${response.status} em ${candidateLoginUrl}: ${errorBody}`;
+          } catch (connectionError) {
+            const errorMessage = connectionError instanceof Error ? connectionError.message : String(connectionError);
+            lastConnectionError = `${candidateLoginUrl} => ${errorMessage}`;
+            console.warn('[UNIFI-LOCAL] Login attempt failed:', lastConnectionError);
+          }
         }
 
-        return response;
-      };
-
-      try {
-        const startTime = Date.now();
-        loginResponse = await executeLogin(loginUrl, true);
-        const responseTime = Date.now() - startTime;
-        console.log(`Login response: status=${loginResponse.status}, time=${responseTime}ms`);
-      } catch (connError) {
-        const httpsError = connError instanceof Error ? connError.message : String(connError);
-        console.error('Connection error:', httpsError);
-
-        // Only try HTTP fallback if using standard HTTPS port (443)
-        // Custom ports like 8443, 8445 always require TLS
-        const parsedUrl = new URL(activeBaseApiUrl);
-        const port = parsedUrl.port || '443';
-        const isCustomPort = port !== '443' && port !== '80';
-
-        if (!activeBaseApiUrl.startsWith('https://') || isCustomPort) {
-          throw new Error(`Falha ao conectar na controladora (${activeBaseApiUrl}): ${httpsError}. Verifique se a URL está acessível e as credenciais estão corretas.`);
+        if (loginResponse) {
+          break;
         }
+      }
 
-        // Only try HTTP fallback for standard port 443 → 80
-        const httpBaseApiUrl = activeBaseApiUrl.replace(/^https:\/\//i, 'http://');
-        const httpLoginUrl = `${httpBaseApiUrl}/api/auth/login`;
-        console.warn(`HTTPS (port 443) falhou, tentando fallback HTTP: ${httpLoginUrl}`);
-
-        try {
-          loginResponse = await executeLogin(httpLoginUrl, false);
-          activeBaseApiUrl = httpBaseApiUrl;
-          loginUrl = httpLoginUrl;
-          console.log('HTTP fallback login successful. Continuing with:', activeBaseApiUrl);
-        } catch (httpError) {
-          const httpConnectionError = httpError instanceof Error ? httpError.message : String(httpError);
-          console.error('HTTP fallback also failed:', httpConnectionError);
-          throw new Error(`Falha ao conectar na controladora. HTTPS: ${httpsError}. HTTP: ${httpConnectionError}. Verifique URL, porta e firewall da controladora.`);
-        }
+      if (!loginResponse) {
+        throw new Error(
+          `Falha ao conectar na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'sem resposta'}. ` +
+          'Verifique URL, porta, protocolo (HTTP/HTTPS), firewall e certificado SSL.'
+        );
       }
 
       if (!loginResponse.ok) {
         const loginErrorText = await loginResponse.text();
         console.error('Login failed:', loginResponse.status, loginErrorText);
-        
+
         if (loginResponse.status === 401) {
           throw new Error('Credenciais inválidas. Verifique usuário e senha da controladora.');
         } else if (loginResponse.status === 403) {
