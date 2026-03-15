@@ -108,8 +108,42 @@ export const useUpdateIntegration = () => {
         .from('integrations')
         .update(updates)
         .eq('id', id)
-        .select()
-        .single();
+        .select();
+
+      if (error) {
+        console.error('❌ [useUpdateIntegration] Erro na atualização:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        // Try with maybeSingle - RLS might be blocking, try upsert approach
+        console.warn('⚠️ [useUpdateIntegration] Update retornou 0 rows, tentando sem filtro de user_id...');
+        
+        // Check if it's a global integration (user_id is null)
+        const { data: existing } = await supabase
+          .from('integrations')
+          .select('id, user_id, is_global')
+          .eq('id', id)
+          .maybeSingle();
+        
+        if (existing) {
+          // Integration exists but update failed - likely RLS issue
+          // Try updating without is_global in the payload
+          const { user_id, ...cleanUpdates } = updates as any;
+          const { data: retryData, error: retryError } = await supabase
+            .from('integrations')
+            .update(cleanUpdates)
+            .eq('id', id)
+            .select();
+          
+          if (retryError) throw retryError;
+          if (retryData && retryData.length > 0) return retryData[0];
+        }
+        
+        throw new Error('Não foi possível atualizar a integração. Verifique suas permissões.');
+      }
+
+      return data[0];
 
       if (error) {
         console.error('❌ [useUpdateIntegration] Erro na atualização:', error);
