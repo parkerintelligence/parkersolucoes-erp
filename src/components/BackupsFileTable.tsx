@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { HardDrive, RefreshCw, Database, CheckCircle, XCircle, Folder, Download, Trash2, Clock, ArrowUpDown, Calendar, FileText, Type } from 'lucide-react';
+import { HardDrive, RefreshCw, Database, CheckCircle, XCircle, Folder, Download, Trash2, Clock, ArrowUpDown, Calendar, FileText, Type, Calculator } from 'lucide-react';
 import { formatFileSize, getDaysFromLastModification } from '@/utils/ftpUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface BackupsFileTableProps {
   files: any[];
@@ -17,15 +18,17 @@ interface BackupsFileTableProps {
   onRefresh: () => void;
   downloadFile: any;
   deleteFile: any;
+  onCalculateSizes?: () => Promise<void>;
 }
 type SortOption = 'name' | 'size' | 'date' | 'type';
 type SortOrder = 'asc' | 'desc';
 
 const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
-  files, isLoadingFiles, currentPath, onFolderClick, onDownload, onDelete, onRefresh, downloadFile, deleteFile
+  files, isLoadingFiles, currentPath, onFolderClick, onDownload, onDelete, onRefresh, downloadFile, deleteFile, onCalculateSizes
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [isCalculatingSizes, setIsCalculatingSizes] = useState(false);
 
   const getStatusBadge = (fileName: string, isDirectory: boolean) => {
     if (isDirectory) return <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">Pasta</Badge>;
@@ -114,6 +117,28 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
               <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingFiles ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+            {onCalculateSizes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setIsCalculatingSizes(true);
+                  try {
+                    await onCalculateSizes();
+                    toast({ title: "✅ Tamanhos calculados", description: "Os tamanhos das pastas foram atualizados." });
+                  } catch {
+                    toast({ title: "❌ Erro ao calcular", description: "Não foi possível calcular os tamanhos.", variant: "destructive" });
+                  } finally {
+                    setIsCalculatingSizes(false);
+                  }
+                }}
+                disabled={isCalculatingSizes}
+                className="h-7 text-xs"
+              >
+                <Calculator className={`h-3 w-3 mr-1 ${isCalculatingSizes ? 'animate-spin' : ''}`} />
+                {isCalculatingSizes ? 'Calculando...' : 'Calcular Tamanhos'}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -164,7 +189,10 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
                     </TableCell>
                     <TableCell className="text-xs font-medium text-foreground py-1">{file.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1">
-                      {file.size > 0 ? formatFileSize(file.size) : (file.isDirectory ? 'Calculando...' : '0 Bytes')}
+                      {file.isDirectory
+                        ? (file.size > 0 ? formatFileSize(file.size) : <span className="text-muted-foreground/50">—</span>)
+                        : (file.size > 0 ? formatFileSize(file.size) : '0 Bytes')
+                      }
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1">
                       {new Date(file.lastModified).toLocaleString('pt-BR')}

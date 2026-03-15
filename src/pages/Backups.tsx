@@ -20,7 +20,8 @@ const Backups = () => {
     currentPath,
     navigateToDirectory,
     goToParentDirectory,
-    directories
+    directories,
+    calculateSizes
   } = useRealFtp();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -125,6 +126,7 @@ const Backups = () => {
         onRefresh={refetchFiles}
         downloadFile={downloadFile}
         deleteFile={deleteFile}
+        onCalculateSizes={calculateSizes}
       />
     </div>
   );

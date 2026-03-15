@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useIntegrations } from './useIntegrations';
@@ -183,6 +183,17 @@ export const useRealFtp = () => {
     },
   });
 
+  // Calculate directory sizes on demand
+  const calculateSizes = useCallback(async () => {
+    if (!activeFtpIntegration) return;
+    
+    const realFtpService = new RealFtpService(activeFtpIntegration);
+    const filesWithSizes = await realFtpService.calculateDirectorySizes(currentPath);
+    
+    // Update the cache with size data
+    queryClient.setQueryData(['real-ftp-files', activeFtpIntegration.id, currentPath], filesWithSizes);
+  }, [activeFtpIntegration, currentPath, queryClient]);
+
   return {
     files,
     isLoadingFiles: isLoadingFiles || isLoadingIntegrations,
@@ -197,5 +208,6 @@ export const useRealFtp = () => {
     uploadFile,
     deleteFile,
     refetchFiles,
+    calculateSizes,
   };
 };

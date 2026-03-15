@@ -63,7 +63,7 @@ export class RealFtpService {
           secure: this.config.secure,
           path: path,
           passive: this.config.passive,
-          calculateSizes: true
+          calculateSizes: false
         }
       });
 
@@ -87,6 +87,38 @@ export class RealFtpService {
       
       // Fallback: mostrar estrutura simulada baseada na configuração real
       return this.getFallbackStructure(path);
+    }
+  }
+
+  async calculateDirectorySizes(path: string): Promise<RealFtpFile[]> {
+    console.log('=== Calculating FTP Directory Sizes ===');
+    console.log('Path:', path);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('ftp-list', {
+        body: {
+          host: this.config.host,
+          port: this.config.port,
+          username: this.config.username,
+          password: this.config.password,
+          secure: this.config.secure,
+          path: path,
+          passive: this.config.passive,
+          calculateSizes: true
+        }
+      });
+
+      if (error) {
+        throw new Error(`Failed to calculate sizes: ${error.message}`);
+      }
+
+      return (data.files || []).map((file: any) => ({
+        ...file,
+        lastModified: new Date(file.lastModified || Date.now())
+      }));
+    } catch (error) {
+      console.error('Size calculation error:', error);
+      throw error;
     }
   }
 
