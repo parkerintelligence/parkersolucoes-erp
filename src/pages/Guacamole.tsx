@@ -683,9 +683,6 @@ const Guacamole = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="logs" className="mt-6">
-            <GuacamoleLogs logs={logs} onClearLogs={clearLogs} onRefresh={handleRefreshAll} />
-          </TabsContent>
 
 
         </Tabs>
