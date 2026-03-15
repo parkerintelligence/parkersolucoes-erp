@@ -154,14 +154,8 @@ const Guacamole = () => {
 
       const result = sessionData.result;
       
-      // Log do método de conexão utilizado
-      logInfo('Resposta da conexão recebida', {
-        connectionId: result.connectionId,
-        connectionName: result.connectionName,
-        method: result.method,
-        hasCredentials: result.hasCredentials,
-        warning: result.warning
-      });
+      // Log session for history
+      addSessionLog('servidores-rdp', connection.name, connection.protocol?.toUpperCase(), `Método: ${result.method}`);
 
       // Verificar se a conexão foi bem-sucedida
       if (!result.success || !result.sessionUrl) {
