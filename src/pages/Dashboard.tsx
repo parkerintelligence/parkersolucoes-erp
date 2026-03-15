@@ -225,7 +225,7 @@ const LOGS_PER_PAGE = 5;
 const WEBHOOK_LOGS_PER_PAGE = 5;
 
 const Dashboard = () => {
-  const { integrations, reports, logs, webhookLogs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
+  const { integrations, reports, logs, webhookLogs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, scheduleItems, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
   const [logsPage, setLogsPage] = useState(0);
   const [webhookPage, setWebhookPage] = useState(0);
   const [clearingWebhooks, setClearingWebhooks] = useState(false);
