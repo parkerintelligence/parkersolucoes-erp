@@ -12,30 +12,62 @@ const isTlsCertificateError = (error: unknown) => {
   return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate|CERT/i.test(message);
 };
 
+const normalizeUrlNoTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
+
+const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^https:\/\//i, 'http://');
+
+const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
+
+const buildLocalControllerCandidates = (baseUrl: string, preferSsl: boolean) => {
+  const normalized = normalizeUrlNoTrailingSlash(baseUrl);
+  const parsed = new URL(normalized);
+
+  const createVariant = (protocol: 'http:' | 'https:', port?: string) => {
+    const variant = new URL(normalized);
+    variant.protocol = protocol;
+    if (port !== undefined) {
+      variant.port = port;
+    }
+    return normalizeUrlNoTrailingSlash(variant.toString());
+  };
+
+  const candidates = new Set<string>();
+  const push = (url: string) => {
+    if (url) candidates.add(normalizeUrlNoTrailingSlash(url));
+  };
+
+  // Prefer user-selected protocol first, but always try the opposite protocol too.
+  const preferred = preferSsl ? toHttpsUrl(normalized) : toHttpUrl(normalized);
+  push(preferred);
+  push(preferSsl ? toHttpUrl(preferred) : toHttpsUrl(preferred));
+
+  // Common fallback ports for local UniFi setups when HTTPS cert breaks.
+  const currentPort = parsed.port || (preferSsl ? '443' : '80');
+  if (['443', '8443', '8445'].includes(currentPort)) {
+    push(createVariant('http:', '8080'));
+    push(createVariant('http:', '8880'));
+  }
+
+  return Array.from(candidates);
+};
+
 const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
   const hostname = new URL(url).hostname;
   console.log(`[TLS-BYPASS] Creating insecure client for hostname: ${hostname}`);
-  
-  // Create a fresh client each time – Supabase Edge Functions may GC cached clients
-  const insecureClient = Deno.createHttpClient({
-    certs: [],                              // empty CA store
-    // deno-lint-ignore no-deprecated-deno-api
-  });
 
   try {
-    return await fetch(url, { ...options, client: insecureClient } as any);
-  } catch (err) {
-    // If empty certs didn't work, try dangerouslyIgnoreCertificateErrors
-    console.log(`[TLS-BYPASS] Empty certs failed, trying dangerouslyIgnoreCertificateErrors for ${hostname}`);
-    const insecureClient2 = Deno.createHttpClient({
+    const insecureClient = Deno.createHttpClient({
+      // deno-lint-ignore no-explicit-any
       dangerouslyIgnoreCertificateErrors: [hostname],
-    });
-    return await fetch(url, { ...options, client: insecureClient2 } as any);
+    } as any);
+    return await fetch(url, { ...options, client: insecureClient } as any);
+  } catch (error) {
+    console.error('[TLS-BYPASS] Unable to bypass certificate validation:', error instanceof Error ? error.message : error);
+    throw error;
   }
 };
 
 const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
-  // For HTTPS URLs with self-signed certs, try insecure first if the URL is known to fail
   try {
     return await fetch(url, options);
   } catch (error) {
