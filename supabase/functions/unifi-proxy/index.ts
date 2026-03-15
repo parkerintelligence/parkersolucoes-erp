@@ -9,27 +9,33 @@ const corsHeaders = {
 
 const isTlsCertificateError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate/i.test(message);
+  return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate|CERT/i.test(message);
 };
 
-const insecureClientCache = new Map<string, Deno.HttpClient>();
+const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
+  const hostname = new URL(url).hostname;
+  console.log(`[TLS-BYPASS] Creating insecure client for hostname: ${hostname}`);
+  
+  // Create a fresh client each time – Supabase Edge Functions may GC cached clients
+  const insecureClient = Deno.createHttpClient({
+    certs: [],                              // empty CA store
+    // deno-lint-ignore no-deprecated-deno-api
+  });
 
-const getInsecureClient = (hostPattern: string) => {
-  let cached = insecureClientCache.get(hostPattern);
-
-  if (!cached) {
-    cached = Deno.createHttpClient({
-      dangerouslyIgnoreCertificateErrors: [hostPattern],
+  try {
+    return await fetch(url, { ...options, client: insecureClient } as any);
+  } catch (err) {
+    // If empty certs didn't work, try dangerouslyIgnoreCertificateErrors
+    console.log(`[TLS-BYPASS] Empty certs failed, trying dangerouslyIgnoreCertificateErrors for ${hostname}`);
+    const insecureClient2 = Deno.createHttpClient({
+      dangerouslyIgnoreCertificateErrors: [hostname],
     });
-    insecureClientCache.set(hostPattern, cached);
+    return await fetch(url, { ...options, client: insecureClient2 } as any);
   }
-
-  return cached;
 };
-
-const toHttpUrl = (url: string) => url.replace(/^https:\/\//i, 'http://');
 
 const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
+  // For HTTPS URLs with self-signed certs, try insecure first if the URL is known to fail
   try {
     return await fetch(url, options);
   } catch (error) {
@@ -37,24 +43,13 @@ const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allo
       throw error;
     }
 
-    const parsedUrl = new URL(url);
-    const hostCandidates = Array.from(new Set([parsedUrl.hostname, parsedUrl.host, '*'].filter(Boolean)));
-    let lastError: unknown = error;
-
-    for (const hostCandidate of hostCandidates) {
-      try {
-        console.warn(`TLS certificate issue for ${parsedUrl.hostname}. Retrying with certificate validation disabled (${hostCandidate}).`);
-        const insecureClient = getInsecureClient(hostCandidate);
-        return await fetch(url, {
-          ...options,
-          client: insecureClient,
-        } as RequestInit & { client: Deno.HttpClient });
-      } catch (retryError) {
-        lastError = retryError;
-      }
+    console.warn(`[TLS-FALLBACK] Certificate error for ${url}, retrying with TLS bypass...`);
+    try {
+      return await fetchIgnoringCerts(url, options);
+    } catch (retryError) {
+      console.error(`[TLS-FALLBACK] Insecure fetch also failed:`, retryError instanceof Error ? retryError.message : retryError);
+      throw retryError;
     }
-
-    throw lastError;
   }
 };
 
@@ -265,13 +260,20 @@ serve(async (req) => {
         const httpsError = connError instanceof Error ? connError.message : String(connError);
         console.error('Connection error:', httpsError);
 
-        if (!activeBaseApiUrl.startsWith('https://')) {
-          throw new Error(`Falha ao conectar na controladora: ${httpsError}. Verifique se a URL ${activeBaseApiUrl} está acessível.`);
+        // Only try HTTP fallback if using standard HTTPS port (443)
+        // Custom ports like 8443, 8445 always require TLS
+        const parsedUrl = new URL(activeBaseApiUrl);
+        const port = parsedUrl.port || '443';
+        const isCustomPort = port !== '443' && port !== '80';
+
+        if (!activeBaseApiUrl.startsWith('https://') || isCustomPort) {
+          throw new Error(`Falha ao conectar na controladora (${activeBaseApiUrl}): ${httpsError}. Verifique se a URL está acessível e as credenciais estão corretas.`);
         }
 
-        const httpBaseApiUrl = toHttpUrl(activeBaseApiUrl);
+        // Only try HTTP fallback for standard port 443 → 80
+        const httpBaseApiUrl = activeBaseApiUrl.replace(/^https:\/\//i, 'http://');
         const httpLoginUrl = `${httpBaseApiUrl}/api/auth/login`;
-        console.warn(`HTTPS falhou, tentando fallback HTTP: ${httpLoginUrl}`);
+        console.warn(`HTTPS (port 443) falhou, tentando fallback HTTP: ${httpLoginUrl}`);
 
         try {
           loginResponse = await executeLogin(httpLoginUrl, false);
