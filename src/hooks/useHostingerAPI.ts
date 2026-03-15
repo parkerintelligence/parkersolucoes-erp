@@ -378,6 +378,8 @@ const useHostingerActions = () => {
 
   return {
     restartVPS,
+    startVPS,
+    stopVPS,
     createSnapshot,
   };
 };
