@@ -307,32 +307,43 @@ const VPSCard = ({ vps, index, integrationId, onRestart, onStart, onStop, onSnap
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-1.5 pt-1">
+              {/* Actions - icon-only, discrete */}
+              <div className="flex items-center justify-end gap-0.5 pt-1 border-t border-border/50">
                 {isOnline ? (
-                  <Button onClick={onStop} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5 transition-colors">
-                    {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Square className="h-3 w-3 mr-1" />}
-                    Parar
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={onStop} variant="ghost" size="sm" disabled={actionPending} className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive">
+                        {actionPending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Square className="h-3 w-3" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[10px]">Parar VPS</TooltipContent>
+                  </Tooltip>
                 ) : (
-                  <Button onClick={onStart} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-emerald-500/50 hover:text-emerald-500 hover:bg-emerald-500/5 transition-colors">
-                    {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Play className="h-3 w-3 mr-1" />}
-                    Iniciar
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={onStart} variant="ghost" size="sm" disabled={actionPending} className="h-5 w-5 p-0 text-muted-foreground hover:text-emerald-500">
+                        {actionPending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[10px]">Iniciar VPS</TooltipContent>
+                  </Tooltip>
                 )}
-                <Button onClick={onRestart} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-amber-500/50 hover:text-amber-500 hover:bg-amber-500/5 transition-colors">
-                  {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
-                  Reiniciar
-                </Button>
-                <Button
-                  onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')}
-                  variant="outline"
-                  size="sm"
-                  className="h-6 text-[10px] hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
-                >
-                  <Camera className="h-3 w-3 mr-1" />
-                  Snapshot
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={onRestart} variant="ghost" size="sm" disabled={actionPending} className="h-5 w-5 p-0 text-muted-foreground hover:text-amber-500">
+                      {actionPending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[10px]">Reiniciar VPS</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')} variant="ghost" size="sm" className="h-5 w-5 p-0 text-muted-foreground hover:text-primary">
+                      <Camera className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[10px]">Snapshot</TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
