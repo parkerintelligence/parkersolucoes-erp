@@ -566,8 +566,20 @@ export const useUniFiAPI = () => {
   const useUniFiSiteManagerSites = (integrationId: string, hostId?: string) => {
     return useQuery({
       queryKey: ['unifi-site-manager-sites', integrationId, hostId],
-      queryFn: () => makeUniFiRequest(`/v1/hosts/${hostId}/sites`, 'GET', integrationId),
-      enabled: !!integrationId && !!hostId,
+      queryFn: async () => {
+        const response = await makeUniFiRequest('/v1/sites', 'GET', integrationId);
+        const sites = Array.isArray(response?.data) ? response.data : [];
+
+        if (!hostId) return { data: sites };
+
+        const filtered = sites.filter((site: any) => {
+          const controllerId = site.controllerId || site.controller_id || site.hostId || site.host_id;
+          return controllerId === hostId;
+        });
+
+        return { data: filtered };
+      },
+      enabled: !!integrationId,
       staleTime: 2 * 60000, // 2 minutes
       retry: 2,
     });
