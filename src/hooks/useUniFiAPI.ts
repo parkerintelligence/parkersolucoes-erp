@@ -313,8 +313,31 @@ export const useUniFiAPI = () => {
         console.log('🔍 Tentando controladora local sites...');
         try {
           const localResponse = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
-          console.log('✅ Usando controladora local sites');
-          return localResponse;
+          const rawSites = Array.isArray(localResponse?.data)
+            ? localResponse.data
+            : (Array.isArray(localResponse) ? localResponse : []);
+
+          const normalizedLocalSites = rawSites
+            .map((site: any) => {
+              const siteName = String(site?.name || site?.site || site?._id || site?.id || '').trim();
+              if (!siteName) return null;
+
+              return {
+                ...site,
+                id: siteName,
+                name: siteName,
+                description: site?.desc || site?.description || siteName,
+                role: site?.role || 'admin',
+                newAlarmCount: Number(site?.num_new_alarms || site?.newAlarmCount || 0),
+                controllerName: 'Controladora Local',
+                controllerId: 'local-controller',
+                controllerState: 'connected',
+              };
+            })
+            .filter(Boolean);
+
+          console.log('✅ Usando controladora local sites', { total: normalizedLocalSites.length });
+          return { data: normalizedLocalSites };
         } catch (error) {
           console.error('❌ Controladora local sites também falhou:', error);
           return { data: [] };
