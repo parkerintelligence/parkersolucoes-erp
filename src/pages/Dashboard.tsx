@@ -8,7 +8,7 @@ import {
   Server, Wifi, Router, ShieldCheck, Send, SendHorizonal,
   AlertTriangle, CheckCircle2, XCircle, Clock, HardDrive,
   Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight,
-  Webhook, Trash2
+  Webhook, Trash2, Cpu, Camera
 } from 'lucide-react';
 import { MikrotikDashboardSummary } from '@/components/mikrotik/MikrotikDashboardSummary';
 import { Calendar } from 'lucide-react';
