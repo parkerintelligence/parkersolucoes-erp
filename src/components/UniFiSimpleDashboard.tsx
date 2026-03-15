@@ -18,8 +18,11 @@ import {
   Globe,
   CheckCircle2,
   XCircle,
-  Signal
+  Signal,
+  Cloud,
+  Server
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
@@ -52,6 +55,11 @@ const UniFiSimpleDashboard = () => {
   } = useUniFiAPI();
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
+
+  // Determine integration mode
+  const currentIntegration = unifiIntegrations.find(i => i.id === selectedIntegration);
+  const isLocalController = Boolean(currentIntegration?.base_url && currentIntegration?.username);
+  const integrationMode = isLocalController ? 'local' : 'site-manager';
 
   useEffect(() => {
     if (unifiIntegrations.length > 0 && !selectedIntegration) {
@@ -124,6 +132,21 @@ const UniFiSimpleDashboard = () => {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               — {selectedSite.description || selectedSite.name}
             </span>
+          )}
+          {currentIntegration && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className={`text-[10px] h-5 gap-1 cursor-default ${isLocalController ? 'border-orange-500/40 text-orange-400' : 'border-blue-500/40 text-blue-400'}`}>
+                  {isLocalController ? <Server className="h-2.5 w-2.5" /> : <Cloud className="h-2.5 w-2.5" />}
+                  {isLocalController ? 'Local' : 'Cloud'}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-xs">
+                {isLocalController
+                  ? `Controladora Local — ${currentIntegration.base_url}`
+                  : 'UniFi Site Manager (unifi.ui.com) — via API Token'}
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
         <div className="flex items-center gap-2">
