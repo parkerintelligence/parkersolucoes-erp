@@ -532,20 +532,30 @@ serve(async (req) => {
           };
         } else {
           finalResponse = {
-            data: hosts.map((host: any) => ({
-              id: host.id || host.hardware_id,
-              hardwareId: host.hardware_id,
-              type: host.reported_state?.host_type === 0 ? 'network-server' : 'unknown',
-              ipAddress: host.reported_state?.ipAddrs?.[0] || 'unknown',
-              owner: host.owner || false,
-              isBlocked: host.is_blocked || false,
-              registrationTime: host.registration_time,
-              lastConnectionStateChange: host.last_connection_state_change,
-              userData: host.user_data,
-              reportedState: host.reported_state,
-              sitesCount: 0, // Will be populated later
-              isValid: true
-            }))
+            data: hosts.map((host: any) => {
+              // API can return camelCase or snake_case depending on version
+              const reportedState = host.reportedState || host.reported_state;
+              const userData = host.userData || host.user_data;
+              const hardwareId = host.hardwareId || host.hardware_id;
+              const registrationTime = host.registrationTime || host.registration_time;
+              const lastConnectionStateChange = host.lastConnectionStateChange || host.last_connection_state_change;
+              const isBlocked = host.isBlocked ?? host.is_blocked ?? false;
+              
+              return {
+                id: host.id || hardwareId,
+                hardwareId: hardwareId,
+                type: reportedState?.host_type === 0 ? 'network-server' : (host.type || 'unknown'),
+                ipAddress: reportedState?.ipAddrs?.[0] || host.ipAddress || host.ip_address || 'unknown',
+                owner: host.owner || false,
+                isBlocked: isBlocked,
+                registrationTime: registrationTime,
+                lastConnectionStateChange: lastConnectionStateChange,
+                userData: userData,
+                reportedState: reportedState,
+                sitesCount: 0,
+                isValid: true
+              };
+            })
           };
           
           console.log('Processed hosts:', finalResponse.data.map(h => ({
