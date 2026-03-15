@@ -435,7 +435,7 @@ export const useUniFiAPI = () => {
     return useQuery({
       queryKey: ['unifi-stats', integrationId, hostId, siteId],
       queryFn: async () => {
-        if (!hostId) return null;
+        if (!siteId) return null;
         
         const deviceEndpoint = siteId ? `/api/s/${siteId}/stat/device` : '/api/stat/device';
         const clientEndpoint = siteId ? `/api/s/${siteId}/stat/sta` : '/api/stat/sta';
