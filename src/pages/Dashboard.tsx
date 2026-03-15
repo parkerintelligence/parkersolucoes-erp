@@ -8,7 +8,7 @@ import {
   Server, Wifi, Router, ShieldCheck, Send, SendHorizonal,
   AlertTriangle, CheckCircle2, XCircle, Clock, HardDrive,
   Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight,
-  Webhook, Trash2
+  Webhook, Trash2, Cpu, Camera
 } from 'lucide-react';
 import { MikrotikDashboardSummary } from '@/components/mikrotik/MikrotikDashboardSummary';
 import { Calendar } from 'lucide-react';
@@ -87,6 +87,26 @@ const useDashboardData = () => {
         .limit(10);
       return data || [];
     },
+    staleTime: 60000,
+  });
+
+  // Hostinger VPS
+  const hostingerIntegration = integrations.data?.find((i: any) => i.type === 'hostinger' && i.is_active);
+  const hostingerVPS = useQuery({
+    queryKey: ['dashboard-hostinger-vps', hostingerIntegration?.id],
+    queryFn: async () => {
+      if (!hostingerIntegration) return [];
+      const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
+        body: {
+          integration_id: hostingerIntegration.id,
+          endpoint: '/virtual-machines',
+          method: 'GET'
+        }
+      });
+      if (error) return [];
+      return data?.data || [];
+    },
+    enabled: !!hostingerIntegration,
     staleTime: 60000,
   });
 
@@ -201,6 +221,8 @@ const useDashboardData = () => {
     zabbixProblems: (zabbixProblems.data as any)?.active || [],
     zabbixDisasters: (zabbixProblems.data as any)?.disasters || [],
     scheduleItems: scheduleItems.data || [],
+    hostingerVPS: hostingerVPS.data || [],
+    hasHostinger: !!hostingerIntegration,
     hasBacula: !!baculaIntegration,
     hasZabbix: !!zabbixIntegration,
     hasFtp: !!ftpIntegration,
@@ -214,6 +236,7 @@ const useDashboardData = () => {
       baculaJobs.refetch();
       zabbixProblems.refetch();
       scheduleItems.refetch();
+      hostingerVPS.refetch();
     }
   };
 };
@@ -223,7 +246,7 @@ const LOGS_PER_PAGE = 5;
 const WEBHOOK_LOGS_PER_PAGE = 5;
 
 const Dashboard = () => {
-  const { integrations, reports, logs, webhookLogs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, scheduleItems, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
+  const { integrations, reports, logs, webhookLogs, ftpFiles, baculaErrors, zabbixProblems, zabbixDisasters, scheduleItems, hostingerVPS, hasHostinger, hasBacula, hasZabbix, hasFtp, isLoading, refetchAll } = useDashboardData();
   const [logsPage, setLogsPage] = useState(0);
   const [webhookPage, setWebhookPage] = useState(0);
   const [clearingWebhooks, setClearingWebhooks] = useState(false);
@@ -527,6 +550,91 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Hostinger VPS Status */}
+      {hasHostinger && hostingerVPS.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Server className="h-4 w-4" />
+            Status das VMs Hostinger
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {hostingerVPS.map((vps: any) => {
+              const safeValue = (value: any, fallback: any = 'N/A') => {
+                if (typeof value === 'object' && value !== null) {
+                  if (Array.isArray(value) && value.length > 0) {
+                    const first = value[0];
+                    if (typeof first === 'object' && first.address) return first.address;
+                    return first;
+                  }
+                  if (value.address) return value.address;
+                  if (value.name) return value.name;
+                  return fallback;
+                }
+                return value !== undefined && value !== null ? value : fallback;
+              };
+
+              const status = vps.state || vps.status || 'unknown';
+              const isOnline = status === 'running' || status === 'active';
+              const hostname = safeValue(vps.hostname) || safeValue(vps.name) || 'VPS';
+              const ip = safeValue(vps.ipv4);
+              const cpus = safeValue(vps.cpus || vps.cpu, 0);
+              const memoryMb = safeValue(vps.memory, 0);
+              const diskGb = safeValue(vps.disk, 0);
+              const memoryLabel = memoryMb >= 1024 ? `${(memoryMb / 1024).toFixed(0)}GB` : `${memoryMb}MB`;
+              const diskLabel = diskGb >= 1024 ? `${(diskGb / 1024).toFixed(1)}TB` : `${diskGb}GB`;
+
+              return (
+                <Card key={vps.id} className={`border ${isOnline ? 'border-emerald-600/30 bg-emerald-950/10' : 'border-destructive/30 bg-destructive/5'}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="relative">
+                          <Server className="h-4 w-4 text-primary" />
+                          <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{hostname}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{ip}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 ${isOnline ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-destructive/10 text-destructive border-destructive/30'}`}>
+                        {isOnline ? 'Online' : 'Offline'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-muted/50 rounded px-2 py-1.5 border border-border/50">
+                        <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                          <Cpu className="h-2.5 w-2.5 text-primary" />
+                          <span className="text-[8px] text-muted-foreground uppercase">CPU</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-foreground">{cpus} cores</p>
+                      </div>
+                      <div className="bg-muted/50 rounded px-2 py-1.5 border border-border/50">
+                        <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                          <Zap className="h-2.5 w-2.5 text-purple-500" />
+                          <span className="text-[8px] text-muted-foreground uppercase">RAM</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-foreground">{memoryLabel}</p>
+                      </div>
+                      <div className="bg-muted/50 rounded px-2 py-1.5 border border-border/50">
+                        <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                          <HardDrive className="h-2.5 w-2.5 text-cyan-500" />
+                          <span className="text-[8px] text-muted-foreground uppercase">Disco</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-foreground">{diskLabel}</p>
+                      </div>
+                    </div>
+                    {vps.region && (
+                      <p className="text-[10px] text-muted-foreground mt-2">📍 {safeValue(vps.region)}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Reports Status */}
       <div>
