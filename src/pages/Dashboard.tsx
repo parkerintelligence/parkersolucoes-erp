@@ -231,21 +231,6 @@ const Dashboard = () => {
 
   // --- Compute stats ---
   const activeIntegrations = integrations.filter((i: any) => i.is_active);
-  const integrationsByType = integrations.reduce((acc: Record<string, any[]>, i: any) => {
-    acc[i.type] = acc[i.type] || [];
-    acc[i.type].push(i);
-    return acc;
-  }, {});
-
-  const mikrotikConns = integrationsByType['mikrotik'] || [];
-  const ftpConns = integrationsByType['ftp'] || [];
-  const hostingerConns = integrationsByType['hostinger'] || [];
-  const baculaConns = integrationsByType['bacula'] || [];
-  const evolutionConns = integrationsByType['evolution_api'] || [];
-  const chatwootConns = integrationsByType['chatwoot'] || [];
-  const zabbixConns = integrationsByType['zabbix'] || [];
-  const unifiConns = integrationsByType['unifi'] || [];
-  const glpiConns = integrationsByType['glpi'] || [];
 
   // Reports stats
   const activeReports = reports.filter((r: any) => r.is_active);
