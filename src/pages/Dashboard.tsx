@@ -90,6 +90,26 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
+  // Hostinger VPS
+  const hostingerIntegration = integrations.data?.find((i: any) => i.type === 'hostinger' && i.is_active);
+  const hostingerVPS = useQuery({
+    queryKey: ['dashboard-hostinger-vps', hostingerIntegration?.id],
+    queryFn: async () => {
+      if (!hostingerIntegration) return [];
+      const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
+        body: {
+          integration_id: hostingerIntegration.id,
+          endpoint: '/virtual-machines',
+          method: 'GET'
+        }
+      });
+      if (error) return [];
+      return data?.data || [];
+    },
+    enabled: !!hostingerIntegration,
+    staleTime: 60000,
+  });
+
 
   const ftpIntegration = integrations.data?.find((i: any) => i.type === 'ftp' && i.is_active);
   const ftpFiles = useQuery({
