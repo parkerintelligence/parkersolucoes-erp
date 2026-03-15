@@ -455,10 +455,10 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                       {/* Connection rows */}
                       {group.connections.map(conn => (
                         <TableRow key={conn.id} className="border-border/50 hover:bg-muted/20">
-                          <TableCell className="py-1 pl-8">
+                          <TableCell className="py-1.5 pl-8">
                             <span className="text-xs font-medium text-foreground">{conn.name}</span>
-                            {conn.alias && <span className="text-muted-foreground text-[10px] ml-1">({conn.alias})</span>}
-                            {conn.hostname && <span className="text-[10px] text-muted-foreground ml-1">· {conn.hostname}</span>}
+                            {conn.alias && <span className="text-muted-foreground text-[11px] ml-1">({conn.alias})</span>}
+                            {conn.hostname && <span className="text-[11px] text-muted-foreground ml-1">· {conn.hostname}</span>}
                           </TableCell>
                           <TableCell className="py-1">
                             <div className="flex items-center gap-0.5">
