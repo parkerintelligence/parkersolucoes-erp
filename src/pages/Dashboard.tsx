@@ -10,6 +10,7 @@ import {
   Activity, Database, RefreshCw, BarChart3, Zap, ChevronLeft, ChevronRight,
   Webhook, Trash2
 } from 'lucide-react';
+import { MikrotikDashboardSummary } from '@/components/mikrotik/MikrotikDashboardSummary';
 import { Button } from '@/components/ui/button';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
