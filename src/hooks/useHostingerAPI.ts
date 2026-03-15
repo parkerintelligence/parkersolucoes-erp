@@ -222,57 +222,53 @@ const useHostingerActions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const restartVPS = useMutation({
-    mutationFn: async ({ integrationId, vpsId }: { integrationId: string; vpsId: string }) => {
-      console.log('🔄 Iniciando restart do VPS:', vpsId);
-      
-      const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
-        body: {
-          integration_id: integrationId,
-          endpoint: `/virtual-machines/${vpsId}/restart`,
-          method: 'POST'
+  const createVPSAction = (actionName: string, endpoint: string, successTitle: string, errorTitle: string) => {
+    return useMutation({
+      mutationFn: async ({ integrationId, vpsId }: { integrationId: string; vpsId: string }) => {
+        console.log(`🔄 Iniciando ${actionName} do VPS:`, vpsId);
+        
+        const { data, error } = await supabase.functions.invoke('hostinger-proxy', {
+          body: {
+            integration_id: integrationId,
+            endpoint: `/virtual-machines/${vpsId}/${endpoint}`,
+            method: 'POST'
+          }
+        });
+
+        if (error) {
+          console.error(`❌ Erro no ${actionName}:`, error);
+          throw error;
         }
-      });
+        
+        if (data?.success === false) {
+          throw new Error(data?.message || `Falha na operação de ${actionName}`);
+        }
 
-      console.log('📡 Resposta da API de restart:', { data, error, vpsId });
+        return data;
+      },
+      onSuccess: (data, variables) => {
+        const message = data?.data?.message || data?.message || `VPS ${actionName} com sucesso!`;
+        toast({
+          title: successTitle,
+          description: `${message} - VPS ID: ${variables.vpsId}`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['hostinger-vps'] });
+        queryClient.invalidateQueries({ queryKey: ['hostinger-vps-metrics'] });
+      },
+      onError: (error: any, variables) => {
+        const errorMessage = error?.message || `Erro desconhecido ao ${actionName} VPS`;
+        toast({
+          title: errorTitle,
+          description: `${errorMessage} - VPS ID: ${variables.vpsId}`,
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
-      if (error) {
-        console.error('❌ Erro no restart:', error);
-        throw error;
-      }
-      
-      // Verificar se a operação foi bem-sucedida
-      if (data?.success === false) {
-        throw new Error(data?.message || 'Falha na operação de restart');
-      }
-
-      return data;
-    },
-    onSuccess: (data, variables) => {
-      console.log('✅ Restart bem-sucedido:', data);
-      
-      // Feedback mais detalhado baseado na resposta da API
-      const message = data?.data?.message || data?.message || 'VPS reiniciado com sucesso!';
-      
-      toast({
-        title: "Restart Iniciado",
-        description: `${message} - VPS ID: ${variables.vpsId}`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['hostinger-vps'] });
-      queryClient.invalidateQueries({ queryKey: ['hostinger-vps-metrics'] });
-    },
-    onError: (error: any, variables) => {
-      console.error('❌ Erro no restart:', error);
-      
-      const errorMessage = error?.message || 'Erro desconhecido ao reiniciar VPS';
-      
-      toast({
-        title: "Erro no Restart",
-        description: `${errorMessage} - VPS ID: ${variables.vpsId}`,
-        variant: "destructive",
-      });
-    },
-  });
+  const restartVPS = createVPSAction('restart', 'restart', 'Restart Iniciado', 'Erro no Restart');
+  const startVPS = createVPSAction('start', 'start', 'VPS Iniciado', 'Erro ao Iniciar');
+  const stopVPS = createVPSAction('stop', 'stop', 'VPS Parado', 'Erro ao Parar');
 
   const createSnapshot = useMutation({
     mutationFn: async ({ 
@@ -382,6 +378,8 @@ const useHostingerActions = () => {
 
   return {
     restartVPS,
+    startVPS,
+    stopVPS,
     createSnapshot,
   };
 };

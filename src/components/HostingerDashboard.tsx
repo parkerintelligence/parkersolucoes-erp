@@ -7,14 +7,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
-import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3 } from 'lucide-react';
+import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3, Play, Square } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export const HostingerDashboard = () => {
   const { toast } = useToast();
   const { isMaster } = useAuth();
   const { data: integrations, isLoading: integrationsLoading } = useHostingerIntegrations();
-  const { restartVPS, createSnapshot } = useHostingerActions();
+  const { restartVPS, startVPS, stopVPS, createSnapshot } = useHostingerActions();
   const [selectedIntegration, setSelectedIntegration] = useState<string>('');
   const [showMasterPasswordDialog, setShowMasterPasswordDialog] = useState(false);
   const [pendingRestartVpsId, setPendingRestartVpsId] = useState<string | null>(null);
@@ -28,20 +28,23 @@ export const HostingerDashboard = () => {
     }
   }, [integrations, selectedIntegration]);
 
-  const handleRestart = (vpsId: string) => {
+  const handleVPSAction = (vpsId: string, action: 'restart' | 'start' | 'stop') => {
     if (!isMaster) {
-      toast({ title: "Acesso Negado", description: "Apenas usuários master podem reiniciar VPS", variant: "destructive" });
+      toast({ title: "Acesso Negado", description: "Apenas usuários master podem gerenciar VPS", variant: "destructive" });
       return;
     }
-    setPendingRestartVpsId(vpsId);
+    setPendingRestartVpsId(`${action}:${vpsId}`);
     setShowMasterPasswordDialog(true);
   };
 
   const handleMasterPasswordSuccess = async () => {
     if (!pendingRestartVpsId) return;
+    const [action, vpsId] = pendingRestartVpsId.split(':');
     try {
-      await restartVPS.mutateAsync({ integrationId: selectedIntegration, vpsId: pendingRestartVpsId });
-      setTimeout(() => refetchVPS(), 2000);
+      const mutationMap = { restart: restartVPS, start: startVPS, stop: stopVPS };
+      const mutation = mutationMap[action as keyof typeof mutationMap];
+      await mutation.mutateAsync({ integrationId: selectedIntegration, vpsId });
+      setTimeout(() => refetchVPS(), 3000);
     } finally {
       setPendingRestartVpsId(null);
     }
@@ -134,9 +137,11 @@ export const HostingerDashboard = () => {
               vps={vps}
               index={index}
               integrationId={selectedIntegration}
-              onRestart={() => handleRestart(vps.id)}
+              onRestart={() => handleVPSAction(vps.id, 'restart')}
+              onStart={() => handleVPSAction(vps.id, 'start')}
+              onStop={() => handleVPSAction(vps.id, 'stop')}
               onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)}
-              restarting={restartVPS.isPending}
+              actionPending={restartVPS.isPending || startVPS.isPending || stopVPS.isPending}
               snapshotting={createSnapshot.isPending}
             />
           ))}
@@ -147,7 +152,7 @@ export const HostingerDashboard = () => {
         open={showMasterPasswordDialog}
         onOpenChange={setShowMasterPasswordDialog}
         onSuccess={handleMasterPasswordSuccess}
-        title="Autorização para Reiniciar VPS"
+        title="Autorização para Gerenciar VPS"
         description="Confirme sua senha master para continuar:"
       />
     </div>
@@ -159,12 +164,14 @@ interface VPSCardProps {
   index: number;
   integrationId: string;
   onRestart: () => void;
+  onStart: () => void;
+  onStop: () => void;
   onSnapshot: () => void;
-  restarting: boolean;
+  actionPending: boolean;
   snapshotting: boolean;
 }
 
-const VPSCard = ({ vps, index, integrationId, onRestart, onSnapshot, restarting, snapshotting }: VPSCardProps) => {
+const VPSCard = ({ vps, index, integrationId, onRestart, onStart, onStop, onSnapshot, actionPending, snapshotting }: VPSCardProps) => {
   const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
       if (Array.isArray(value) && value.length > 0) {
@@ -301,16 +308,27 @@ const VPSCard = ({ vps, index, integrationId, onRestart, onSnapshot, restarting,
               )}
 
               {/* Actions */}
-              <div className="flex gap-1.5 pt-1">
-                <Button onClick={onRestart} variant="outline" size="sm" disabled={restarting} className="flex-1 h-6 text-[10px] hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5 transition-colors">
-                  {restarting ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
+              <div className="grid grid-cols-2 gap-1.5 pt-1">
+                {isOnline ? (
+                  <Button onClick={onStop} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-destructive/50 hover:text-destructive hover:bg-destructive/5 transition-colors">
+                    {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Square className="h-3 w-3 mr-1" />}
+                    Parar
+                  </Button>
+                ) : (
+                  <Button onClick={onStart} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-emerald-500/50 hover:text-emerald-500 hover:bg-emerald-500/5 transition-colors">
+                    {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Play className="h-3 w-3 mr-1" />}
+                    Iniciar
+                  </Button>
+                )}
+                <Button onClick={onRestart} variant="outline" size="sm" disabled={actionPending} className="h-6 text-[10px] hover:border-amber-500/50 hover:text-amber-500 hover:bg-amber-500/5 transition-colors">
+                  {actionPending ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
                   Reiniciar
                 </Button>
                 <Button
                   onClick={() => window.open('https://hpanel.hostinger.com.br/hosting/vps-list', '_blank')}
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-6 text-[10px] hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
+                  className="h-6 text-[10px] hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
                 >
                   <Camera className="h-3 w-3 mr-1" />
                   Snapshot
