@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileText, RefreshCw, CheckCircle, XCircle, Clock, MessageCircle, AlertTriangle, Calendar, Eye, Trash2, Zap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -100,8 +100,8 @@ export const ReportsLogsPanel = () => {
   };
 
   return (
+    <TooltipProvider>
     <div className="space-y-2">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">
@@ -302,5 +302,6 @@ export const ReportsLogsPanel = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 };
