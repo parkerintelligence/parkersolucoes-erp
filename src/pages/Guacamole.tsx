@@ -65,7 +65,7 @@ const Guacamole = () => {
     integration
   } = useGuacamoleAPI();
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [connectionDialog, setConnectionDialog] = useState<{
     open: boolean;
     connection?: GuacamoleConnection | null;
