@@ -498,7 +498,7 @@ export const useUniFiAPI = () => {
 
   // Block/Unblock client
   const toggleClientBlock = useMutation({
-    mutationFn: async ({ integrationId, hostId, clientId, block, siteId }: { integrationId: string, hostId: string, clientId: string, block: boolean, siteId?: string }) => {
+    mutationFn: async ({ integrationId, hostId, clientId, block, siteId }: { integrationId: string, hostId?: string, clientId: string, block: boolean, siteId?: string }) => {
       const endpoint = siteId ? `/api/s/${siteId}/cmd/stamgr` : '/api/cmd/stamgr';
       return makeUniFiRequest(endpoint, 'POST', integrationId, {
         cmd: block ? 'block-sta' : 'unblock-sta',
