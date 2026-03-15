@@ -463,6 +463,8 @@ export const HostingerDNS = () => {
         open={deleteDialog.open}
         onOpenChange={(open) => !open && setDeleteDialog({ open: false })}
         onConfirm={handleDeleteRecord}
+        itemName={`${deleteDialog.record?.type} "${deleteDialog.record?.name || '@'}"`}
+        itemType="registro DNS"
         title="Remover Registro DNS"
         description={`Deseja remover o registro ${deleteDialog.record?.type} "${deleteDialog.record?.name || '@'}"?`}
       />
