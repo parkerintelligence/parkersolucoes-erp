@@ -500,7 +500,7 @@ const Dashboard = () => {
             {scheduleItems.length === 0 ? (
               <div className="flex items-center gap-2 py-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
-                <p className="text-xs text-green-300">Nenhum vencimento nos próximos 15 dias</p>
+                <p className="text-xs text-green-300">Nenhum vencimento pendente ou vencido</p>
               </div>
             ) : (
               <div className="space-y-1.5 mt-1">
