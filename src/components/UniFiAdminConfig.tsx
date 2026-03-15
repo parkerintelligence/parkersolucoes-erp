@@ -45,10 +45,16 @@ const UniFiAdminConfig = () => {
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi') || [];
 
-  const normalizeBaseUrl = (value: string) => {
+  const normalizeBaseUrl = (value: string, useSsl: boolean) => {
     const trimmed = value.trim();
     if (!trimmed) return '';
-    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+    if (/^https?:\/\//i.test(trimmed)) {
+      if (useSsl) return trimmed.replace(/^http:\/\//i, 'https://');
+      return trimmed.replace(/^https:\/\//i, 'http://');
+    }
+
+    return `${useSsl ? 'https' : 'http'}://${trimmed}`;
   };
 
   const resetForm = () => {
