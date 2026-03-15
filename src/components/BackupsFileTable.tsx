@@ -189,7 +189,11 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
                     </TableCell>
                     <TableCell className="text-xs font-medium text-foreground py-1">{file.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1">
-                      {file.size > 0 ? formatFileSize(file.size) : (file.isDirectory ? 'Calculando...' : '0 Bytes')}
+                      {file.isDirectory
+                        ? (file.size > 0 ? formatFileSize(file.size) : <span className="text-muted-foreground/50">—</span>)
+                        : (file.size > 0 ? formatFileSize(file.size) : '0 Bytes')
+                      }
+                    </TableCell>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1">
                       {new Date(file.lastModified).toLocaleString('pt-BR')}
