@@ -13,7 +13,8 @@ import { useActionPlan } from "@/hooks/useActionPlan";
 export default function ActionPlan() {
   const navigate = useNavigate();
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
-  const { boards, columns, cards, cardItems, isLoading, createBoard, deleteBoard } = useActionPlan();
+  const [editingBoard, setEditingBoard] = useState<any>(null);
+  const { boards, columns, cards, cardItems, isLoading, createBoard, updateBoard, deleteBoard } = useActionPlan();
   const { confirm } = useConfirmDialog();
 
   const handleCreateBoard = async (data: any) => {
