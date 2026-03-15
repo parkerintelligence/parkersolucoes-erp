@@ -15,6 +15,7 @@ export const useGuacamoleLogs = () => {
       dataSource?: string;
       status?: number;
       details?: any;
+      source?: 'guacamole' | 'rustdesk';
     }
   ) => {
     const newLog: GuacamoleLogEntry = {
