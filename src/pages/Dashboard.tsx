@@ -57,6 +57,20 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
+  // Webhook logs (last 50)
+  const webhookLogs = useQuery({
+    queryKey: ['dashboard-webhook-logs'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('webhook_logs')
+        .select('*, webhooks(name)')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      return data || [];
+    },
+    staleTime: 60000,
+  });
+
   // FTP backup directories (root level)
   const ftpIntegration = integrations.data?.find((i: any) => i.type === 'ftp' && i.is_active);
   const ftpFiles = useQuery({
