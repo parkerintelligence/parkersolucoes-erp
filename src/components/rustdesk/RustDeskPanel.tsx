@@ -502,26 +502,26 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                               <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="py-1 text-right">
+                          <TableCell className="py-1.5 text-right">
                             <div className="flex justify-end gap-0.5">
                               <Button
                                 size="sm"
                                 onClick={() => handleConnect(conn)}
-                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-white text-[11px]"
+                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-white text-xs"
                               >
-                                <ExternalLink className="h-2.5 w-2.5 mr-0.5" />
+                                <ExternalLink className="h-3 w-3 mr-0.5" />
                                 Conectar
                               </Button>
                               <Button variant="outline" size="sm"
                                 className="h-6 w-6 p-0"
                                 onClick={() => handleEdit(conn)}>
-                                <Edit className="h-2.5 w-2.5" />
+                                <Edit className="h-3 w-3" />
                               </Button>
                               <Button variant="outline" size="sm"
                                 className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                                 onClick={() => handleDelete(conn.id)}
                                 disabled={deleteMutation.isPending}>
-                                <Trash2 className="h-2.5 w-2.5" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
