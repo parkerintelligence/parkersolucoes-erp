@@ -318,8 +318,8 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Alerts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Infrastructure Alerts - 2 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* FTP Backups sem fazer há dias */}
         <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/40 border-amber-600/30">
           <CardHeader className="pb-2 pt-4 px-4">
@@ -339,7 +339,6 @@ const Dashboard = () => {
                   const modifiedAt = f.lastModified || f.date || f.rawModifiedAt;
                   const modifiedDate = new Date(modifiedAt);
                   const hasValidDate = !Number.isNaN(modifiedDate.getTime());
-
                   return {
                     ...f,
                     daysSince: hasValidDate
@@ -409,8 +408,11 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Últimos 5 problemas Zabbix */}
+      {/* Main Monitoring - 3 equal columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Últimos Alertas de Desastre */}
         <Card className="bg-gradient-to-br from-orange-900/20 to-orange-950/40 border-orange-600/30">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs font-semibold text-orange-300 flex items-center gap-2">
@@ -480,6 +482,7 @@ const Dashboard = () => {
             })()}
           </CardContent>
         </Card>
+
         {/* MikroTik Resources */}
         <MikrotikDashboardSummary integrations={integrations} />
 
@@ -491,7 +494,7 @@ const Dashboard = () => {
               Agenda de Vencimentos
               {scheduleItems.length > 0 && (
                 <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-indigo-600/30 text-indigo-300/70 ml-auto">
-                  {scheduleItems.length} próximos
+                  {scheduleItems.length} itens
                 </Badge>
               )}
             </CardTitle>
@@ -553,35 +556,6 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Connections Grid */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground mb-3">Conexões & Integrações</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-          {connectionTypes.map(ct => {
-            const active = ct.data.filter((d: any) => d.is_active).length;
-            const total = ct.data.length;
-            if (total === 0) return null;
-            return (
-              <div
-                key={ct.label}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <ct.icon className={`h-4 w-4 ${ct.color}`} />
-                </div>
-                <span className="text-[10px] font-medium text-foreground text-center leading-tight">{ct.label}</span>
-                <Badge
-                  variant={active === total ? 'default' : 'secondary'}
-                  className="text-[9px] py-0 px-1.5 h-4"
-                >
-                  {active}/{total}
-                </Badge>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* Reports Status */}
