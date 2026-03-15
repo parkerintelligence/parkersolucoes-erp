@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
-import https from "node:https";
-import http from "node:http";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,50 +7,36 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-// Helper: fetch that ignores self-signed SSL certificates
-function insecureFetch(url: string, options: any = {}): Promise<{ status: number; statusText: string; ok: boolean; headers: Record<string, string>; text: () => Promise<string>; json: () => Promise<any> }> {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const isHttps = urlObj.protocol === 'https:';
-    const lib = isHttps ? https : http;
-    
-    const reqOptions: any = {
-      hostname: urlObj.hostname,
-      port: urlObj.port || (isHttps ? 443 : 80),
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: options.headers || {},
-      rejectUnauthorized: false, // KEY: accept self-signed certs
-    };
+const isTlsCertificateError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate/i.test(message);
+};
 
-    const req = lib.request(reqOptions, (res: any) => {
-      const responseHeaders: Record<string, string> = {};
-      for (const [key, value] of Object.entries(res.headers)) {
-        responseHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
-      }
-      
-      let data = '';
-      res.on('data', (chunk: any) => { data += chunk; });
-      res.on('end', () => {
-        const status = res.statusCode || 0;
-        resolve({
-          status,
-          statusText: res.statusMessage || '',
-          ok: status >= 200 && status < 300,
-          headers: responseHeaders,
-          text: async () => data,
-          json: async () => JSON.parse(data),
-        });
-      });
+const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
+  try {
+    return await fetch(url, options);
+  } catch (error) {
+    if (!allowInsecureFallback || !isTlsCertificateError(error)) {
+      throw error;
+    }
+
+    const hostname = new URL(url).hostname;
+    console.warn(`TLS certificate issue for ${hostname}. Retrying with certificate validation disabled.`);
+
+    const insecureClient = Deno.createHttpClient({
+      dangerouslyIgnoreCertificateErrors: [hostname],
     });
 
-    req.on('error', (err: any) => reject(err));
-    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout (15s)')); });
-    
-    if (options.body) req.write(typeof options.body === 'string' ? options.body : JSON.stringify(options.body));
-    req.end();
-  });
-}
+    try {
+      return await fetch(url, {
+        ...options,
+        client: insecureClient,
+      } as RequestInit & { client: Deno.HttpClient });
+    } finally {
+      insecureClient.close();
+    }
+  }
+};
 
 console.log("UniFi Local Controller API proxy function starting...");
 
