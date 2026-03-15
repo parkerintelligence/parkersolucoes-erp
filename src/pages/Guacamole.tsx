@@ -134,13 +134,6 @@ const Guacamole = () => {
       return;
     }
     
-    // Log da tentativa de conexão
-    logInfo('Iniciando conexão direta ao Guacamole', {
-      connectionId: connection.identifier,
-      connectionName: connection.name,
-      protocol: connection.protocol
-    });
-
     try {
       // Tentar criar conexão direta com autenticação automática
       const { data: sessionData, error } = await supabase.functions.invoke('guacamole-proxy', {
