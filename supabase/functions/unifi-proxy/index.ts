@@ -485,9 +485,10 @@ serve(async (req) => {
         } else if (apiResponse.status === 403) {
           throw new Error('API Token não tem permissões necessárias para este endpoint.');
         } else if (apiResponse.status === 404) {
-          // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
-          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
-            console.log('404 for data endpoint, returning empty response');
+          // Para 404, retornar uma resposta vazia para endpoints de dados
+          const isDataEndpoint = ['/sites', '/devices', '/clients', '/networks', '/events', '/health', '/wlanconf', '/stat/'].some(p => endpoint.includes(p) || siteManagerEndpoint.includes(p));
+          if (isDataEndpoint) {
+            console.log('404 for data endpoint, returning empty response:', siteManagerEndpoint);
             return new Response(JSON.stringify({ data: [] }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
