@@ -398,26 +398,19 @@ const Guacamole = () => {
           </Card>}
 
 
-        {/* Main Content */}
         <Tabs defaultValue="rustdesk" className="space-y-4">
           <TabsList className="bg-slate-800 border-slate-700">
             <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
-              🦀 RustDesk
+              🖥️ Remoto PK
             </TabsTrigger>
             <TabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-              Conexões ({connections?.length || 0})
+              Servidores RDP ({connections?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="sessions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Sessões Ativas ({activeSessions?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-              Usuários ({users?.length || 0})
-            </TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
               Histórico
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
-              Logs
             </TabsTrigger>
           </TabsList>
 
