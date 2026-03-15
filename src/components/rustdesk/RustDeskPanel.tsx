@@ -182,8 +182,11 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
 
     window.location.href = `rustdesk://connection/new/${conn.rustdesk_id}`;
     
+    // Log session
+    onSessionLog?.(conn.name, `ID: ${conn.rustdesk_id}`);
+
     toast({
-      title: "🖥️ Abrindo RustDesk",
+      title: "🖥️ Abrindo Remoto PK",
       description: `ID${conn.password ? ' e senha' : ''} copiado(s). Conectando a "${conn.name}".`,
     });
   };
