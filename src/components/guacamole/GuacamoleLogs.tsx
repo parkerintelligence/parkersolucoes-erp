@@ -1,25 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   FileText, 
   Trash2, 
   RefreshCw,
-  Clock,
   Globe,
   Database,
-  AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Info,
+  Monitor
 } from 'lucide-react';
 
 export interface GuacamoleLogEntry {
   id: string;
   timestamp: string;
   type: 'request' | 'response' | 'error' | 'info';
+  source?: 'guacamole' | 'rustdesk';
   method?: string;
   url?: string;
   dataSource?: string;
@@ -36,6 +38,7 @@ interface GuacamoleLogsProps {
 
 export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'guacamole' | 'rustdesk'>('all');
 
   useEffect(() => {
     if (autoScroll && logs.length > 0) {
@@ -46,127 +49,169 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
     }
   }, [logs, autoScroll]);
 
-  const getLogIcon = (type: string) => {
+  const filteredLogs = filter === 'all' 
+    ? logs 
+    : logs.filter(l => (l.source || 'guacamole') === filter);
+
+  const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'error': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'request': return <Globe className="h-4 w-4 text-blue-500" />;
-      case 'response': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'info': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      default: return <FileText className="h-4 w-4" />;
+      case 'error': return <XCircle className="h-3.5 w-3.5 text-red-400" />;
+      case 'request': return <Globe className="h-3.5 w-3.5 text-blue-400" />;
+      case 'response': return <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />;
+      case 'info': return <Info className="h-3.5 w-3.5 text-amber-400" />;
+      default: return <FileText className="h-3.5 w-3.5 text-slate-400" />;
     }
   };
 
-  const getLogColor = (type: string) => {
+  const getTypeBadgeClass = (type: string) => {
     switch (type) {
-      case 'error': return 'border-l-red-500 bg-red-50';
-      case 'request': return 'border-l-blue-500 bg-blue-50';
-      case 'response': return 'border-l-green-500 bg-green-50';
-      case 'info': return 'border-l-yellow-500 bg-yellow-50';
-      default: return 'border-l-gray-500 bg-gray-50';
+      case 'error': return 'bg-red-500/15 text-red-400 border-red-500/30';
+      case 'request': return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
+      case 'response': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+      case 'info': return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+      default: return 'bg-slate-500/15 text-slate-400 border-slate-500/30';
     }
+  };
+
+  const getSourceBadgeClass = (source?: string) => {
+    return source === 'rustdesk'
+      ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+      : 'bg-sky-500/15 text-sky-400 border-sky-500/30';
+  };
+
+  const getStatusBadgeClass = (status?: number) => {
+    if (!status) return '';
+    return status >= 200 && status < 300
+      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+      : 'bg-red-500/15 text-red-400 border-red-500/30';
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('pt-BR');
+    return new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  };
+
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="bg-slate-800 border-slate-700">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Logs de Conexão Guacamole
-            </CardTitle>
-            <CardDescription>
-              Acompanhe em tempo real as requisições e respostas da API do Guacamole
-            </CardDescription>
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-blue-400" />
+            <CardTitle className="text-sm text-white">Logs de Conexão</CardTitle>
+            <Badge variant="secondary" className="bg-slate-700 text-slate-300 text-[10px]">
+              {filteredLogs.length}
+            </Badge>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={onRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
+          <div className="flex items-center gap-1.5">
+            {/* Source filter */}
+            <div className="flex bg-slate-900 rounded-md p-0.5 gap-0.5">
+              {(['all', 'guacamole', 'rustdesk'] as const).map(f => (
+                <Button
+                  key={f}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 px-2 text-[10px] rounded-sm ${filter === f ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-300'}`}
+                  onClick={() => setFilter(f)}
+                >
+                  {f === 'all' ? 'Todos' : f === 'guacamole' ? 'Guacamole' : 'RustDesk'}
+                </Button>
+              ))}
+            </div>
+            <Button onClick={onRefresh} variant="outline" size="sm" className="h-6 px-2 text-[10px] border-slate-600 text-slate-300 hover:bg-slate-700">
+              <RefreshCw className="h-3 w-3 mr-1" />
               Atualizar
             </Button>
-            <Button onClick={onClearLogs} variant="outline" size="sm">
-              <Trash2 className="h-4 w-4 mr-2" />
+            <Button onClick={onClearLogs} variant="outline" size="sm" className="h-6 px-2 text-[10px] border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Trash2 className="h-3 w-3 mr-1" />
               Limpar
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <Badge variant="secondary">
-            Total de logs: {logs.length}
-          </Badge>
-        </div>
-        
-        <ScrollArea className="h-96" id="logs-scroll-area">
-          <div className="space-y-2">
-            {logs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum log disponível</p>
-                <p className="text-sm">Execute alguma ação para ver os logs aparecerem aqui</p>
-              </div>
-            ) : (
-              logs.map((log) => (
-                <div
-                  key={log.id}
-                  className={`p-3 border-l-4 rounded ${getLogColor(log.type)}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-2">
-                      {getLogIcon(log.type)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs">
-                            {log.type.toUpperCase()}
-                          </Badge>
-                          {log.method && (
-                            <Badge variant="secondary" className="text-xs">
-                              {log.method}
-                            </Badge>
-                          )}
-                          {log.status && (
-                            <Badge 
-                              variant={log.status >= 200 && log.status < 300 ? "default" : "destructive"}
-                              className="text-xs"
-                            >
-                              {log.status}
-                            </Badge>
-                          )}
-                          {log.dataSource && (
-                            <Badge variant="outline" className="text-xs">
-                              <Database className="h-3 w-3 mr-1" />
-                              {log.dataSource}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm font-medium">{log.message}</p>
-                        {log.url && (
-                          <p className="text-xs text-muted-foreground mt-1 font-mono break-all">
-                            {log.url}
-                          </p>
-                        )}
-                        {log.details && (
-                          <pre className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-x-auto">
-                            {JSON.stringify(log.details, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      {formatTimestamp(log.timestamp)}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+      <CardContent className="pt-0">
+        {filteredLogs.length === 0 ? (
+          <div className="text-center py-8">
+            <FileText className="h-10 w-10 mx-auto mb-3 text-slate-600" />
+            <p className="text-sm text-slate-400">Nenhum log disponível</p>
+            <p className="text-xs text-slate-500">Execute alguma ação para ver os logs</p>
           </div>
-        </ScrollArea>
+        ) : (
+          <ScrollArea className="h-[500px]" id="logs-scroll-area">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-700 hover:bg-transparent">
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-16">Hora</TableHead>
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-20">Origem</TableHead>
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-20">Tipo</TableHead>
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-14">Método</TableHead>
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-14">Status</TableHead>
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7">Mensagem</TableHead>
+                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-24">URL/Detalhes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLogs.map((log) => (
+                  <TableRow key={log.id} className="border-slate-700/50 hover:bg-slate-750/50">
+                    <TableCell className="py-1 px-2">
+                      <div className="text-[10px] text-slate-500 whitespace-nowrap">
+                        <span className="text-slate-400">{formatTimestamp(log.timestamp)}</span>
+                        <br />
+                        <span>{formatDate(log.timestamp)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${getSourceBadgeClass(log.source)}`}>
+                        {(log.source || 'guacamole') === 'rustdesk' ? '🦀 RustDesk' : '🟢 Guacamole'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      <div className="flex items-center gap-1">
+                        {getTypeIcon(log.type)}
+                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${getTypeBadgeClass(log.type)}`}>
+                          {log.type.toUpperCase()}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      {log.method && (
+                        <span className="text-[10px] font-mono text-slate-300 bg-slate-700/50 px-1.5 py-0.5 rounded">
+                          {log.method}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      {log.status && (
+                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${getStatusBadgeClass(log.status)}`}>
+                          {log.status}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      <p className="text-xs text-slate-200 truncate max-w-[300px]" title={log.message}>
+                        {log.message}
+                      </p>
+                    </TableCell>
+                    <TableCell className="py-1 px-2">
+                      {log.url && (
+                        <p className="text-[10px] text-slate-500 font-mono truncate max-w-[180px]" title={log.url}>
+                          {log.url}
+                        </p>
+                      )}
+                      {log.details && !log.url && (
+                        <p className="text-[10px] text-slate-500 truncate max-w-[180px]" title={JSON.stringify(log.details)}>
+                          {typeof log.details === 'string' ? log.details : JSON.stringify(log.details)}
+                        </p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        )}
       </CardContent>
     </Card>
   );
