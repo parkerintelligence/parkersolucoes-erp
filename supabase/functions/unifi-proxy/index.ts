@@ -20,7 +20,7 @@ const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace
 
 const DEFAULT_FETCH_TIMEOUT_MS = 9000;
 
-const MAX_LOGIN_ATTEMPTS = 8;
+const MAX_LOGIN_ATTEMPTS = 24;
 const MAX_LOGIN_DURATION_MS = 20000;
 
 const buildLocalControllerCandidates = (
@@ -47,25 +47,22 @@ const buildLocalControllerCandidates = (
 
   const configuredPortValue = String(configuredPort ?? '').trim();
   const currentPort = parsed.port || (preferSsl ? '443' : '80');
-  const preferred = preferSsl ? toHttpsUrl(normalized) : toHttpUrl(normalized);
+  const protocolOrder: Array<'https:' | 'http:'> = preferSsl ? ['https:', 'http:'] : ['http:', 'https:'];
 
-  // Prioridade total para a URL configurada pelo usuário.
-  push(preferred);
-  push(preferSsl ? toHttpUrl(preferred) : toHttpsUrl(preferred));
+  const prioritizedPorts = [
+    configuredPortValue,
+    currentPort,
+    currentPort === '8445' ? '8443' : '8445',
+    preferSsl ? '443' : '80',
+  ].filter((value, index, arr) => !!value && arr.indexOf(value) === index);
 
-  if (configuredPortValue && configuredPortValue !== currentPort) {
-    push(createVariant(preferSsl ? 'https:' : 'http:', configuredPortValue));
-    push(createVariant(preferSsl ? 'http:' : 'https:', configuredPortValue));
+  for (const portValue of prioritizedPorts.slice(0, 3)) {
+    for (const protocol of protocolOrder) {
+      push(createVariant(protocol, portValue));
+    }
   }
 
-  // Fallback curto e controlado para portas comuns, sem varrer muitas combinações.
-  if (!configuredPortValue || ['443', '8443', '8445'].includes(currentPort)) {
-    const fallbackPort = currentPort === '8445' ? '8443' : '8445';
-    push(createVariant('https:', fallbackPort));
-    push(createVariant('http:', fallbackPort));
-  }
-
-  return Array.from(candidates).slice(0, 4);
+  return Array.from(candidates).slice(0, 6);
 };
 
 const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
@@ -244,6 +241,16 @@ serve(async (req) => {
         baseApiUrl = baseApiUrl.replace(/^http:\/\//i, 'https://');
       }
 
+      if (port) {
+        try {
+          const urlWithConfiguredPort = new URL(baseApiUrl);
+          urlWithConfiguredPort.port = String(port);
+          baseApiUrl = normalizeUrlNoTrailingSlash(urlWithConfiguredPort.toString());
+        } catch (portError) {
+          console.warn('Could not apply configured port to base URL:', portError);
+        }
+      }
+
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
       // Use Site Manager API
@@ -290,14 +297,19 @@ serve(async (req) => {
 
       const loginStartedAt = Date.now();
       let attempts = 0;
+      const maxLoginAttempts = Math.min(
+        MAX_LOGIN_ATTEMPTS,
+        Math.max(controllerCandidates.length * loginEndpoints.length, 8),
+      );
 
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
         for (const loginEndpoint of loginEndpoints) {
-          if (attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
+          if (attempts >= maxLoginAttempts || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
             console.warn('[UNIFI-LOCAL] Login attempts/time budget exceeded', {
               attempts,
+              maxLoginAttempts,
               elapsedMs: Date.now() - loginStartedAt,
             });
             break;
@@ -345,7 +357,7 @@ serve(async (req) => {
           }
         }
 
-        if (loginResponse || attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
+        if (loginResponse || attempts >= maxLoginAttempts || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
           break;
         }
       }
@@ -671,6 +683,14 @@ serve(async (req) => {
       } else if (error.message.includes('Authorization header')) {
         status = 401;
         errorMessage = 'Header de autorização ausente.';
+      } else if (error.message.includes('Falha SSL/TLS na controladora')) {
+        status = 502;
+        errorMessage = 'Falha de certificado TLS na controladora local.';
+        troubleshooting = 'Use certificado público válido com cadeia completa ou exponha um endpoint HTTP interno confiável para a Edge Function.';
+      } else if (error.message.includes('Falha ao conectar na controladora')) {
+        status = 502;
+        errorMessage = 'Não foi possível conectar à controladora local.';
+        troubleshooting = 'Verifique URL, porta/protocolo, firewall e se a API UniFi está acessível externamente.';
       } else if (error.message.includes('Conexão falhou com HTTPS e HTTP')) {
         status = 502;
         errorMessage = 'Falha na conectividade de rede com a controladora.';
