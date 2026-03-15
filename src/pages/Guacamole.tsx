@@ -14,6 +14,7 @@ import { GuacamoleConnectionTree } from '@/components/guacamole/GuacamoleConnect
 import { GuacamoleConnectionDialog } from '@/components/guacamole/GuacamoleConnectionDialog';
 import { GuacamoleLogs } from '@/components/guacamole/GuacamoleLogs';
 import { RustDeskPanel } from '@/components/rustdesk/RustDeskPanel';
+import { useRustDeskConnections } from '@/hooks/useRustDesk';
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
