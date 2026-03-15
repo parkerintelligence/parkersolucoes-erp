@@ -143,17 +143,8 @@ export const useUpdateIntegration = () => {
         throw new Error('Não foi possível atualizar a integração. Verifique suas permissões.');
       }
 
+      console.log('✅ [useUpdateIntegration] Integração atualizada com sucesso:', data[0]);
       return data[0];
-
-      if (error) {
-        console.error('❌ [useUpdateIntegration] Erro na atualização:', error);
-        console.error('❌ [useUpdateIntegration] Código do erro:', error.code);
-        console.error('❌ [useUpdateIntegration] Detalhes do erro:', error.details);
-        throw error;
-      }
-
-      console.log('✅ [useUpdateIntegration] Integração atualizada com sucesso:', data);
-      return data;
     },
     onSuccess: () => {
       console.log('🎉 [useUpdateIntegration] Sucesso na atualização, invalidando cache...');
