@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { MasterPasswordDialog } from '@/components/MasterPasswordDialog';
 import { useHostingerIntegrations, useHostingerVPS, useHostingerVPSMetrics, useHostingerActions } from '@/hooks/useHostingerAPI';
-import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3 } from 'lucide-react';
+import { Server, Cpu, HardDrive, Wifi, Camera, RotateCcw, MapPin, Activity, Zap, RefreshCw, AlertCircle, Clock, Gauge, Network, BarChart3, Play, Square } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export const HostingerDashboard = () => {
