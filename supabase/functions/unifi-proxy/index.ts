@@ -467,7 +467,7 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-KEY': api_token,
+          'X-API-KEY': normalizedApiToken,
           'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
       };
