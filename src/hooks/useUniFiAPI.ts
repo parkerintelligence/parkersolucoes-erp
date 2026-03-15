@@ -349,33 +349,18 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Devices - detectar API correta baseado no tipo de integração
+  // Devices - always use /api/s/ format, proxy handles mapping to Site Manager if needed
   const useUniFiDevices = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-devices', integrationId, hostId, siteId],
       queryFn: async () => {
         if (!siteId) return { data: [] };
-        
-        // Tentar Site Manager API primeiro
-        try {
-          console.log(`Tentando Site Manager API devices para site ${siteId}...`);
-          const siteManagerResponse = await makeUniFiRequest(`/v1/sites/${siteId}/devices`, 'GET', integrationId);
-          
-          if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data)) {
-            console.log('✅ Usando Site Manager API devices');
-            return siteManagerResponse;
-          }
-        } catch (error) {
-          console.log('❌ Site Manager API devices falhou, tentando controladora local...');
-        }
-        
-        // Fallback para controladora local
         const endpoint = `/api/s/${siteId}/stat/device`;
-        console.log('✅ Usando controladora local devices');
+        console.log('📡 Fetching devices:', endpoint);
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
       enabled: !!integrationId && !!siteId,
-      staleTime: 30000, // 30 seconds
+      staleTime: 30000,
       retry: 2,
     });
   };
