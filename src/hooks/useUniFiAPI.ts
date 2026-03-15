@@ -545,6 +545,91 @@ export const useUniFiAPI = () => {
     },
   });
 
+  // Network operations
+  const createNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkData }: { integrationId: string, siteId: string, networkData: any }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf`;
+      return makeUniFiRequest(endpoint, 'POST', integrationId, networkData);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rede criada',
+        description: 'Nova rede criada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao criar rede',
+        description: error.message || 'Falha ao criar rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkId, networkData }: { integrationId: string, siteId: string, networkId: string, networkData: any }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf/${networkId}`;
+      return makeUniFiRequest(endpoint, 'PUT', integrationId, networkData);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rede atualizada',
+        description: 'Configuração da rede atualizada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao atualizar rede',
+        description: error.message || 'Falha ao atualizar rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkId }: { integrationId: string, siteId: string, networkId: string }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf/${networkId}`;
+      return makeUniFiRequest(endpoint, 'DELETE', integrationId);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rede removida',
+        description: 'Rede removida com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover rede',
+        description: error.message || 'Falha ao remover rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const toggleNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkId, enabled }: { integrationId: string, siteId: string, networkId: string, enabled: boolean }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf/${networkId}`;
+      return makeUniFiRequest(endpoint, 'PUT', integrationId, { enabled });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: variables.enabled ? 'Rede ativada' : 'Rede desativada',
+        description: `A rede foi ${variables.enabled ? 'ativada' : 'desativada'} com sucesso.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao alterar status da rede',
+        description: error.message || 'Falha ao alterar status da rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Test connection - priorizar Site Manager API
   const testUniFiConnection = useMutation({
     mutationFn: async (integrationId: string) => {
