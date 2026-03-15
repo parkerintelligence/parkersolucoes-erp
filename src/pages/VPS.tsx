@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { HostingerDashboard } from '@/components/HostingerDashboard';
 import { SnapshotsGrid } from '@/components/SnapshotsGrid';
-import { Server, Camera, Activity } from 'lucide-react';
+import { HostingerDNS } from '@/components/HostingerDNS';
+import { Server, Camera, Activity, Globe } from 'lucide-react';
 
 const TABS = [
   { id: 'dashboard', label: 'VPS', icon: Server },
+  { id: 'dns', label: 'DNS', icon: Globe },
   { id: 'snapshots', label: 'Snapshots', icon: Camera },
 ] as const;
 
@@ -55,6 +57,7 @@ const VPS = () => {
 
       {/* Content */}
       {activeTab === 'dashboard' && <HostingerDashboard />}
+      {activeTab === 'dns' && <HostingerDNS />}
       {activeTab === 'snapshots' && <SnapshotsGrid />}
     </div>
   );

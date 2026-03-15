@@ -63,21 +63,24 @@ serve(async (req) => {
       )
     }
 
-    // Construir URL da API - usar a base_url diretamente se ela já for uma URL completa
-    let url = integration.base_url;
+    // Determinar a URL base correta baseada no endpoint
+    let url: string;
     
-    // Se a base_url não contém o endpoint, construir normalmente
-    if (!integration.base_url.includes('/virtual-machines')) {
-      const baseUrl = integration.base_url || 'https://developers.hostinger.com/api/vps/v1'
-      url = `${baseUrl}${endpoint}`
+    if (endpoint.startsWith('/api/dns/') || endpoint.startsWith('/api/domains/')) {
+      // DNS e Domains usam base diferente
+      url = `https://developers.hostinger.com${endpoint}`;
     } else {
-      // Se a base_url já contém virtual-machines, usar ela diretamente para listar
-      if (endpoint === '/virtual-machines') {
-        url = integration.base_url;
+      // VPS endpoints
+      if (!integration.base_url.includes('/virtual-machines')) {
+        const baseUrl = integration.base_url || 'https://developers.hostinger.com/api/vps/v1'
+        url = `${baseUrl}${endpoint}`
       } else {
-        // Para outros endpoints, usar a URL base sem virtual-machines
-        const baseUrl = integration.base_url.replace('/virtual-machines', '');
-        url = `${baseUrl}${endpoint}`;
+        if (endpoint === '/virtual-machines') {
+          url = integration.base_url;
+        } else {
+          const baseUrl = integration.base_url.replace('/virtual-machines', '');
+          url = `${baseUrl}${endpoint}`;
+        }
       }
     }
 
