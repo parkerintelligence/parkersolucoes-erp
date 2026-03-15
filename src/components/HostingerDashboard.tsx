@@ -164,12 +164,14 @@ interface VPSCardProps {
   index: number;
   integrationId: string;
   onRestart: () => void;
+  onStart: () => void;
+  onStop: () => void;
   onSnapshot: () => void;
-  restarting: boolean;
+  actionPending: boolean;
   snapshotting: boolean;
 }
 
-const VPSCard = ({ vps, index, integrationId, onRestart, onSnapshot, restarting, snapshotting }: VPSCardProps) => {
+const VPSCard = ({ vps, index, integrationId, onRestart, onStart, onStop, onSnapshot, actionPending, snapshotting }: VPSCardProps) => {
   const safeValue = (value: any, fallback: any = 'N/A') => {
     if (typeof value === 'object' && value !== null) {
       if (Array.isArray(value) && value.length > 0) {
