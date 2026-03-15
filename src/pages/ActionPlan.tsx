@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { Plus, Trash2, FolderKanban, CheckCircle2, Clock, TrendingUp, Target, ExternalLink } from "lucide-react";
+import { Plus, Trash2, FolderKanban, CheckCircle2, Clock, TrendingUp, Target, ExternalLink, Edit } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -13,7 +13,8 @@ import { useActionPlan } from "@/hooks/useActionPlan";
 export default function ActionPlan() {
   const navigate = useNavigate();
   const [isCreateBoardOpen, setIsCreateBoardOpen] = useState(false);
-  const { boards, columns, cards, cardItems, isLoading, createBoard, deleteBoard } = useActionPlan();
+  const [editingBoard, setEditingBoard] = useState<any>(null);
+  const { boards, columns, cards, cardItems, isLoading, createBoard, updateBoard, deleteBoard } = useActionPlan();
   const { confirm } = useConfirmDialog();
 
   const handleCreateBoard = async (data: any) => {
@@ -29,6 +30,18 @@ export default function ActionPlan() {
       description: "Tem certeza que deseja excluir este projeto e todas as suas tarefas?",
     });
     if (confirmed) await deleteBoard(boardId);
+  };
+
+  const handleEditBoard = (e: React.MouseEvent, board: any) => {
+    e.stopPropagation();
+    setEditingBoard(board);
+  };
+
+  const handleUpdateBoard = async (data: any) => {
+    if (editingBoard) {
+      await updateBoard(editingBoard.id, data);
+      setEditingBoard(null);
+    }
   };
 
   // Compute stats per board
@@ -191,6 +204,14 @@ export default function ActionPlan() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={(e) => handleEditBoard(e, board)}
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => handleDeleteBoard(e, board.id)}
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
@@ -202,6 +223,11 @@ export default function ActionPlan() {
           })}
         </div>
       )}
+
+      {/* Edit Board Dialog */}
+      <Dialog open={!!editingBoard} onOpenChange={(open) => !open && setEditingBoard(null)}>
+        <BoardDialog board={editingBoard} onSave={handleUpdateBoard} />
+      </Dialog>
     </div>
   );
 }
