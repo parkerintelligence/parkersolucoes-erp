@@ -754,6 +754,10 @@ export const useUniFiAPI = () => {
     // Mutations
     restartDevice,
     toggleClientBlock,
+    createNetwork,
+    updateNetwork,
+    deleteNetwork,
+    toggleNetwork,
     testUniFiConnection,
     refreshData,
   };
