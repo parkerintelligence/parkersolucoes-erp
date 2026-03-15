@@ -187,9 +187,11 @@ const useDashboardData = () => {
           integrationId: zabbixIntegration.id,
         }
       });
-      const activeProblems = !error ? (Array.isArray(data?.result || data) ? (data?.result || data) : []) : [];
+      const allProblems = !error ? (Array.isArray(data?.result || data) ? (data?.result || data) : []) : [];
+      // Filter out resolved problems (r_eventid !== '0' means resolved)
+      const activeProblems = allProblems.filter((p: any) => !p.r_eventid || p.r_eventid === '0');
 
-      // Fetch last 10 disaster events (severity 5) with more detail
+      // Fetch last 10 disaster events (severity 5) - only unresolved
       const { data: evtData } = await supabase.functions.invoke('zabbix-proxy', {
         body: {
           method: 'event.get',
@@ -206,7 +208,9 @@ const useDashboardData = () => {
           integrationId: zabbixIntegration.id,
         }
       });
-      const disasters = Array.isArray(evtData?.result || evtData) ? (evtData?.result || evtData) : [];
+      const allDisasters = Array.isArray(evtData?.result || evtData) ? (evtData?.result || evtData) : [];
+      // Filter out resolved disasters
+      const disasters = allDisasters.filter((d: any) => !d.r_eventid || d.r_eventid === '0');
 
       return { active: activeProblems, disasters };
     },
