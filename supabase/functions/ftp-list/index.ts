@@ -7,79 +7,58 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Função para conectar via FTP usando sockets TCP
+const encoder = new TextEncoder()
+const decoder = new TextDecoder()
+
+async function readResponse(conn: Deno.Conn): Promise<string> {
+  const buffer = new Uint8Array(4096)
+  const n = await conn.read(buffer)
+  return decoder.decode(buffer.subarray(0, n || 0))
+}
+
+async function sendCommand(conn: Deno.Conn, command: string): Promise<string> {
+  await conn.write(encoder.encode(`${command}\r\n`))
+  return await readResponse(conn)
+}
+
 async function connectFTP(host: string, port: number, username: string, password: string) {
   const conn = await Deno.connect({ hostname: host, port: port })
-  
-  const encoder = new TextEncoder()
-  const decoder = new TextDecoder()
-  
-  // Buffer para ler respostas
-  const buffer = new Uint8Array(4096)
-  
-  // Ler resposta inicial do servidor
-  const n = await conn.read(buffer)
-  const response = decoder.decode(buffer.subarray(0, n || 0))
-  console.log('FTP Server Response:', response)
-  
-  // Enviar comando USER
-  await conn.write(encoder.encode(`USER ${username}\r\n`))
-  const userN = await conn.read(buffer)
-  const userResponse = decoder.decode(buffer.subarray(0, userN || 0))
-  console.log('USER Response:', userResponse)
-  
-  // Enviar comando PASS
-  await conn.write(encoder.encode(`PASS ${password}\r\n`))
-  const passN = await conn.read(buffer)
-  const passResponse = decoder.decode(buffer.subarray(0, passN || 0))
-  console.log('PASS Response:', passResponse)
-  
+  await readResponse(conn) // welcome
+  await sendCommand(conn, `USER ${username}`)
+  await sendCommand(conn, `PASS ${password}`)
   return conn
 }
 
-// Função para listar arquivos via FTP
-async function listFTPFiles(conn: Deno.Conn, path: string = '/') {
-  const encoder = new TextEncoder()
-  const decoder = new TextDecoder()
-  const buffer = new Uint8Array(4096)
-  
-  // Definir modo passivo
-  await conn.write(encoder.encode('PASV\r\n'))
-  const pasvN = await conn.read(buffer)
-  const pasvResponse = decoder.decode(buffer.subarray(0, pasvN || 0))
-  console.log('PASV Response:', pasvResponse)
-  
-  // Extrair IP e porta do modo passivo
-  const pasvMatch = pasvResponse.match(/\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/)
-  if (!pasvMatch) {
-    throw new Error('Failed to parse PASV response')
+async function enterPASV(conn: Deno.Conn): Promise<{ ip: string; port: number }> {
+  const response = await sendCommand(conn, 'PASV')
+  const match = response.match(/\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/)
+  if (!match) throw new Error('Failed to parse PASV response: ' + response)
+  return {
+    ip: `${match[1]}.${match[2]}.${match[3]}.${match[4]}`,
+    port: parseInt(match[5]) * 256 + parseInt(match[6])
   }
-  
-  const dataIP = `${pasvMatch[1]}.${pasvMatch[2]}.${pasvMatch[3]}.${pasvMatch[4]}`
-  const dataPort = parseInt(pasvMatch[5]) * 256 + parseInt(pasvMatch[6])
-  
-  console.log('Data connection:', dataIP, dataPort)
-  
-  // Conectar à porta de dados
-  const dataConn = await Deno.connect({ hostname: dataIP, port: dataPort })
-  
-  // Enviar comando LIST
-  await conn.write(encoder.encode(`LIST ${path}\r\n`))
-  const listN = await conn.read(buffer)
-  const listResponse = decoder.decode(buffer.subarray(0, listN || 0))
-  console.log('LIST Response:', listResponse)
-  
-  // Ler dados da conexão de dados
-  const dataBuffer = new Uint8Array(8192)
-  const dataN = await dataConn.read(dataBuffer)
-  const listData = decoder.decode(dataBuffer.subarray(0, dataN || 0))
-  
-  dataConn.close()
-  
-  return listData
 }
 
-// Função para parsear a lista de arquivos do FTP
+async function listFTPDirectory(conn: Deno.Conn, path: string): Promise<string> {
+  const pasv = await enterPASV(conn)
+  const dataConn = await Deno.connect({ hostname: pasv.ip, port: pasv.port })
+  await sendCommand(conn, `LIST ${path}`)
+  
+  // Read all data chunks
+  let allData = ''
+  const buf = new Uint8Array(16384)
+  try {
+    while (true) {
+      const n = await dataConn.read(buf)
+      if (n === null) break
+      allData += decoder.decode(buf.subarray(0, n))
+    }
+  } catch { /* connection closed */ }
+  
+  dataConn.close()
+  return allData
+}
+
 function parseListData(listData: string, currentPath: string, username: string) {
   const lines = listData.split('\n').filter(line => line.trim())
   const files = []
@@ -95,7 +74,6 @@ function parseListData(listData: string, currentPath: string, username: string) 
     
     if (fileName === '.' || fileName === '..') continue
     
-    // Extrair data de modificação
     const month = parts[5]
     const day = parts[6]
     const timeOrYear = parts[7]
@@ -107,10 +85,8 @@ function parseListData(listData: string, currentPath: string, username: string) 
                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(month)
       
       if (timeOrYear.includes(':')) {
-        // É um horário, usar ano atual
         lastModified = new Date(currentYear, monthNum, parseInt(day))
       } else {
-        // É um ano
         lastModified = new Date(parseInt(timeOrYear), monthNum, parseInt(day))
       }
     } catch (e) {
@@ -132,13 +108,40 @@ function parseListData(listData: string, currentPath: string, username: string) 
   return files
 }
 
+// Recursively calculate directory size (max depth to avoid timeouts)
+async function getDirectorySize(conn: Deno.Conn, path: string, username: string, depth: number = 0): Promise<number> {
+  if (depth > 3) return 0 // Max recursion depth to prevent timeouts
+  
+  try {
+    const listData = await Promise.race([
+      listFTPDirectory(conn, path),
+      new Promise<string>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    ])
+    
+    const items = parseListData(listData, path, username)
+    let totalSize = 0
+    
+    for (const item of items) {
+      if (item.isDirectory) {
+        totalSize += await getDirectorySize(conn, item.path, username, depth + 1)
+      } else {
+        totalSize += item.size
+      }
+    }
+    
+    return totalSize
+  } catch (e) {
+    console.log(`⚠️ Could not calculate size for ${path}:`, e.message)
+    return 0
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Verificar autenticação - permitir service role key
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
@@ -150,26 +153,16 @@ serve(async (req) => {
     let user;
     const token = authHeader.replace('Bearer ', '');
     
-    // Tentar autenticação com service role key primeiro
     if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
-      console.log('🔑 [AUTH] Autenticado com service role key');
       user = { id: 'service-role' };
     } else {
-      // Verificar usuário autenticado normal
       const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        {
-          global: {
-            headers: { Authorization: authHeader },
-          },
-        }
+        { global: { headers: { Authorization: authHeader } } }
       )
-
       const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser();
-
       if (authError || !authUser) {
-        console.error('❌ [AUTH] Erro de autenticação:', authError?.message || 'Usuário não encontrado');
         return new Response(
           JSON.stringify({ error: 'User not authenticated' }),
           { status: 401, headers: corsHeaders }
@@ -178,58 +171,48 @@ serve(async (req) => {
       user = authUser;
     }
 
-    const { host, port, username, password, secure, path, passive } = await req.json()
+    const { host, port, username, password, secure, path, passive, calculateSizes } = await req.json()
 
     console.log('=== Real FTP List Operation ===')
-    console.log('Host:', host)
-    console.log('Port:', port)
-    console.log('User:', username)
-    console.log('Path:', path || '/')
-    console.log('Secure:', secure)
-    console.log('User ID:', user.id)
+    console.log('Host:', host, 'Port:', port, 'Path:', path || '/', 'CalculateSizes:', calculateSizes)
 
     let files = []
     
     try {
-      console.log(`🔗 [FTP] Tentando conectar em ${host}:${port || 21} com usuário ${username}`);
-      
-      // Tentar conectar ao FTP real com timeout
       const ftpConn = await Promise.race([
         connectFTP(host, port || 21, username, password),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout after 10s')), 10000)
-        )
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout after 10s')), 10000))
       ]) as Deno.Conn;
       
-      console.log('✅ [FTP] Conexão estabelecida, listando arquivos...');
-      
-      // Listar arquivos
       const listData = await Promise.race([
-        listFTPFiles(ftpConn, path || '/'),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('LIST timeout after 15s')), 15000)
-        )
+        listFTPDirectory(ftpConn, path || '/'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('LIST timeout after 15s')), 15000))
       ]) as string;
       
-      console.log('📁 [FTP] Raw FTP LIST data:', listData.substring(0, 500) + '...');
-      
-      // Parsear dados
       files = parseListData(listData, path || '/', username);
       
-      ftpConn.close();
+      console.log(`✅ [FTP] ${files.length} items found`);
       
-      console.log(`✅ [FTP] Conexão FTP real bem-sucedida, ${files.length} arquivos/pastas encontrados`);
+      // Calculate directory sizes if requested
+      if (calculateSizes) {
+        console.log('📊 Calculating directory sizes...')
+        const dirFiles = files.filter(f => f.isDirectory)
+        
+        for (const dir of dirFiles) {
+          try {
+            const dirSize = await getDirectorySize(ftpConn, dir.path, username, 0)
+            dir.size = dirSize
+            console.log(`📁 ${dir.name}: ${(dirSize / 1024 / 1024 / 1024).toFixed(2)} GB`)
+          } catch (e) {
+            console.log(`⚠️ Could not get size for ${dir.name}:`, e.message)
+          }
+        }
+      }
       
-      // Log detalhado dos primeiros itens para debug
-      files.slice(0, 3).forEach(file => {
-        console.log(`📄 [FTP] ${file.type}: ${file.name} | Modificado: ${file.lastModified} | Tamanho: ${file.size}`);
-      });
+      ftpConn.close()
       
     } catch (ftpError) {
-      console.error('❌ [FTP] Falha na conexão FTP real:', ftpError.message || ftpError);
-      
-      // Fallback para dados simulados baseados na configuração real
-      console.log('Using fallback simulated data for:', host)
+      console.error('❌ [FTP] Connection failed:', ftpError.message || ftpError);
       
       const today = new Date()
       const yesterday = new Date(today)
@@ -277,24 +260,17 @@ serve(async (req) => {
           owner: username
         }
       ]
-      
-      console.log('⚠️ Using fallback data, files:', files.length)
     }
 
     return new Response(
-      JSON.stringify({ files: files }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ files }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     console.error('Error in ftp-list function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
