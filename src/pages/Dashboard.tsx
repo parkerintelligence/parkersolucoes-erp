@@ -486,6 +486,8 @@ const Dashboard = () => {
             })()}
           </CardContent>
         </Card>
+        {/* MikroTik Resources */}
+        <MikrotikDashboardSummary integrations={integrations} />
       </div>
 
       {/* Connections Grid */}
