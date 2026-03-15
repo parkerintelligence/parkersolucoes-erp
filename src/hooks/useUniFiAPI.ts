@@ -313,8 +313,31 @@ export const useUniFiAPI = () => {
         console.log('🔍 Tentando controladora local sites...');
         try {
           const localResponse = await makeUniFiRequest('/api/self/sites', 'GET', integrationId);
-          console.log('✅ Usando controladora local sites');
-          return localResponse;
+          const rawSites = Array.isArray(localResponse?.data)
+            ? localResponse.data
+            : (Array.isArray(localResponse) ? localResponse : []);
+
+          const normalizedLocalSites = rawSites
+            .map((site: any) => {
+              const siteName = String(site?.name || site?.site || site?._id || site?.id || '').trim();
+              if (!siteName) return null;
+
+              return {
+                ...site,
+                id: siteName,
+                name: siteName,
+                description: site?.desc || site?.description || siteName,
+                role: site?.role || 'admin',
+                newAlarmCount: Number(site?.num_new_alarms || site?.newAlarmCount || 0),
+                controllerName: 'Controladora Local',
+                controllerId: 'local-controller',
+                controllerState: 'connected',
+              };
+            })
+            .filter(Boolean);
+
+          console.log('✅ Usando controladora local sites', { total: normalizedLocalSites.length });
+          return { data: normalizedLocalSites };
         } catch (error) {
           console.error('❌ Controladora local sites também falhou:', error);
           return { data: [] };
@@ -453,12 +476,12 @@ export const useUniFiAPI = () => {
 
         return {
           total_devices: devices.length,
-          adopted_devices: devices.filter((d: UniFiDevice) => d.adopted).length,
-          online_devices: devices.filter((d: UniFiDevice) => d.status === 'online').length,
+          adopted_devices: devices.filter((d: UniFiDevice & any) => Boolean(d.adopted)).length,
+          online_devices: devices.filter((d: UniFiDevice & any) => d.status === 'online' || d.state === 1).length,
           total_clients: clients.length,
-          wireless_clients: clients.filter((c: UniFiClient) => !c.isWired).length,
-          wired_clients: clients.filter((c: UniFiClient) => c.isWired).length,
-          guest_clients: clients.filter((c: UniFiClient) => c.isGuest).length,
+          wireless_clients: clients.filter((c: UniFiClient & any) => !(c.isWired ?? c.is_wired)).length,
+          wired_clients: clients.filter((c: UniFiClient & any) => Boolean(c.isWired ?? c.is_wired)).length,
+          guest_clients: clients.filter((c: UniFiClient & any) => Boolean(c.isGuest ?? c.is_guest)).length,
           health_status: health,
           devices,
           clients
@@ -518,6 +541,91 @@ export const useUniFiAPI = () => {
         title: "Erro na operação",
         description: error.message || "Falha ao executar a operação no cliente.",
         variant: "destructive",
+      });
+    },
+  });
+
+  // Network operations
+  const createNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkData }: { integrationId: string, siteId: string, networkData: any }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf`;
+      return makeUniFiRequest(endpoint, 'POST', integrationId, networkData);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rede criada',
+        description: 'Nova rede criada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao criar rede',
+        description: error.message || 'Falha ao criar rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const updateNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkId, networkData }: { integrationId: string, siteId: string, networkId: string, networkData: any }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf/${networkId}`;
+      return makeUniFiRequest(endpoint, 'PUT', integrationId, networkData);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rede atualizada',
+        description: 'Configuração da rede atualizada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao atualizar rede',
+        description: error.message || 'Falha ao atualizar rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkId }: { integrationId: string, siteId: string, networkId: string }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf/${networkId}`;
+      return makeUniFiRequest(endpoint, 'DELETE', integrationId);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Rede removida',
+        description: 'Rede removida com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover rede',
+        description: error.message || 'Falha ao remover rede.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const toggleNetwork = useMutation({
+    mutationFn: async ({ integrationId, siteId, networkId, enabled }: { integrationId: string, siteId: string, networkId: string, enabled: boolean }) => {
+      const endpoint = `/api/s/${siteId}/rest/wlanconf/${networkId}`;
+      return makeUniFiRequest(endpoint, 'PUT', integrationId, { enabled });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: variables.enabled ? 'Rede ativada' : 'Rede desativada',
+        description: `A rede foi ${variables.enabled ? 'ativada' : 'desativada'} com sucesso.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['unifi-networks'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao alterar status da rede',
+        description: error.message || 'Falha ao alterar status da rede.',
+        variant: 'destructive',
       });
     },
   });
@@ -646,6 +754,10 @@ export const useUniFiAPI = () => {
     // Mutations
     restartDevice,
     toggleClientBlock,
+    createNetwork,
+    updateNetwork,
+    deleteNetwork,
+    toggleNetwork,
     testUniFiConnection,
     refreshData,
   };
