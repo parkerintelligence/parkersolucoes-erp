@@ -298,11 +298,16 @@ serve(async (req) => {
             console.log('[UNIFI-LOCAL] Testing login URL:', candidateLoginUrl);
 
             const startTime = Date.now();
-            const response = await fetchWithTlsFallback(candidateLoginUrl, {
-              method: 'POST',
-              headers: loginHeaders,
-              body: loginBody,
-            }, allowTlsFallback);
+            const response = await fetchWithTlsFallback(
+              candidateLoginUrl,
+              {
+                method: 'POST',
+                headers: loginHeaders,
+                body: loginBody,
+              },
+              allowTlsFallback,
+              7000,
+            );
             const responseTime = Date.now() - startTime;
 
             console.log(`[UNIFI-LOCAL] Login response ${response.status} in ${responseTime}ms for ${candidateLoginUrl}`);
@@ -319,9 +324,11 @@ serve(async (req) => {
 
             const errorBody = await response.text();
             lastConnectionError = `${response.status} em ${candidateLoginUrl}: ${errorBody}`;
+            lastConnectionErrorWasTls = false;
           } catch (connectionError) {
             const errorMessage = connectionError instanceof Error ? connectionError.message : String(connectionError);
             lastConnectionError = `${candidateLoginUrl} => ${errorMessage}`;
+            lastConnectionErrorWasTls = isTlsCertificateError(connectionError);
             console.warn('[UNIFI-LOCAL] Login attempt failed:', lastConnectionError);
           }
         }
