@@ -137,9 +137,11 @@ export const HostingerDashboard = () => {
               vps={vps}
               index={index}
               integrationId={selectedIntegration}
-              onRestart={() => handleRestart(vps.id)}
+              onRestart={() => handleVPSAction(vps.id, 'restart')}
+              onStart={() => handleVPSAction(vps.id, 'start')}
+              onStop={() => handleVPSAction(vps.id, 'stop')}
               onSnapshot={() => handleSnapshot(vps.id, vps.hostname || vps.name)}
-              restarting={restartVPS.isPending}
+              actionPending={restartVPS.isPending || startVPS.isPending || stopVPS.isPending}
               snapshotting={createSnapshot.isPending}
             />
           ))}
