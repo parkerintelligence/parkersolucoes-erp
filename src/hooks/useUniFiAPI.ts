@@ -134,7 +134,27 @@ export const useUniFiAPI = () => {
 
       if (error) {
         console.error('UniFi request error:', error);
-        throw new Error(`UniFi API error: ${error.message}`);
+
+        let detailedMessage = error.message;
+        const responseContext = (error as { context?: Response }).context;
+
+        if (responseContext && typeof responseContext.text === 'function') {
+          try {
+            const rawText = await responseContext.text();
+            if (rawText) {
+              try {
+                const parsed = JSON.parse(rawText);
+                detailedMessage = parsed?.details || parsed?.error || rawText;
+              } catch {
+                detailedMessage = rawText;
+              }
+            }
+          } catch (contextError) {
+            console.warn('Could not parse unifi-proxy error context:', contextError);
+          }
+        }
+
+        throw new Error(`UniFi API error: ${detailedMessage}`);
       }
 
       console.log('Returning response:', response);
