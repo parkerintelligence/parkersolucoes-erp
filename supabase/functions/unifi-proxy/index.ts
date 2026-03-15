@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
-import https from "node:https";
-import http from "node:http";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,50 +7,36 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-// Helper: fetch that ignores self-signed SSL certificates
-function insecureFetch(url: string, options: any = {}): Promise<{ status: number; statusText: string; ok: boolean; headers: Record<string, string>; text: () => Promise<string>; json: () => Promise<any> }> {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const isHttps = urlObj.protocol === 'https:';
-    const lib = isHttps ? https : http;
-    
-    const reqOptions: any = {
-      hostname: urlObj.hostname,
-      port: urlObj.port || (isHttps ? 443 : 80),
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: options.headers || {},
-      rejectUnauthorized: false, // KEY: accept self-signed certs
-    };
+const isTlsCertificateError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate/i.test(message);
+};
 
-    const req = lib.request(reqOptions, (res: any) => {
-      const responseHeaders: Record<string, string> = {};
-      for (const [key, value] of Object.entries(res.headers)) {
-        responseHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
-      }
-      
-      let data = '';
-      res.on('data', (chunk: any) => { data += chunk; });
-      res.on('end', () => {
-        const status = res.statusCode || 0;
-        resolve({
-          status,
-          statusText: res.statusMessage || '',
-          ok: status >= 200 && status < 300,
-          headers: responseHeaders,
-          text: async () => data,
-          json: async () => JSON.parse(data),
-        });
-      });
+const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
+  try {
+    return await fetch(url, options);
+  } catch (error) {
+    if (!allowInsecureFallback || !isTlsCertificateError(error)) {
+      throw error;
+    }
+
+    const hostname = new URL(url).hostname;
+    console.warn(`TLS certificate issue for ${hostname}. Retrying with certificate validation disabled.`);
+
+    const insecureClient = Deno.createHttpClient({
+      dangerouslyIgnoreCertificateErrors: [hostname],
     });
 
-    req.on('error', (err: any) => reject(err));
-    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout (15s)')); });
-    
-    if (options.body) req.write(typeof options.body === 'string' ? options.body : JSON.stringify(options.body));
-    req.end();
-  });
-}
+    try {
+      return await fetch(url, {
+        ...options,
+        client: insecureClient,
+      } as RequestInit & { client: Deno.HttpClient });
+    } finally {
+      insecureClient.close();
+    }
+  }
+};
 
 console.log("UniFi Local Controller API proxy function starting...");
 
@@ -225,11 +209,11 @@ serve(async (req) => {
 
       try {
         const startTime = Date.now();
-        loginResponse = await insecureFetch(loginUrl, {
+        loginResponse = await fetchWithTlsFallback(loginUrl, {
           method: 'POST',
           headers: loginHeaders,
           body: loginBody
-        });
+        }, true);
         const responseTime = Date.now() - startTime;
         console.log(`Login response: status=${loginResponse.status}, time=${responseTime}ms`);
 
@@ -237,16 +221,17 @@ serve(async (req) => {
         if (loginResponse.status === 404) {
           const legacyLoginUrl = `${baseApiUrl}/api/login`;
           console.log('Trying legacy login endpoint:', legacyLoginUrl);
-          loginResponse = await insecureFetch(legacyLoginUrl, {
+          loginResponse = await fetchWithTlsFallback(legacyLoginUrl, {
             method: 'POST',
             headers: loginHeaders,
             body: loginBody
-          });
+          }, true);
           console.log(`Legacy login response: status=${loginResponse.status}`);
         }
       } catch (connError) {
-        console.error('Connection error:', connError.message);
-        throw new Error(`Falha ao conectar na controladora: ${connError.message}. Verifique se a URL ${baseApiUrl} está acessível.`);
+        const connectionError = connError instanceof Error ? connError.message : String(connError);
+        console.error('Connection error:', connectionError);
+        throw new Error(`Falha ao conectar na controladora: ${connectionError}. Verifique se a URL ${baseApiUrl} está acessível.`);
       }
 
       if (!loginResponse.ok) {
@@ -263,28 +248,40 @@ serve(async (req) => {
       }
 
       // Extract cookies from login response
-      const setCookieHeaders = loginResponse.headers['set-cookie'] || '';
-      console.log('Login successful, cookies present:', !!setCookieHeaders);
+      const headerWithSetCookie = loginResponse.headers as Headers & { getSetCookie?: () => string[] };
+      const cookieList = headerWithSetCookie.getSetCookie?.() || [];
+      const setCookieHeaders = cookieList.length > 0
+        ? cookieList.map((cookie) => cookie.split(';')[0]).join('; ')
+        : (loginResponse.headers.get('set-cookie') || '');
+      const csrfToken = loginResponse.headers.get('x-csrf-token') || '';
+      console.log('Login successful, cookies present:', !!setCookieHeaders, 'csrf token present:', !!csrfToken);
 
-      // Make API request to UniFi Controller using insecureFetch
+      // Make API request to UniFi Controller
       let apiUrl = `${baseApiUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
       const apiHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cookie': setCookieHeaders
       };
+
+      if (setCookieHeaders) {
+        apiHeaders['Cookie'] = setCookieHeaders;
+      }
+
+      if (csrfToken) {
+        apiHeaders['X-CSRF-Token'] = csrfToken;
+      }
 
       const apiBody = (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH'))
         ? JSON.stringify(postData)
         : undefined;
 
-      let apiResponse = await insecureFetch(apiUrl, {
+      let apiResponse = await fetchWithTlsFallback(apiUrl, {
         method: method || 'GET',
         headers: apiHeaders,
         body: apiBody
-      });
+      }, true);
 
       // UniFi OS controllers often expose Network API under /proxy/network
       if (apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
@@ -292,11 +289,11 @@ serve(async (req) => {
         const prefixedUrl = `${baseApiUrl}${prefixedEndpoint}`;
         console.warn('Retrying with /proxy/network prefix:', prefixedUrl);
 
-        apiResponse = await insecureFetch(prefixedUrl, {
+        apiResponse = await fetchWithTlsFallback(prefixedUrl, {
           method: method || 'GET',
           headers: apiHeaders,
           body: apiBody
-        });
+        }, true);
         apiUrl = prefixedUrl;
       }
 
