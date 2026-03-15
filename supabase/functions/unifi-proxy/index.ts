@@ -242,7 +242,6 @@ serve(async (req) => {
             headers: loginHeaders,
             body: loginBody
           });
-          usedLegacyEndpoint = true;
           console.log(`Legacy login response: status=${loginResponse.status}`);
         }
       } catch (connError) {
