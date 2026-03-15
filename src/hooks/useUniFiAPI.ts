@@ -365,33 +365,18 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Clients - detectar API correta baseado no tipo de integração
+  // Clients - always use /api/s/ format, proxy handles mapping
   const useUniFiClients = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-clients', integrationId, hostId, siteId],
       queryFn: async () => {
         if (!siteId) return { data: [] };
-        
-        // Tentar Site Manager API primeiro
-        try {
-          console.log(`Tentando Site Manager API clients para site ${siteId}...`);
-          const siteManagerResponse = await makeUniFiRequest(`/v1/sites/${siteId}/clients`, 'GET', integrationId);
-          
-          if (siteManagerResponse?.data && Array.isArray(siteManagerResponse.data)) {
-            console.log('✅ Usando Site Manager API clients');
-            return siteManagerResponse;
-          }
-        } catch (error) {
-          console.log('❌ Site Manager API clients falhou, tentando controladora local...');
-        }
-        
-        // Fallback para controladora local
         const endpoint = `/api/s/${siteId}/stat/sta`;
-        console.log('✅ Usando controladora local clients');
+        console.log('📡 Fetching clients:', endpoint);
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
       enabled: !!integrationId && !!siteId,
-      staleTime: 30000, // 30 seconds
+      staleTime: 30000,
       retry: 2,
     });
   };
