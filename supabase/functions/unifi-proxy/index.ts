@@ -329,7 +329,7 @@ serve(async (req) => {
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
         console.error('UniFi Controller API request failed:', apiResponse.status, errorText);
-        console.error('Request details:', { url: apiUrl, method: requestOptions.method, endpoint });
+        console.error('Request details:', { url: apiUrl, method: method || 'GET', endpoint });
 
         if (apiResponse.status === 401) {
           throw new Error('Credenciais inválidas ou sessão expirada. Verifique usuário e senha.');
