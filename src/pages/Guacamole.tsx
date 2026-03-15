@@ -207,23 +207,13 @@ const Guacamole = () => {
 
     } catch (error) {
       console.error('Erro ao conectar:', error);
-      
-      logError('Falha na conexão direta', '', {
-        connectionId: connection.identifier,
-        connectionName: connection.name,
-        error: error.message
-      });
 
       // Fallback final: URL básica do Guacamole
       try {
         const baseUrl = integration.base_url.replace(/\/$/, '');
         const fallbackUrl = `${baseUrl}/#/client/${encodeURIComponent(connection.identifier)}`;
         
-        logInfo('Usando URL de fallback de emergência', {
-          connectionId: connection.identifier,
-          connectionName: connection.name,
-          url: fallbackUrl
-        });
+        addSessionLog('servidores-rdp', connection.name, connection.protocol?.toUpperCase(), 'Fallback de emergência');
         
         window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
         
