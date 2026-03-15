@@ -176,6 +176,13 @@ serve(async (req) => {
     if (useLocalController) {
       // Use local UniFi Controller
       baseApiUrl = normalizedBaseUrl;
+
+      if (!use_ssl && baseApiUrl.startsWith('https://')) {
+        baseApiUrl = toHttpUrl(baseApiUrl);
+      } else if (use_ssl && baseApiUrl.startsWith('http://')) {
+        baseApiUrl = baseApiUrl.replace(/^http:\/\//i, 'https://');
+      }
+
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
       // Use Site Manager API
@@ -186,9 +193,10 @@ serve(async (req) => {
 
     if (useLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
-      let loginUrl = `${baseApiUrl}/api/auth/login`;
+      let activeBaseApiUrl = baseApiUrl;
+      let loginUrl = `${activeBaseApiUrl}/api/auth/login`;
       console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
-      console.log('Controller URL:', baseApiUrl);
+      console.log('Controller URL:', activeBaseApiUrl);
       console.log('Login endpoint:', loginUrl);
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
@@ -197,17 +205,17 @@ serve(async (req) => {
       
       // Enhanced connection diagnostics
       const connectionDetails = {
-        originalUrl: baseApiUrl,
+        originalUrl: activeBaseApiUrl,
         loginUrl: loginUrl,
         isHttps: loginUrl.startsWith('https://'),
-        hostname: new URL(baseApiUrl).hostname,
-        port: new URL(baseApiUrl).port || (loginUrl.startsWith('https://') ? '443' : '80'),
-        protocol: new URL(baseApiUrl).protocol
+        hostname: new URL(activeBaseApiUrl).hostname,
+        port: new URL(activeBaseApiUrl).port || (loginUrl.startsWith('https://') ? '443' : '80'),
+        protocol: new URL(activeBaseApiUrl).protocol
       };
       console.log('Connection details:', connectionDetails);
 
       // Try local login with SSL bypass for self-signed certificates
-      let loginResponse: any;
+      let loginResponse: Response;
 
       if (requestBody.ignore_ssl && loginUrl.startsWith('https://')) {
         console.log('SSL certificate validation disabled for local controller');
@@ -227,31 +235,54 @@ serve(async (req) => {
         'User-Agent': 'Lovable-UniFi-Integration/1.0'
       };
 
-      try {
-        const startTime = Date.now();
-        loginResponse = await fetchWithTlsFallback(loginUrl, {
+      const executeLogin = async (targetLoginUrl: string, allowTlsFallback: boolean) => {
+        let response = await fetchWithTlsFallback(targetLoginUrl, {
           method: 'POST',
           headers: loginHeaders,
           body: loginBody
-        }, true);
-        const responseTime = Date.now() - startTime;
-        console.log(`Login response: status=${loginResponse.status}, time=${responseTime}ms`);
+        }, allowTlsFallback);
 
-        // If /api/auth/login returned 404, try legacy /api/login
-        if (loginResponse.status === 404) {
-          const legacyLoginUrl = `${baseApiUrl}/api/login`;
+        if (response.status === 404) {
+          const legacyLoginUrl = `${targetLoginUrl.replace(/\/api\/auth\/login$/, '')}/api/login`;
           console.log('Trying legacy login endpoint:', legacyLoginUrl);
-          loginResponse = await fetchWithTlsFallback(legacyLoginUrl, {
+          response = await fetchWithTlsFallback(legacyLoginUrl, {
             method: 'POST',
             headers: loginHeaders,
             body: loginBody
-          }, true);
-          console.log(`Legacy login response: status=${loginResponse.status}`);
+          }, allowTlsFallback);
+          console.log(`Legacy login response: status=${response.status}`);
         }
+
+        return response;
+      };
+
+      try {
+        const startTime = Date.now();
+        loginResponse = await executeLogin(loginUrl, true);
+        const responseTime = Date.now() - startTime;
+        console.log(`Login response: status=${loginResponse.status}, time=${responseTime}ms`);
       } catch (connError) {
-        const connectionError = connError instanceof Error ? connError.message : String(connError);
-        console.error('Connection error:', connectionError);
-        throw new Error(`Falha ao conectar na controladora: ${connectionError}. Verifique se a URL ${baseApiUrl} está acessível.`);
+        const httpsError = connError instanceof Error ? connError.message : String(connError);
+        console.error('Connection error:', httpsError);
+
+        if (!activeBaseApiUrl.startsWith('https://')) {
+          throw new Error(`Falha ao conectar na controladora: ${httpsError}. Verifique se a URL ${activeBaseApiUrl} está acessível.`);
+        }
+
+        const httpBaseApiUrl = toHttpUrl(activeBaseApiUrl);
+        const httpLoginUrl = `${httpBaseApiUrl}/api/auth/login`;
+        console.warn(`HTTPS falhou, tentando fallback HTTP: ${httpLoginUrl}`);
+
+        try {
+          loginResponse = await executeLogin(httpLoginUrl, false);
+          activeBaseApiUrl = httpBaseApiUrl;
+          loginUrl = httpLoginUrl;
+          console.log('HTTP fallback login successful. Continuing with:', activeBaseApiUrl);
+        } catch (httpError) {
+          const httpConnectionError = httpError instanceof Error ? httpError.message : String(httpError);
+          console.error('HTTP fallback also failed:', httpConnectionError);
+          throw new Error(`Falha ao conectar na controladora. HTTPS: ${httpsError}. HTTP: ${httpConnectionError}. Verifique URL, porta e firewall da controladora.`);
+        }
       }
 
       if (!loginResponse.ok) {
@@ -277,7 +308,7 @@ serve(async (req) => {
       console.log('Login successful, cookies present:', !!setCookieHeaders, 'csrf token present:', !!csrfToken);
 
       // Make API request to UniFi Controller
-      let apiUrl = `${baseApiUrl}${endpoint}`;
+      let apiUrl = `${activeBaseApiUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
       const apiHeaders: Record<string, string> = {
@@ -297,23 +328,25 @@ serve(async (req) => {
         ? JSON.stringify(postData)
         : undefined;
 
+      const shouldAllowTlsFallback = activeBaseApiUrl.startsWith('https://');
+
       let apiResponse = await fetchWithTlsFallback(apiUrl, {
         method: method || 'GET',
         headers: apiHeaders,
         body: apiBody
-      }, true);
+      }, shouldAllowTlsFallback);
 
       // UniFi OS controllers often expose Network API under /proxy/network
       if (apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
         const prefixedEndpoint = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-        const prefixedUrl = `${baseApiUrl}${prefixedEndpoint}`;
+        const prefixedUrl = `${activeBaseApiUrl}${prefixedEndpoint}`;
         console.warn('Retrying with /proxy/network prefix:', prefixedUrl);
 
         apiResponse = await fetchWithTlsFallback(prefixedUrl, {
           method: method || 'GET',
           headers: apiHeaders,
           body: apiBody
-        }, true);
+        }, shouldAllowTlsFallback);
         apiUrl = prefixedUrl;
       }
 
