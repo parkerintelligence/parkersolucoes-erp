@@ -17,29 +17,38 @@ import { useAuth } from '@/contexts/AuthContext';
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-const Guacamole = () => {
-  const {
-    logs,
-    clearLogs,
-    addLog,
-    logRequest,
-    logResponse,
-    logError,
-    logInfo
-  } = useGuacamoleLogs();
 
-  // RustDesk connections for logs
+interface SessionLog {
+  id: string;
+  timestamp: string;
+  source: 'remoto-pk' | 'servidores-rdp';
+  connectionName: string;
+  userName: string;
+  userEmail: string;
+  protocol?: string;
+  details?: string;
+}
+
+const Guacamole = () => {
+  const { user, userProfile } = useAuth();
+  const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+
+  // RustDesk connections
   const { data: rustDeskConnections = [] } = useRustDeskConnections();
-  
-  // Add RustDesk connection logs on load
-  useEffect(() => {
-    if (rustDeskConnections.length > 0) {
-      addLog('info', `${rustDeskConnections.length} conexões RustDesk carregadas`, {
-        source: 'rustdesk',
-        details: { total: rustDeskConnections.length, online: rustDeskConnections.filter(c => c.is_online).length }
-      });
-    }
-  }, [rustDeskConnections.length]);
+
+  const addSessionLog = (source: SessionLog['source'], connectionName: string, protocol?: string, details?: string) => {
+    const newLog: SessionLog = {
+      id: `${Date.now()}-${Math.random()}`,
+      timestamp: new Date().toISOString(),
+      source,
+      connectionName,
+      userName: userProfile?.email?.split('@')[0] || user?.email?.split('@')[0] || 'Desconhecido',
+      userEmail: userProfile?.email || user?.email || '',
+      protocol,
+      details,
+    };
+    setSessionLogs(prev => [newLog, ...prev]);
+  };
   
   const {
     useConnections,
