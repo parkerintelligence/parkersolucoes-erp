@@ -253,6 +253,7 @@ const Dashboard = () => {
   const [logsPage, setLogsPage] = useState(0);
   const [webhookPage, setWebhookPage] = useState(0);
   const [clearingWebhooks, setClearingWebhooks] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<any>(null);
   const queryClient = useQueryClient();
 
   // --- Compute stats ---
