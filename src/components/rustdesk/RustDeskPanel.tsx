@@ -460,14 +460,14 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                             {conn.alias && <span className="text-muted-foreground text-[11px] ml-1">({conn.alias})</span>}
                             {conn.hostname && <span className="text-[11px] text-muted-foreground ml-1">· {conn.hostname}</span>}
                           </TableCell>
-                          <TableCell className="py-1">
+                          <TableCell className="py-1.5">
                             <div className="flex items-center gap-0.5">
-                              <code className="text-orange-400 bg-orange-500/10 px-1.5 py-0 rounded text-[11px]">
+                              <code className="text-orange-400 bg-orange-500/10 px-1.5 py-0 rounded text-xs">
                                 {conn.rustdesk_id}
                               </code>
                               <Button variant="ghost" size="sm" className="h-5 w-5 p-0"
                                 onClick={() => copyToClipboard(conn.rustdesk_id, 'ID')}>
-                                <Copy className="h-2.5 w-2.5" />
+                                <Copy className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
