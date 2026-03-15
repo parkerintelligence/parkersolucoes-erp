@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
@@ -74,9 +74,9 @@ serve(async (req) => {
       .from('integrations')
       .select('*')
       .eq('id', integrationId)
-      .eq('user_id', user.id)
       .eq('type', 'unifi')
-      .single();
+      .or(`user_id.eq.${user.id},is_global.eq.true`)
+      .maybeSingle();
 
     if (integrationError || !integration) {
       console.error('Integration not found:', integrationError);
@@ -89,32 +89,42 @@ serve(async (req) => {
       throw new Error('UniFi integration is not active');
     }
 
-    // Check if this is a local controller integration (has username/password) or Site Manager API (has api_token)
+    // Determine connection mode based on integration data + endpoint requested
     const { base_url, username, password, api_token, use_ssl = true } = integration;
-    
-    // Priorizar Site Manager API se api_token estiver presente
-    const isSiteManagerAPI = !!(api_token);
-    const isLocalController = !isSiteManagerAPI && !!(username && password && base_url);
-    
-    console.log("Integration config:", { 
-      hasBaseUrl: !!base_url,
-      hasUsername: !!username,
-      hasPassword: !!password,
-      hasApiToken: !!api_token,
+    const normalizedBaseUrl = typeof base_url === 'string' ? base_url.trim().replace(/\/+$/, '') : '';
+    const normalizedUsername = typeof username === 'string' ? username.trim() : '';
+    const normalizedPassword = typeof password === 'string' ? password.trim() : '';
+    const normalizedApiToken = typeof api_token === 'string' ? api_token.trim() : '';
+
+    const hasLocalCredentials = !!(normalizedBaseUrl && normalizedUsername && normalizedPassword);
+    const hasApiToken = !!normalizedApiToken;
+    const endpointIsLocalController = typeof endpoint === 'string' && endpoint.startsWith('/api/');
+
+    // If endpoint is local (/api/*), prioritize local controller when credentials exist.
+    const useLocalController = hasLocalCredentials && (endpointIsLocalController || !hasApiToken);
+    const useSiteManagerApi = hasApiToken && !useLocalController;
+
+    console.log("Integration config:", {
+      hasBaseUrl: !!normalizedBaseUrl,
+      hasUsername: !!normalizedUsername,
+      hasPassword: !!normalizedPassword,
+      hasApiToken: !!normalizedApiToken,
       useSSL: use_ssl,
-      isLocalController,
-      isSiteManagerAPI
+      endpoint,
+      endpointIsLocalController,
+      useLocalController,
+      useSiteManagerApi
     });
-    
-    if (!isLocalController && !isSiteManagerAPI) {
+
+    if (!useLocalController && !useSiteManagerApi) {
       console.error('Invalid UniFi integration configuration');
       throw new Error('UniFi integration requires either (base_url, username, password) for local controller OR (api_token) for Site Manager API');
     }
 
     let baseApiUrl;
-    if (isLocalController) {
+    if (useLocalController) {
       // Use local UniFi Controller
-      baseApiUrl = base_url.replace(/\/+$/, ''); // Remove trailing slashes
+      baseApiUrl = normalizedBaseUrl;
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
       // Use Site Manager API
@@ -123,9 +133,9 @@ serve(async (req) => {
     }
     console.log('API endpoint:', endpoint);
 
-    if (isLocalController) {
+    if (useLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
-      let loginUrl = `${baseApiUrl}/api/login`;
+      let loginUrl = `${baseApiUrl}/api/auth/login`;
       console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
       console.log('Controller URL:', baseApiUrl);
       console.log('Login endpoint:', loginUrl);
@@ -161,8 +171,8 @@ serve(async (req) => {
           'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
         body: JSON.stringify({
-          username: username,
-          password: password,
+          username: normalizedUsername,
+          password: normalizedPassword,
           remember: true
         })
       };
@@ -275,51 +285,71 @@ serve(async (req) => {
       }
 
       if (!loginResponse.ok) {
-        const loginError = await loginResponse.text();
-        console.error('=== AUTHENTICATION FAILED ===');
-        console.error('Status:', loginResponse.status, loginResponse.statusText);
-        console.error('Response headers:', Object.fromEntries(loginResponse.headers.entries()));
-        console.error('Response body:', loginError);
-        
-        // Analyze authentication failure
-        let authErrorMsg = '';
-        let authTroubleshooting = [];
-        
-        if (loginResponse.status === 400) {
-          if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
-            authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
-            authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
-            authTroubleshooting.push('Tente ativar "Ignorar certificados SSL inválidos" na configuração.');
-            authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
-            authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
-          } else if (loginError.includes('username') || loginError.includes('password')) {
-            authErrorMsg = 'Credenciais de login inválidas.';
-            authTroubleshooting.push('Verifique se o usuário e senha estão corretos.');
-            authTroubleshooting.push('Verifique se o usuário tem permissões de administrador na controladora.');
+        let loginError = await loginResponse.text();
+
+        // Some controllers use /api/login (legacy) instead of /api/auth/login (UniFi OS)
+        if (loginResponse.status === 404 && loginUrl.endsWith('/api/auth/login')) {
+          const legacyLoginUrl = `${baseApiUrl}/api/login`;
+          console.warn('Login endpoint /api/auth/login not found, retrying legacy endpoint:', legacyLoginUrl);
+
+          const legacyResponse = await fetch(legacyLoginUrl, fetchOptions);
+          if (legacyResponse.ok) {
+            loginResponse = legacyResponse;
+            loginUrl = legacyLoginUrl;
+            console.log('Legacy login endpoint succeeded');
           } else {
-            authErrorMsg = 'Erro de autenticação (400 Bad Request).';
-            authTroubleshooting.push('Formato de requisição inválido ou credenciais mal formatadas.');
+            loginResponse = legacyResponse;
+            loginUrl = legacyLoginUrl;
+            loginError = await legacyResponse.text();
           }
-        } else if (loginResponse.status === 401) {
-          authErrorMsg = 'Credenciais de acesso negadas.';
-          authTroubleshooting.push('Usuário ou senha incorretos.');
-          authTroubleshooting.push('Conta pode estar bloqueada ou desabilitada.');
-        } else if (loginResponse.status === 403) {
-          authErrorMsg = 'Acesso proibido.';
-          authTroubleshooting.push('Usuário não tem permissões de administrador.');
-          authTroubleshooting.push('API pode estar desabilitada na controladora.');
-        } else if (loginResponse.status === 500) {
-          authErrorMsg = 'Erro interno da controladora.';
-          authTroubleshooting.push('Problema na controladora UniFi. Verifique logs da controladora.');
-          authTroubleshooting.push('Tente reiniciar a controladora.');
-        } else {
-          authErrorMsg = `Erro de autenticação HTTP ${loginResponse.status}.`;
-          authTroubleshooting.push('Erro inesperado na autenticação.');
         }
-        
-        console.error('Authentication error analysis:', { authErrorMsg, authTroubleshooting });
-        
-        throw new Error(`${authErrorMsg} Status: ${loginResponse.status}. Diagnóstico: ${authTroubleshooting.join(' | ')}`);
+
+        if (!loginResponse.ok) {
+          console.error('=== AUTHENTICATION FAILED ===');
+          console.error('Status:', loginResponse.status, loginResponse.statusText);
+          console.error('Response headers:', Object.fromEntries(loginResponse.headers.entries()));
+          console.error('Response body:', loginError);
+
+          // Analyze authentication failure
+          let authErrorMsg = '';
+          let authTroubleshooting = [];
+
+          if (loginResponse.status === 400) {
+            if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
+              authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
+              authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
+              authTroubleshooting.push('Tente ativar "Ignorar certificados SSL inválidos" na configuração.');
+              authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
+              authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
+            } else if (loginError.includes('username') || loginError.includes('password')) {
+              authErrorMsg = 'Credenciais de login inválidas.';
+              authTroubleshooting.push('Verifique se o usuário e senha estão corretos.');
+              authTroubleshooting.push('Verifique se o usuário tem permissões de administrador na controladora.');
+            } else {
+              authErrorMsg = 'Erro de autenticação (400 Bad Request).';
+              authTroubleshooting.push('Formato de requisição inválido ou credenciais mal formatadas.');
+            }
+          } else if (loginResponse.status === 401) {
+            authErrorMsg = 'Credenciais de acesso negadas.';
+            authTroubleshooting.push('Usuário ou senha incorretos.');
+            authTroubleshooting.push('Conta pode estar bloqueada ou desabilitada.');
+          } else if (loginResponse.status === 403) {
+            authErrorMsg = 'Acesso proibido.';
+            authTroubleshooting.push('Usuário não tem permissões de administrador.');
+            authTroubleshooting.push('API pode estar desabilitada na controladora.');
+          } else if (loginResponse.status === 500) {
+            authErrorMsg = 'Erro interno da controladora.';
+            authTroubleshooting.push('Problema na controladora UniFi. Verifique logs da controladora.');
+            authTroubleshooting.push('Tente reiniciar a controladora.');
+          } else {
+            authErrorMsg = `Erro de autenticação HTTP ${loginResponse.status}.`;
+            authTroubleshooting.push('Erro inesperado na autenticação.');
+          }
+
+          console.error('Authentication error analysis:', { authErrorMsg, authTroubleshooting });
+
+          throw new Error(`${authErrorMsg} Status: ${loginResponse.status}. Diagnóstico: ${authTroubleshooting.join(' | ')}`);
+        }
       }
 
       // Extract cookies from login response
@@ -329,7 +359,7 @@ serve(async (req) => {
       // Make API request to UniFi Controller
       // Update baseApiUrl if we used HTTP fallback
       const finalBaseUrl = usedHttpFallback ? baseApiUrl.replace('https://', 'http://') : baseApiUrl;
-      const apiUrl = `${finalBaseUrl}${endpoint}`;
+      let apiUrl = `${finalBaseUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
       const requestOptions: RequestInit = {
@@ -347,20 +377,30 @@ serve(async (req) => {
         requestOptions.body = JSON.stringify(postData);
       }
 
-      console.log('Request options:', { 
-        method: requestOptions.method, 
+      console.log('Request options:', {
+        method: requestOptions.method,
         url: apiUrl,
         hasCookies: !!setCookieHeaders,
-        hasBody: !!requestOptions.body 
+        hasBody: !!requestOptions.body
       });
 
-      const apiResponse = await fetch(apiUrl, requestOptions);
-      
+      let apiResponse = await fetch(apiUrl, requestOptions);
+
+      // UniFi OS controllers often expose Network API under /proxy/network
+      if (!apiResponse.ok && apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
+        const prefixedEndpoint = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+        const prefixedUrl = `${finalBaseUrl}${prefixedEndpoint}`;
+        console.warn('Primary endpoint not found, retrying with /proxy/network prefix:', prefixedUrl);
+
+        apiResponse = await fetch(prefixedUrl, requestOptions);
+        apiUrl = prefixedUrl;
+      }
+
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
         console.error('UniFi Controller API request failed:', apiResponse.status, errorText);
         console.error('Request details:', { url: apiUrl, method: requestOptions.method, endpoint });
-        
+
         if (apiResponse.status === 401) {
           throw new Error('Credenciais inválidas ou sessão expirada. Verifique usuário e senha.');
         } else if (apiResponse.status === 403) {
@@ -375,7 +415,7 @@ serve(async (req) => {
           }
           throw new Error('Endpoint não encontrado. Verifique se o site existe na controladora.');
         }
-        
+
         throw new Error(`UniFi Controller API request failed: ${apiResponse.status} - ${errorText}`);
       }
 
@@ -457,7 +497,7 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-API-KEY': api_token,
+          'X-API-KEY': normalizedApiToken,
           'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
       };
