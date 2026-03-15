@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { WebhookEventDetailDialog } from '@/components/WebhookEventDetailDialog';
 
 interface DashboardData {
   integrations: any[];
@@ -258,6 +259,7 @@ const Dashboard = () => {
   const [webhookPage, setWebhookPage] = useState(0);
   const [clearingWebhooks, setClearingWebhooks] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<any>(null);
+  const [selectedWebhookLogId, setSelectedWebhookLogId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // --- Compute stats ---
@@ -856,7 +858,11 @@ const Dashboard = () => {
                         }
 
                         return (
-                          <div key={log.id} className="flex items-center justify-between text-xs gap-2 py-0.5">
+                          <div
+                            key={log.id}
+                            className="flex items-center justify-between text-xs gap-2 py-0.5 rounded px-1 -mx-1 cursor-pointer hover:bg-primary/10 transition-colors group"
+                            onClick={() => setSelectedWebhookLogId(log.id)}
+                          >
                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               {log.status === 'success' ? (
                                 <CheckCircle2 className="h-3 w-3 text-green-400 flex-shrink-0" />
@@ -868,9 +874,12 @@ const Dashboard = () => {
                                 {log.is_test && <span className="text-muted-foreground ml-1">🧪</span>}
                               </span>
                             </div>
-                            <span className="text-[8px] text-muted-foreground flex-shrink-0">
-                              {format(parseISO(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                            </span>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <span className="text-[8px] text-muted-foreground">
+                                {format(parseISO(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                              </span>
+                              <Eye className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary/70 transition-colors" />
+                            </div>
                           </div>
                         );
                       })}
@@ -948,6 +957,12 @@ const Dashboard = () => {
           );
         })()}
       </div>
+
+      <WebhookEventDetailDialog
+        open={!!selectedWebhookLogId}
+        onOpenChange={(open) => !open && setSelectedWebhookLogId(null)}
+        logId={selectedWebhookLogId}
+      />
     </div>
   );
 };
