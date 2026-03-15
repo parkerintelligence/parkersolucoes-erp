@@ -18,7 +18,13 @@ const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(
 
 const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
 
-const buildLocalControllerCandidates = (baseUrl: string, preferSsl: boolean) => {
+const DEFAULT_FETCH_TIMEOUT_MS = 9000;
+
+const buildLocalControllerCandidates = (
+  baseUrl: string,
+  preferSsl: boolean,
+  configuredPort?: number | string | null,
+) => {
   const normalized = normalizeUrlNoTrailingSlash(baseUrl);
   const parsed = new URL(normalized);
 
@@ -36,17 +42,28 @@ const buildLocalControllerCandidates = (baseUrl: string, preferSsl: boolean) => 
     if (url) candidates.add(normalizeUrlNoTrailingSlash(url));
   };
 
-  // Prefer user-selected protocol first, but always try the opposite protocol too.
+  const configuredPortValue = String(configuredPort ?? '').trim();
+  const currentPort = parsed.port || (preferSsl ? '443' : '80');
   const preferred = preferSsl ? toHttpsUrl(normalized) : toHttpUrl(normalized);
+
   push(preferred);
   push(preferSsl ? toHttpUrl(preferred) : toHttpsUrl(preferred));
 
-  // Common fallback ports for local UniFi setups when HTTPS cert breaks.
-  const currentPort = parsed.port || (preferSsl ? '443' : '80');
-  if (['443', '8443', '8445'].includes(currentPort)) {
-    push(createVariant('http:', '8080'));
-    push(createVariant('http:', '8880'));
+  if (configuredPortValue && configuredPortValue !== currentPort) {
+    push(createVariant(preferSsl ? 'https:' : 'http:', configuredPortValue));
+    push(createVariant(preferSsl ? 'http:' : 'https:', configuredPortValue));
   }
+
+  // Common UniFi controller fallback combinations.
+  ['443', '8443', '8445'].forEach((port) => {
+    push(createVariant('https:', port));
+    push(createVariant('http:', port));
+  });
+
+  // Common plain HTTP controller ports.
+  ['8080', '8880', '80'].forEach((port) => {
+    push(createVariant('http:', port));
+  });
 
   return Array.from(candidates);
 };
@@ -67,9 +84,25 @@ const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
   }
 };
 
-const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    return await fetch(url, options);
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const fetchWithTlsFallback = async (
+  url: string,
+  options: RequestInit = {},
+  allowInsecureFallback: boolean = true,
+  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
+) => {
+  try {
+    return await fetchWithTimeout(url, options, timeoutMs);
   } catch (error) {
     if (!allowInsecureFallback || !isTlsCertificateError(error)) {
       throw error;
