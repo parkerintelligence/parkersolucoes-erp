@@ -160,42 +160,70 @@ export default function ActionPlan() {
         </Card>
       ) : (
         <>
-          {/* Project Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {boards.map(board => (
-              <div key={board.id} className="flex items-center group">
-                <Button
-                  variant={selectedBoard === board.id ? "default" : "outline"}
-                  size="sm"
+          {/* Project Grid Selector */}
+          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between bg-secondary/30 border-b border-border px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-primary" />
+                <span className="font-bold text-sm text-foreground">Projetos</span>
+                <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-muted">{boards.length}</Badge>
+              </div>
+              <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground">
+                    <Plus className="h-3 w-3 mr-1" /> Novo
+                  </Button>
+                </DialogTrigger>
+                <BoardDialog onSave={handleCreateBoard} />
+              </Dialog>
+            </div>
+            {/* Column Header */}
+            <div className="grid grid-cols-[1fr_120px_80px_60px] gap-0 px-4 py-1.5 bg-secondary/10 border-b border-border">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Nome do Projeto</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Descrição</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tarefas</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Ações</span>
+            </div>
+            {/* Rows */}
+            {boards.map((board, idx) => {
+              const boardCardCount = cards.filter(c => columns.filter(col => col.board_id === board.id).some(col => col.id === c.column_id)).length;
+              const isActive = selectedBoard === board.id;
+              return (
+                <div
+                  key={board.id}
                   onClick={() => setSelectedBoard(board.id)}
-                  className={`gap-1.5 h-8 text-xs ${selectedBoard === board.id
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                    : 'bg-card border-border text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  className={`grid grid-cols-[1fr_120px_80px_60px] gap-0 px-4 py-2 items-center border-b border-border/50 last:border-b-0 cursor-pointer transition-colors ${
+                    isActive
+                      ? 'bg-primary/10 hover:bg-primary/15 border-l-2 border-l-primary'
+                      : idx % 2 === 0 ? 'bg-background hover:bg-primary/5' : 'bg-card hover:bg-primary/5'
                   }`}
                 >
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: board.color || 'hsl(var(--primary))' }} />
-                  {board.name}
-                </Button>
-                {selectedBoard === board.id && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteBoard(board.id)}
-                    className="ml-0.5 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Dialog open={isCreateBoardOpen} onOpenChange={setIsCreateBoardOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 border-dashed border border-border text-muted-foreground hover:text-foreground text-xs">
-                  <Plus className="h-3 w-3 mr-1" /> Novo
-                </Button>
-              </DialogTrigger>
-              <BoardDialog onSave={handleCreateBoard} />
-            </Dialog>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: board.color || 'hsl(var(--primary))' }} />
+                    <span className={`text-xs truncate ${isActive ? 'font-semibold text-foreground' : 'font-medium text-foreground'}`}>
+                      {board.name}
+                    </span>
+                    {isActive && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-primary/20 text-primary">Ativo</Badge>}
+                  </div>
+                  <span className="text-xs text-muted-foreground truncate" title={board.description || ''}>
+                    {board.description || '-'}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-muted w-fit">
+                    {boardCardCount}
+                  </Badge>
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteBoard(board.id); }}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Stats Bar - MS Project Style */}
