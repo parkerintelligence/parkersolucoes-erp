@@ -171,16 +171,17 @@ const useDashboardData = () => {
     queryKey: ['dashboard-zabbix-problems'],
     queryFn: async () => {
       if (!zabbixIntegration) return { active: [], disasters: [] };
-      // Fetch active problems
+      // Fetch active problems with more detail
       const { data, error } = await supabase.functions.invoke('zabbix-proxy', {
         body: {
           method: 'problem.get',
           params: {
-            output: ['eventid', 'name', 'severity', 'clock'],
-            selectHosts: ['name'],
+            output: ['eventid', 'name', 'severity', 'clock', 'acknowledged', 'opdata', 'r_eventid'],
+            selectHosts: ['name', 'host'],
+            selectTags: 'extend',
             sortfield: 'eventid',
             sortorder: 'DESC',
-            limit: 5,
+            limit: 10,
             recent: true,
           },
           integrationId: zabbixIntegration.id,
@@ -188,16 +189,17 @@ const useDashboardData = () => {
       });
       const activeProblems = !error ? (Array.isArray(data?.result || data) ? (data?.result || data) : []) : [];
 
-      // Fetch last 5 disaster events (severity 5) from event history
+      // Fetch last 10 disaster events (severity 5) with more detail
       const { data: evtData } = await supabase.functions.invoke('zabbix-proxy', {
         body: {
           method: 'event.get',
           params: {
-            output: ['eventid', 'name', 'severity', 'clock', 'r_eventid'],
-            selectHosts: ['name'],
+            output: ['eventid', 'name', 'severity', 'clock', 'r_eventid', 'acknowledged', 'opdata'],
+            selectHosts: ['name', 'host'],
+            selectTags: 'extend',
             sortfield: ['clock'],
             sortorder: 'DESC',
-            limit: 5,
+            limit: 10,
             severities: [5],
             value: 1,
           },
