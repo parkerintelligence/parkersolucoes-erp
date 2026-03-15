@@ -73,16 +73,14 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
-  // Schedule items (upcoming 15 days)
+  // Schedule items (overdue + upcoming 15 days)
   const scheduleItems = useQuery({
     queryKey: ['dashboard-schedule-items'],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
       const future = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
       const { data } = await supabase
         .from('schedule_items')
         .select('*')
-        .gte('due_date', today)
         .lte('due_date', future)
         .neq('status', 'completed')
         .order('due_date', { ascending: true })
@@ -502,7 +500,7 @@ const Dashboard = () => {
             {scheduleItems.length === 0 ? (
               <div className="flex items-center gap-2 py-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
-                <p className="text-xs text-green-300">Nenhum vencimento nos próximos 15 dias</p>
+                <p className="text-xs text-green-300">Nenhum vencimento pendente ou vencido</p>
               </div>
             ) : (
               <div className="space-y-1.5 mt-1">
@@ -511,6 +509,7 @@ const Dashboard = () => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
                   const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / 86400000);
+                  const isOverdue = diffDays < 0;
                   const isToday = diffDays === 0;
                   const isTomorrow = diffDays === 1;
                   const isUrgent = diffDays <= 2;
@@ -520,9 +519,9 @@ const Dashboard = () => {
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: item.color || '#6366f1' }}
+                          style={{ backgroundColor: isOverdue ? '#ef4444' : (item.color || '#6366f1') }}
                         />
-                        <span className="text-indigo-200/80 truncate" title={`${item.title} - ${item.company}`}>
+                        <span className={`truncate ${isOverdue ? 'text-red-300' : 'text-indigo-200/80'}`} title={`${item.title} - ${item.company}`}>
                           {item.title}
                         </span>
                       </div>
@@ -533,7 +532,9 @@ const Dashboard = () => {
                         <Badge
                           variant="outline"
                           className={`text-[8px] py-0 px-1 h-3.5 ${
-                            isToday
+                            isOverdue
+                              ? 'border-red-500/50 text-red-400 bg-red-500/20 font-bold'
+                              : isToday
                               ? 'border-red-500/40 text-red-400 bg-red-500/10'
                               : isTomorrow
                               ? 'border-amber-500/40 text-amber-400 bg-amber-500/10'
@@ -542,7 +543,7 @@ const Dashboard = () => {
                               : 'border-indigo-600/30 text-indigo-300/70'
                           }`}
                         >
-                          {isToday ? 'Hoje' : isTomorrow ? 'Amanhã' : `${diffDays}d`}
+                          {isOverdue ? `Vencido ${Math.abs(diffDays)}d` : isToday ? 'Hoje' : isTomorrow ? 'Amanhã' : `${diffDays}d`}
                         </Badge>
                       </div>
                     </div>
