@@ -302,5 +302,6 @@ export const ReportsLogsPanel = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 };
