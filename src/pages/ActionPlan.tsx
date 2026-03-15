@@ -204,6 +204,14 @@ export default function ActionPlan() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={(e) => handleEditBoard(e, board)}
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => handleDeleteBoard(e, board.id)}
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
