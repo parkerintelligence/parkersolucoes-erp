@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Smartphone, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router, Zap } from 'lucide-react';
+import { LayoutDashboard, Settings, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Smartphone, Calendar, Shield, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router, Zap, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { useMyPermissions } from '@/hooks/useUserPermissions';
@@ -22,6 +22,7 @@ const menuItems = [
   { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },
   { title: 'Automação', url: '/automation', icon: Settings, role: 'user' },
   { title: 'Zabbix', url: '/zabbix', icon: Activity, role: 'user' },
+  { title: 'UniFi', url: '/unifi', icon: Wifi, role: 'user' },
   { title: 'Winbox', url: '/winbox', icon: Router, role: 'user' },
   { title: 'Bacula', url: '/bacula', icon: Database, role: 'user' },
   { title: 'VPS', url: '/vps', icon: LayoutDashboard, role: 'user' },
