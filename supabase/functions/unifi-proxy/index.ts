@@ -12,6 +12,23 @@ const isTlsCertificateError = (error: unknown) => {
   return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate/i.test(message);
 };
 
+const insecureClientCache = new Map<string, Deno.HttpClient>();
+
+const getInsecureClient = (hostPattern: string) => {
+  let cached = insecureClientCache.get(hostPattern);
+
+  if (!cached) {
+    cached = Deno.createHttpClient({
+      dangerouslyIgnoreCertificateErrors: [hostPattern],
+    });
+    insecureClientCache.set(hostPattern, cached);
+  }
+
+  return cached;
+};
+
+const toHttpUrl = (url: string) => url.replace(/^https:\/\//i, 'http://');
+
 const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allowInsecureFallback: boolean = true) => {
   try {
     return await fetch(url, options);
@@ -20,21 +37,24 @@ const fetchWithTlsFallback = async (url: string, options: RequestInit = {}, allo
       throw error;
     }
 
-    const hostname = new URL(url).hostname;
-    console.warn(`TLS certificate issue for ${hostname}. Retrying with certificate validation disabled.`);
+    const parsedUrl = new URL(url);
+    const hostCandidates = Array.from(new Set([parsedUrl.hostname, parsedUrl.host, '*'].filter(Boolean)));
+    let lastError: unknown = error;
 
-    const insecureClient = Deno.createHttpClient({
-      dangerouslyIgnoreCertificateErrors: [hostname],
-    });
-
-    try {
-      return await fetch(url, {
-        ...options,
-        client: insecureClient,
-      } as RequestInit & { client: Deno.HttpClient });
-    } finally {
-      insecureClient.close();
+    for (const hostCandidate of hostCandidates) {
+      try {
+        console.warn(`TLS certificate issue for ${parsedUrl.hostname}. Retrying with certificate validation disabled (${hostCandidate}).`);
+        const insecureClient = getInsecureClient(hostCandidate);
+        return await fetch(url, {
+          ...options,
+          client: insecureClient,
+        } as RequestInit & { client: Deno.HttpClient });
+      } catch (retryError) {
+        lastError = retryError;
+      }
     }
+
+    throw lastError;
   }
 };
 
