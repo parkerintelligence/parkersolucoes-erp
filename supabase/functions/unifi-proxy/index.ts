@@ -540,7 +540,7 @@ serve(async (req) => {
         siteManagerEndpoint = siteManagerEndpoint.replace('/ea/', '/v1/');
       }
       
-      console.log('Endpoint mapping:', { original: endpoint, mapped: siteManagerEndpoint });
+      console.log('Endpoint mapping:', { original: endpoint, mapped: siteManagerEndpoint, siteIdForFilter });
       
       const requestOptions: RequestInit = {
         method: method || 'GET',
