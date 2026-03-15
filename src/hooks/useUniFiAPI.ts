@@ -276,10 +276,12 @@ export const useUniFiAPI = () => {
             const rawSites = Array.isArray(sitesResponse?.data) ? sitesResponse.data : [];
 
             const connectedHosts = hostsResponse.data.filter((host: any) => host.reportedState?.state === 'connected');
-            const connectedHostsById = new Map(connectedHosts.map((host: any) => [host.id, host]));
+            const connectedHostsById = new Map<string, any>(
+              connectedHosts.map((host: any): [string, any] => [String(host.id), host])
+            );
 
             const normalizedSites = rawSites.map((site: any) => {
-              const siteControllerId = site.controllerId || site.controller_id || site.hostId || site.host_id || '';
+              const siteControllerId = String(site.controllerId || site.controller_id || site.hostId || site.host_id || '');
               const host = connectedHostsById.get(siteControllerId);
 
               return {
