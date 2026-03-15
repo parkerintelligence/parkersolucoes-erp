@@ -201,7 +201,7 @@ serve(async (req) => {
     }
 
     // Determine connection mode based on integration data + endpoint requested
-    const { base_url, username, password, api_token, use_ssl = true } = integration;
+    const { base_url, username, password, api_token, use_ssl = true, port } = integration;
     const normalizedBaseUrl = typeof base_url === 'string' ? base_url.trim().replace(/\/+$/, '') : '';
     const normalizedUsername = typeof username === 'string' ? username.trim() : '';
     const normalizedPassword = typeof password === 'string' ? password.trim() : '';
@@ -221,6 +221,7 @@ serve(async (req) => {
       hasPassword: !!normalizedPassword,
       hasApiToken: !!normalizedApiToken,
       useSSL: use_ssl,
+      configuredPort: port,
       endpoint,
       endpointIsLocalController,
       useLocalController,
@@ -256,21 +257,29 @@ serve(async (req) => {
       let activeBaseApiUrl = baseApiUrl;
       let loginResponse: Response | null = null;
       let lastConnectionError = '';
+      let lastConnectionErrorWasTls = false;
 
-      const controllerCandidates = buildLocalControllerCandidates(baseApiUrl, use_ssl ?? true);
-      const loginEndpoints = ['/api/auth/login', '/api/login'];
+      const controllerCandidates = buildLocalControllerCandidates(baseApiUrl, use_ssl ?? true, port);
+      const loginEndpoints = [
+        '/api/auth/login',
+        '/api/login',
+        '/proxy/network/api/auth/login',
+        '/proxy/network/api/login',
+      ];
 
       console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
       console.log('Controller candidates:', controllerCandidates);
       console.log('Username provided:', !!username);
       console.log('Password provided:', !!password);
       console.log('Use SSL configured:', use_ssl);
+      console.log('Configured port:', port);
       console.log('Ignore SSL configured:', requestBody.ignore_ssl);
 
       const loginBody = JSON.stringify({
         username: normalizedUsername,
         password: normalizedPassword,
         remember: true,
+        rememberMe: true,
       });
 
       const loginHeaders = {
