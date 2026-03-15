@@ -56,6 +56,11 @@ const UniFiSimpleDashboard = () => {
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
 
+  // Determine integration mode
+  const currentIntegration = unifiIntegrations.find(i => i.id === selectedIntegration);
+  const isLocalController = Boolean(currentIntegration?.base_url && currentIntegration?.username);
+  const integrationMode = isLocalController ? 'local' : 'site-manager';
+
   useEffect(() => {
     if (unifiIntegrations.length > 0 && !selectedIntegration) {
       setSelectedIntegration(unifiIntegrations[0].id);
