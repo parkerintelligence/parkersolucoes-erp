@@ -20,7 +20,7 @@ const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace
 
 const DEFAULT_FETCH_TIMEOUT_MS = 9000;
 
-const MAX_LOGIN_ATTEMPTS = 8;
+const MAX_LOGIN_ATTEMPTS = 24;
 const MAX_LOGIN_DURATION_MS = 20000;
 
 const buildLocalControllerCandidates = (
@@ -47,25 +47,22 @@ const buildLocalControllerCandidates = (
 
   const configuredPortValue = String(configuredPort ?? '').trim();
   const currentPort = parsed.port || (preferSsl ? '443' : '80');
-  const preferred = preferSsl ? toHttpsUrl(normalized) : toHttpUrl(normalized);
+  const protocolOrder: Array<'https:' | 'http:'> = preferSsl ? ['https:', 'http:'] : ['http:', 'https:'];
 
-  // Prioridade total para a URL configurada pelo usuário.
-  push(preferred);
-  push(preferSsl ? toHttpUrl(preferred) : toHttpsUrl(preferred));
+  const prioritizedPorts = [
+    configuredPortValue,
+    currentPort,
+    currentPort === '8445' ? '8443' : '8445',
+    preferSsl ? '443' : '80',
+  ].filter((value, index, arr) => !!value && arr.indexOf(value) === index);
 
-  if (configuredPortValue && configuredPortValue !== currentPort) {
-    push(createVariant(preferSsl ? 'https:' : 'http:', configuredPortValue));
-    push(createVariant(preferSsl ? 'http:' : 'https:', configuredPortValue));
+  for (const portValue of prioritizedPorts.slice(0, 3)) {
+    for (const protocol of protocolOrder) {
+      push(createVariant(protocol, portValue));
+    }
   }
 
-  // Fallback curto e controlado para portas comuns, sem varrer muitas combinações.
-  if (!configuredPortValue || ['443', '8443', '8445'].includes(currentPort)) {
-    const fallbackPort = currentPort === '8445' ? '8443' : '8445';
-    push(createVariant('https:', fallbackPort));
-    push(createVariant('http:', fallbackPort));
-  }
-
-  return Array.from(candidates).slice(0, 4);
+  return Array.from(candidates).slice(0, 6);
 };
 
 const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
