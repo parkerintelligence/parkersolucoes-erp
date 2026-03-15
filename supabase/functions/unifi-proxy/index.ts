@@ -285,51 +285,71 @@ serve(async (req) => {
       }
 
       if (!loginResponse.ok) {
-        const loginError = await loginResponse.text();
-        console.error('=== AUTHENTICATION FAILED ===');
-        console.error('Status:', loginResponse.status, loginResponse.statusText);
-        console.error('Response headers:', Object.fromEntries(loginResponse.headers.entries()));
-        console.error('Response body:', loginError);
-        
-        // Analyze authentication failure
-        let authErrorMsg = '';
-        let authTroubleshooting = [];
-        
-        if (loginResponse.status === 400) {
-          if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
-            authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
-            authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
-            authTroubleshooting.push('Tente ativar "Ignorar certificados SSL inválidos" na configuração.');
-            authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
-            authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
-          } else if (loginError.includes('username') || loginError.includes('password')) {
-            authErrorMsg = 'Credenciais de login inválidas.';
-            authTroubleshooting.push('Verifique se o usuário e senha estão corretos.');
-            authTroubleshooting.push('Verifique se o usuário tem permissões de administrador na controladora.');
+        let loginError = await loginResponse.text();
+
+        // Some controllers use /api/login (legacy) instead of /api/auth/login (UniFi OS)
+        if (loginResponse.status === 404 && loginUrl.endsWith('/api/auth/login')) {
+          const legacyLoginUrl = `${baseApiUrl}/api/login`;
+          console.warn('Login endpoint /api/auth/login not found, retrying legacy endpoint:', legacyLoginUrl);
+
+          const legacyResponse = await fetch(legacyLoginUrl, fetchOptions);
+          if (legacyResponse.ok) {
+            loginResponse = legacyResponse;
+            loginUrl = legacyLoginUrl;
+            console.log('Legacy login endpoint succeeded');
           } else {
-            authErrorMsg = 'Erro de autenticação (400 Bad Request).';
-            authTroubleshooting.push('Formato de requisição inválido ou credenciais mal formatadas.');
+            loginResponse = legacyResponse;
+            loginUrl = legacyLoginUrl;
+            loginError = await legacyResponse.text();
           }
-        } else if (loginResponse.status === 401) {
-          authErrorMsg = 'Credenciais de acesso negadas.';
-          authTroubleshooting.push('Usuário ou senha incorretos.');
-          authTroubleshooting.push('Conta pode estar bloqueada ou desabilitada.');
-        } else if (loginResponse.status === 403) {
-          authErrorMsg = 'Acesso proibido.';
-          authTroubleshooting.push('Usuário não tem permissões de administrador.');
-          authTroubleshooting.push('API pode estar desabilitada na controladora.');
-        } else if (loginResponse.status === 500) {
-          authErrorMsg = 'Erro interno da controladora.';
-          authTroubleshooting.push('Problema na controladora UniFi. Verifique logs da controladora.');
-          authTroubleshooting.push('Tente reiniciar a controladora.');
-        } else {
-          authErrorMsg = `Erro de autenticação HTTP ${loginResponse.status}.`;
-          authTroubleshooting.push('Erro inesperado na autenticação.');
         }
-        
-        console.error('Authentication error analysis:', { authErrorMsg, authTroubleshooting });
-        
-        throw new Error(`${authErrorMsg} Status: ${loginResponse.status}. Diagnóstico: ${authTroubleshooting.join(' | ')}`);
+
+        if (!loginResponse.ok) {
+          console.error('=== AUTHENTICATION FAILED ===');
+          console.error('Status:', loginResponse.status, loginResponse.statusText);
+          console.error('Response headers:', Object.fromEntries(loginResponse.headers.entries()));
+          console.error('Response body:', loginError);
+
+          // Analyze authentication failure
+          let authErrorMsg = '';
+          let authTroubleshooting = [];
+
+          if (loginResponse.status === 400) {
+            if (loginError.includes('TLS') || loginError.includes('requires TLS')) {
+              authErrorMsg = 'Controladora requer HTTPS mas a conexão falhou. Problema de certificado SSL.';
+              authTroubleshooting.push('A controladora está configurada para exigir HTTPS mas o certificado não é válido.');
+              authTroubleshooting.push('Tente ativar "Ignorar certificados SSL inválidos" na configuração.');
+              authTroubleshooting.push('Acesse https://' + new URL(baseApiUrl).hostname + ':' + (new URL(baseApiUrl).port || '8443') + ' no navegador e aceite o certificado manualmente.');
+              authTroubleshooting.push('Ou configure a controladora para permitir HTTP local.');
+            } else if (loginError.includes('username') || loginError.includes('password')) {
+              authErrorMsg = 'Credenciais de login inválidas.';
+              authTroubleshooting.push('Verifique se o usuário e senha estão corretos.');
+              authTroubleshooting.push('Verifique se o usuário tem permissões de administrador na controladora.');
+            } else {
+              authErrorMsg = 'Erro de autenticação (400 Bad Request).';
+              authTroubleshooting.push('Formato de requisição inválido ou credenciais mal formatadas.');
+            }
+          } else if (loginResponse.status === 401) {
+            authErrorMsg = 'Credenciais de acesso negadas.';
+            authTroubleshooting.push('Usuário ou senha incorretos.');
+            authTroubleshooting.push('Conta pode estar bloqueada ou desabilitada.');
+          } else if (loginResponse.status === 403) {
+            authErrorMsg = 'Acesso proibido.';
+            authTroubleshooting.push('Usuário não tem permissões de administrador.');
+            authTroubleshooting.push('API pode estar desabilitada na controladora.');
+          } else if (loginResponse.status === 500) {
+            authErrorMsg = 'Erro interno da controladora.';
+            authTroubleshooting.push('Problema na controladora UniFi. Verifique logs da controladora.');
+            authTroubleshooting.push('Tente reiniciar a controladora.');
+          } else {
+            authErrorMsg = `Erro de autenticação HTTP ${loginResponse.status}.`;
+            authTroubleshooting.push('Erro inesperado na autenticação.');
+          }
+
+          console.error('Authentication error analysis:', { authErrorMsg, authTroubleshooting });
+
+          throw new Error(`${authErrorMsg} Status: ${loginResponse.status}. Diagnóstico: ${authTroubleshooting.join(' | ')}`);
+        }
       }
 
       // Extract cookies from login response
