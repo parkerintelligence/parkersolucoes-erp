@@ -957,6 +957,12 @@ const Dashboard = () => {
           );
         })()}
       </div>
+
+      <WebhookEventDetailDialog
+        open={!!selectedWebhookLogId}
+        onOpenChange={(open) => !open && setSelectedWebhookLogId(null)}
+        logId={selectedWebhookLogId}
+      />
     </div>
   );
 };
