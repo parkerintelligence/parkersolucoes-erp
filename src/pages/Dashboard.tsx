@@ -244,21 +244,6 @@ const Dashboard = () => {
     return differenceInDays(new Date(), parseISO(r.last_execution)) > 2;
   });
 
-  // FTP backups - check if last backup is old
-  const ftpActive = ftpConns.filter((f: any) => f.is_active);
-
-  // Integration health summary
-  const connectionTypes = [
-    { label: 'MikroTik', data: mikrotikConns, icon: Router, color: 'text-orange-400', bg: 'bg-orange-900/20 border-orange-600/30' },
-    { label: 'FTP/Backup', data: ftpConns, icon: HardDrive, color: 'text-blue-400', bg: 'bg-blue-900/20 border-blue-600/30' },
-    { label: 'Hostinger VPS', data: hostingerConns, icon: Server, color: 'text-purple-400', bg: 'bg-purple-900/20 border-purple-600/30' },
-    { label: 'Bacula', data: baculaConns, icon: Database, color: 'text-green-400', bg: 'bg-green-900/20 border-green-600/30' },
-    { label: 'Evolution API', data: evolutionConns, icon: Send, color: 'text-emerald-400', bg: 'bg-emerald-900/20 border-emerald-600/30' },
-    { label: 'Chatwoot', data: chatwootConns, icon: SendHorizonal, color: 'text-cyan-400', bg: 'bg-cyan-900/20 border-cyan-600/30' },
-    { label: 'Zabbix', data: zabbixConns, icon: Activity, color: 'text-red-400', bg: 'bg-red-900/20 border-red-600/30' },
-    { label: 'UniFi', data: unifiConns, icon: Wifi, color: 'text-sky-400', bg: 'bg-sky-900/20 border-sky-600/30' },
-    { label: 'GLPI', data: glpiConns, icon: ShieldCheck, color: 'text-yellow-400', bg: 'bg-yellow-900/20 border-yellow-600/30' },
-  ];
 
   return (
     <div className="space-y-6 p-4 md:p-6 min-h-screen">
