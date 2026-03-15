@@ -357,7 +357,7 @@ const Guacamole = () => {
             <div>
               <h1 className="text-2xl font-bold text-white">Conexão Remota</h1>
               <p className="text-slate-400">
-                Gerencie conexões remotas e sessões ativas do Guacamole
+                Gerencie conexões remotas via Remoto PK e Servidores RDP
               </p>
             </div>
           </div>
