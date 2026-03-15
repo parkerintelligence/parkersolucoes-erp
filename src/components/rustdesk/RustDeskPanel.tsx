@@ -233,7 +233,7 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Monitor className="h-5 w-5 text-orange-400" />
-          <h2 className="text-lg font-semibold text-foreground">RustDesk - Conexões</h2>
+          <h2 className="text-lg font-semibold text-foreground">Remoto PK - Conexões</h2>
           <Badge variant="secondary" className="text-xs">{connections.length}</Badge>
         </div>
         <div className="flex items-center gap-2">

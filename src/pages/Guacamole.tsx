@@ -415,7 +415,7 @@ const Guacamole = () => {
           </TabsList>
 
           <TabsContent value="rustdesk" className="mt-6">
-            <RustDeskPanel />
+            <RustDeskPanel onSessionLog={(name, details) => addSessionLog('remoto-pk', name, 'RustDesk', details)} />
           </TabsContent>
 
           <TabsContent value="connections" className="mt-6">
