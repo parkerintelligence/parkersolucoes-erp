@@ -476,7 +476,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {isAcknowledged && (
-                            <CheckCircle2 className="h-2.5 w-2.5 text-blue-400" title="Reconhecido" />
+                            <span title="Reconhecido"><CheckCircle2 className="h-2.5 w-2.5 text-blue-400" /></span>
                           )}
                           {timestamp && (
                             <span className="text-[8px] text-orange-300/40">
