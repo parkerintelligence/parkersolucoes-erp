@@ -20,7 +20,8 @@ const Backups = () => {
     currentPath,
     navigateToDirectory,
     goToParentDirectory,
-    directories
+    directories,
+    calculateSizes
   } = useRealFtp();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
