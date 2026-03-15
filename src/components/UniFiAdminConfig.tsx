@@ -96,7 +96,7 @@ const UniFiAdminConfig = () => {
         return;
       }
 
-      const normalizedBaseUrl = normalizeBaseUrl(formData.base_url);
+      const normalizedBaseUrl = normalizeBaseUrl(formData.base_url, formData.use_ssl);
 
       const integrationData: any = {
         type: 'unifi',
