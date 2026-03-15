@@ -292,43 +292,37 @@ serve(async (req) => {
       const setCookieHeaders = loginResponse.headers['set-cookie'] || '';
       console.log('Login successful, cookies present:', !!setCookieHeaders);
 
-      // Make API request to UniFi Controller
-      // Update baseApiUrl if we used HTTP fallback
-      const finalBaseUrl = usedHttpFallback ? baseApiUrl.replace('https://', 'http://') : baseApiUrl;
-      let apiUrl = `${finalBaseUrl}${endpoint}`;
+      // Make API request to UniFi Controller using insecureFetch
+      let apiUrl = `${baseApiUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
-      const requestOptions: RequestInit = {
-        method: method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Cookie': setCookieHeaders
-        },
+      const apiHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cookie': setCookieHeaders
       };
 
-      // Note: SSL bypass in Deno runtime is handled at the fetch level
+      const apiBody = (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH'))
+        ? JSON.stringify(postData)
+        : undefined;
 
-      if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-        requestOptions.body = JSON.stringify(postData);
-      }
-
-      console.log('Request options:', {
-        method: requestOptions.method,
-        url: apiUrl,
-        hasCookies: !!setCookieHeaders,
-        hasBody: !!requestOptions.body
+      let apiResponse = await insecureFetch(apiUrl, {
+        method: method || 'GET',
+        headers: apiHeaders,
+        body: apiBody
       });
 
-      let apiResponse = await fetch(apiUrl, requestOptions);
-
       // UniFi OS controllers often expose Network API under /proxy/network
-      if (!apiResponse.ok && apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
+      if (apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
         const prefixedEndpoint = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-        const prefixedUrl = `${finalBaseUrl}${prefixedEndpoint}`;
-        console.warn('Primary endpoint not found, retrying with /proxy/network prefix:', prefixedUrl);
+        const prefixedUrl = `${baseApiUrl}${prefixedEndpoint}`;
+        console.warn('Retrying with /proxy/network prefix:', prefixedUrl);
 
-        apiResponse = await fetch(prefixedUrl, requestOptions);
+        apiResponse = await insecureFetch(prefixedUrl, {
+          method: method || 'GET',
+          headers: apiHeaders,
+          body: apiBody
+        });
         apiUrl = prefixedUrl;
       }
 
