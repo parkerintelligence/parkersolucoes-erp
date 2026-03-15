@@ -142,7 +142,7 @@ const UniFiAdminConfig = () => {
   };
 
   const handleEdit = (integration: any) => {
-    const isLocalController = !!(integration.base_url && integration.username && integration.password);
+    const isLocalController = !!(integration.base_url && integration.username);
 
     setEditingIntegration(integration);
     setFormData({
