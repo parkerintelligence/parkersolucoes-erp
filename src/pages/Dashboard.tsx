@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { WebhookEventDetailDialog } from '@/components/WebhookEventDetailDialog';
 
 interface DashboardData {
   integrations: any[];
