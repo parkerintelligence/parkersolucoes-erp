@@ -699,288 +699,251 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Hostinger VPS Status - compact inline */}
-      {hasHostinger && hostingerVPS.length > 0 && (
-        <Card className="bg-gradient-to-br from-emerald-900/20 to-emerald-950/40 border-emerald-600/30">
+      {/* Grid: VPS + Reports + Webhooks + Logs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Hostinger VPS Status - compact */}
+        {hasHostinger && hostingerVPS.length > 0 && (
+          <Card className="bg-gradient-to-br from-emerald-900/20 to-emerald-950/40 border-emerald-600/30">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-xs font-semibold text-emerald-300 flex items-center gap-2">
+                <Server className="h-3.5 w-3.5" />
+                VMs Hostinger
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-emerald-600/30 text-emerald-300/70 ml-auto">
+                  {hostingerVPS.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0">
+              <div className="space-y-1.5 mt-1">
+                {hostingerVPS.map((vps: any) => {
+                  const safeValue = (value: any, fallback: any = 'N/A') => {
+                    if (typeof value === 'object' && value !== null) {
+                      if (Array.isArray(value) && value.length > 0) {
+                        const first = value[0];
+                        if (typeof first === 'object' && first.address) return first.address;
+                        return first;
+                      }
+                      if (value.address) return value.address;
+                      if (value.name) return value.name;
+                      return fallback;
+                    }
+                    return value !== undefined && value !== null ? value : fallback;
+                  };
+                  const status = vps.state || vps.status || 'unknown';
+                  const isOnline = status === 'running' || status === 'active';
+                  const hostname = safeValue(vps.hostname) || safeValue(vps.name) || 'VPS';
+
+                  return (
+                    <div key={vps.id} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                        <span className="text-emerald-200/80 truncate">{hostname}</span>
+                      </div>
+                      <Badge variant="outline" className={`text-[8px] py-0 px-1 h-3.5 ${isOnline ? 'border-emerald-600/30 text-emerald-400' : 'border-destructive/30 text-destructive'}`}>
+                        {isOnline ? 'Online' : 'Offline'}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Reports Status */}
+        <Card className="bg-card/50 border-border">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-xs font-semibold text-emerald-300 flex items-center gap-2">
-              <Server className="h-3.5 w-3.5" />
-              VMs Hostinger
-              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-emerald-600/30 text-emerald-300/70 ml-auto">
-                {hostingerVPS.length}
-              </Badge>
+            <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Relatórios Agendados
+              {activeReports.length > 0 && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-border text-muted-foreground ml-auto">
+                  {activeReports.length}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="space-y-1.5 mt-1">
-              {hostingerVPS.map((vps: any) => {
-                const safeValue = (value: any, fallback: any = 'N/A') => {
-                  if (typeof value === 'object' && value !== null) {
-                    if (Array.isArray(value) && value.length > 0) {
-                      const first = value[0];
-                      if (typeof first === 'object' && first.address) return first.address;
-                      return first;
-                    }
-                    if (value.address) return value.address;
-                    if (value.name) return value.name;
-                    return fallback;
-                  }
-                  return value !== undefined && value !== null ? value : fallback;
-                };
-                const status = vps.state || vps.status || 'unknown';
-                const isOnline = status === 'running' || status === 'active';
-                const hostname = safeValue(vps.hostname) || safeValue(vps.name) || 'VPS';
+            {activeReports.length === 0 ? (
+              <p className="text-[10px] text-muted-foreground py-2">Nenhum relatório agendado ativo</p>
+            ) : (
+              <div className="space-y-1.5 mt-1">
+                {activeReports.slice(0, 8).map((report: any) => {
+                  const lastExec = report.last_execution ? parseISO(report.last_execution) : null;
+                  const daysSinceExec = lastExec ? differenceInDays(new Date(), lastExec) : null;
+                  const isStale = daysSinceExec !== null && daysSinceExec > 2;
 
-                return (
-                  <div key={vps.id} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
-                      <span className="text-emerald-200/80 truncate">{hostname}</span>
-                    </div>
-                    <Badge variant="outline" className={`text-[8px] py-0 px-1 h-3.5 ${isOnline ? 'border-emerald-600/30 text-emerald-400' : 'border-destructive/30 text-destructive'}`}>
-                      {isOnline ? 'Online' : 'Offline'}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reports Status */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground mb-3">Status dos Relatórios Agendados</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeReports.length === 0 ? (
-            <Card className="col-span-full bg-muted/20 border-border">
-              <CardContent className="p-6 text-center">
-                <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Nenhum relatório agendado ativo</p>
-              </CardContent>
-            </Card>
-          ) : (
-            activeReports.slice(0, 6).map((report: any) => {
-              const lastExec = report.last_execution ? parseISO(report.last_execution) : null;
-              const nextExec = report.next_execution ? parseISO(report.next_execution) : null;
-              const daysSinceExec = lastExec ? differenceInDays(new Date(), lastExec) : null;
-              const isStale = daysSinceExec !== null && daysSinceExec > 2;
-
-              return (
-                <Card key={report.id} className={`border ${isStale ? 'border-amber-600/40 bg-amber-950/10' : 'bg-card/50 border-border'}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-foreground truncate max-w-[70%]">{report.name}</span>
-                      <Badge variant={isStale ? 'destructive' : 'default'} className="text-[9px]">
-                        {isStale ? 'Atrasado' : 'OK'}
-                      </Badge>
-                    </div>
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <div className="flex justify-between">
-                        <span>Última execução:</span>
-                        <span className={isStale ? 'text-amber-400' : ''}>
+                  return (
+                    <div key={report.id} className="flex items-center justify-between text-xs gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isStale ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                        <span className="text-foreground/80 truncate" title={report.name}>{report.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-[8px] text-muted-foreground">
                           {lastExec ? format(lastExec, "dd/MM HH:mm", { locale: ptBR }) : 'Nunca'}
                         </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Próxima:</span>
-                        <span>{nextExec ? format(nextExec, "dd/MM HH:mm", { locale: ptBR }) : 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Execuções:</span>
-                        <span>{report.execution_count || 0}</span>
+                        <Badge variant={isStale ? 'destructive' : 'default'} className="text-[8px] py-0 px-1 h-3.5">
+                          {isStale ? 'Atrasado' : 'OK'}
+                        </Badge>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
-      </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Webhook Events */}
-      {(() => {
-        const totalWebhookPages = Math.ceil(webhookLogs.length / WEBHOOK_LOGS_PER_PAGE);
-        const pagedWebhookLogs = webhookLogs.slice(webhookPage * WEBHOOK_LOGS_PER_PAGE, (webhookPage + 1) * WEBHOOK_LOGS_PER_PAGE);
+        {/* Webhook Events */}
+        {(() => {
+          const totalWebhookPages = Math.ceil(webhookLogs.length / WEBHOOK_LOGS_PER_PAGE);
+          const pagedWebhookLogs = webhookLogs.slice(webhookPage * WEBHOOK_LOGS_PER_PAGE, (webhookPage + 1) * WEBHOOK_LOGS_PER_PAGE);
 
-        const handleClearWebhookHistory = async () => {
-          setClearingWebhooks(true);
-          try {
-            const { error } = await supabase.from('webhook_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-            if (error) throw error;
-            toast.success('Histórico de webhooks limpo');
-            queryClient.invalidateQueries({ queryKey: ['dashboard-webhook-logs'] });
-            setWebhookPage(0);
-          } catch (e: any) {
-            toast.error('Erro ao limpar histórico');
-          } finally {
-            setClearingWebhooks(false);
-          }
-        };
+          const handleClearWebhookHistory = async () => {
+            setClearingWebhooks(true);
+            try {
+              const { error } = await supabase.from('webhook_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+              if (error) throw error;
+              toast.success('Histórico de webhooks limpo');
+              queryClient.invalidateQueries({ queryKey: ['dashboard-webhook-logs'] });
+              setWebhookPage(0);
+            } catch (e: any) {
+              toast.error('Erro ao limpar histórico');
+            } finally {
+              setClearingWebhooks(false);
+            }
+          };
 
-        return (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Webhook className="h-4 w-4" />
-                Últimos Eventos de Webhook
-              </h2>
-              {webhookLogs.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                  onClick={handleClearWebhookHistory}
-                  disabled={clearingWebhooks}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Limpar
-                </Button>
-              )}
-            </div>
-            {webhookLogs.length === 0 ? (
-              <Card className="bg-card/50 border-border max-w-md">
-                <CardContent className="p-6 text-center">
-                  <Webhook className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhum evento de webhook registrado</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-card/50 border-border max-w-md">
-                <CardContent className="p-0">
-                  <div className="divide-y divide-border">
-                    {pagedWebhookLogs.map((log: any) => {
-                      const body = log.request_body;
-                      let summary = '';
-                      if (body && typeof body === 'object') {
-                        if (body.trigger) summary = String(body.trigger);
-                        else if (body.message) summary = String(body.message).substring(0, 60);
-                        else if (body.text) summary = String(body.text).substring(0, 60);
-                        else {
-                          const keys = Object.keys(body);
-                          summary = keys.slice(0, 3).join(', ');
+          return (
+            <Card className="bg-card/50 border-border">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
+                  <Webhook className="h-3.5 w-3.5" />
+                  Eventos de Webhook
+                  {webhookLogs.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 px-1.5 text-[9px] text-destructive hover:text-destructive ml-auto"
+                      onClick={handleClearWebhookHistory}
+                      disabled={clearingWebhooks}
+                    >
+                      <Trash2 className="h-2.5 w-2.5 mr-0.5" />
+                      Limpar
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-0">
+                {webhookLogs.length === 0 ? (
+                  <p className="text-[10px] text-muted-foreground py-2">Nenhum evento registrado</p>
+                ) : (
+                  <div>
+                    <div className="space-y-1 mt-1">
+                      {pagedWebhookLogs.map((log: any) => {
+                        const body = log.request_body;
+                        let summary = '';
+                        if (body && typeof body === 'object') {
+                          if (body.trigger) summary = String(body.trigger);
+                          else if (body.message) summary = String(body.message).substring(0, 40);
+                          else if (body.text) summary = String(body.text).substring(0, 40);
+                          else summary = Object.keys(body).slice(0, 3).join(', ');
                         }
-                      }
 
-                      return (
-                        <div key={log.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {log.status === 'success' ? (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
-                            ) : (
-                              <XCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-xs text-foreground truncate">
+                        return (
+                          <div key={log.id} className="flex items-center justify-between text-xs gap-2 py-0.5">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              {log.status === 'success' ? (
+                                <CheckCircle2 className="h-3 w-3 text-green-400 flex-shrink-0" />
+                              ) : (
+                                <XCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
+                              )}
+                              <span className="text-foreground/80 truncate" title={summary || 'Payload recebido'}>
                                 {(log as any).webhooks?.name || 'Webhook'}
                                 {log.is_test && <span className="text-muted-foreground ml-1">🧪</span>}
-                              </p>
-                              <p className="text-[9px] text-muted-foreground truncate">
-                                {summary || 'Payload recebido'} • {format(parseISO(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                              </p>
+                              </span>
                             </div>
+                            <span className="text-[8px] text-muted-foreground flex-shrink-0">
+                              {format(parseISO(log.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                            </span>
                           </div>
-                          <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-[9px] py-0 px-1.5 h-4 flex-shrink-0">
-                            {log.status === 'success' ? 'OK' : 'Erro'}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {totalWebhookPages > 1 && (
-                    <div className="flex items-center justify-between px-3 py-2 border-t border-border">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        disabled={webhookPage === 0}
-                        onClick={() => setWebhookPage(p => p - 1)}
-                      >
-                        <ChevronLeft className="h-3 w-3 mr-1" /> Anterior
-                      </Button>
-                      <span className="text-[10px] text-muted-foreground">{webhookPage + 1}/{totalWebhookPages}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        disabled={webhookPage >= totalWebhookPages - 1}
-                        onClick={() => setWebhookPage(p => p + 1)}
-                      >
-                        Próximo <ChevronRight className="h-3 w-3 ml-1" />
-                      </Button>
+                        );
+                      })}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Recent Logs - Compact Card with Pagination */}
-      {logs.length > 0 && (() => {
-        const limitedLogs = logs.slice(0, 20);
-        const totalPages = Math.ceil(limitedLogs.length / LOGS_PER_PAGE);
-        const pagedLogs = limitedLogs.slice(logsPage * LOGS_PER_PAGE, (logsPage + 1) * LOGS_PER_PAGE);
-
-        return (
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-3">Últimos Envios</h2>
-            <Card className="bg-card/50 border-border max-w-md">
-              <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  {pagedLogs.map((log: any) => (
-                    <div key={log.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-2">
-                        {log.status === 'success' ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
-                        )}
-                        <div>
-                          <p className="text-xs text-foreground">
-                            {log.scheduled_reports?.name || log.phone_number}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">
-                            {log.phone_number} • {format(parseISO(log.execution_date), "dd/MM HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
+                    {totalWebhookPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-border">
+                        <Button variant="ghost" size="sm" className="h-5 px-2 text-[9px]" disabled={webhookPage === 0} onClick={() => setWebhookPage(p => p - 1)}>
+                          <ChevronLeft className="h-2.5 w-2.5" />
+                        </Button>
+                        <span className="text-[9px] text-muted-foreground">{webhookPage + 1}/{totalWebhookPages}</span>
+                        <Button variant="ghost" size="sm" className="h-5 px-2 text-[9px]" disabled={webhookPage >= totalWebhookPages - 1} onClick={() => setWebhookPage(p => p + 1)}>
+                          <ChevronRight className="h-2.5 w-2.5" />
+                        </Button>
                       </div>
-                      <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-[9px] py-0 px-1.5 h-4">
-                        {log.status === 'success' ? 'Enviado' : 'Falha'}
-                      </Badge>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Recent Logs */}
+        {logs.length > 0 && (() => {
+          const limitedLogs = logs.slice(0, 20);
+          const totalPages = Math.ceil(limitedLogs.length / LOGS_PER_PAGE);
+          const pagedLogs = limitedLogs.slice(logsPage * LOGS_PER_PAGE, (logsPage + 1) * LOGS_PER_PAGE);
+
+          return (
+            <Card className="bg-card/50 border-border">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold text-foreground flex items-center gap-2">
+                  <Send className="h-3.5 w-3.5" />
+                  Últimos Envios
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-0">
+                <div className="space-y-1 mt-1">
+                  {pagedLogs.map((log: any) => (
+                    <div key={log.id} className="flex items-center justify-between text-xs gap-2 py-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        {log.status === 'success' ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-400 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
+                        )}
+                        <span className="text-foreground/80 truncate">
+                          {log.scheduled_reports?.name || log.phone_number}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-[8px] text-muted-foreground">
+                          {format(parseISO(log.execution_date), "dd/MM HH:mm", { locale: ptBR })}
+                        </span>
+                        <Badge variant={log.status === 'success' ? 'default' : 'destructive'} className="text-[8px] py-0 px-1 h-3.5">
+                          {log.status === 'success' ? 'OK' : 'Falha'}
+                        </Badge>
+                      </div>
                     </div>
                   ))}
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border-t border-border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      disabled={logsPage === 0}
-                      onClick={() => setLogsPage(p => p - 1)}
-                    >
-                      <ChevronLeft className="h-3 w-3 mr-1" /> Anterior
+                  <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-border">
+                    <Button variant="ghost" size="sm" className="h-5 px-2 text-[9px]" disabled={logsPage === 0} onClick={() => setLogsPage(p => p - 1)}>
+                      <ChevronLeft className="h-2.5 w-2.5" />
                     </Button>
-                    <span className="text-[10px] text-muted-foreground">{logsPage + 1}/{totalPages}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      disabled={logsPage >= totalPages - 1}
-                      onClick={() => setLogsPage(p => p + 1)}
-                    >
-                      Próximo <ChevronRight className="h-3 w-3 ml-1" />
+                    <span className="text-[9px] text-muted-foreground">{logsPage + 1}/{totalPages}</span>
+                    <Button variant="ghost" size="sm" className="h-5 px-2 text-[9px]" disabled={logsPage >= totalPages - 1} onClick={() => setLogsPage(p => p + 1)}>
+                      <ChevronRight className="h-2.5 w-2.5" />
                     </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-        );
-      })()}
+          );
+        })()}
+      </div>
     </div>
   );
 };
