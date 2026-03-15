@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { Plus, Trash2, FolderKanban, CheckCircle2, Clock, TrendingUp, Target, ExternalLink } from "lucide-react";
+import { Plus, Trash2, FolderKanban, CheckCircle2, Clock, TrendingUp, Target, ExternalLink, Edit } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
