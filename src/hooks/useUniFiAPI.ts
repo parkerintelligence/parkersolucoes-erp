@@ -464,7 +464,7 @@ export const useUniFiAPI = () => {
           clients
         };
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
