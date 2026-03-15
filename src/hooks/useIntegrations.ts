@@ -61,11 +61,11 @@ export const useCreateIntegration = () => {
 
       console.log('✅ [useCreateIntegration] Usuário autenticado:', user.id);
 
-      // Integrações globais não precisam de user_id
+      // Integrações globais usam user_id do criador para RLS funcionar
       const globalIntegration = {
         ...integration,
         is_global: true,
-        user_id: null
+        user_id: user.id
       };
 
       console.log('📝 [useCreateIntegration] Dados completos para inserção:', globalIntegration);
