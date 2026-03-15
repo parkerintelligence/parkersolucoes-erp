@@ -220,9 +220,9 @@ export const MikrotikDashboard = () => {
         ].map(s => (
           <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
             <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
-            <div className="min-w-0">
-              <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
-              <span className="text-[10px] text-muted-foreground ml-1.5 block">{s.label}</span>
+            <div className="min-w-0 overflow-hidden">
+              <span className={`text-xs font-bold ${s.color} block truncate`} title={String(s.value)}>{s.value}</span>
+              <span className="text-[10px] text-muted-foreground block truncate">{s.label}</span>
             </div>
           </div>
         ))}
