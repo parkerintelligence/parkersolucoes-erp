@@ -288,10 +288,22 @@ serve(async (req) => {
         'User-Agent': 'Lovable-UniFi-Integration/1.0',
       };
 
+      const loginStartedAt = Date.now();
+      let attempts = 0;
+
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
         for (const loginEndpoint of loginEndpoints) {
+          if (attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
+            console.warn('[UNIFI-LOCAL] Login attempts/time budget exceeded', {
+              attempts,
+              elapsedMs: Date.now() - loginStartedAt,
+            });
+            break;
+          }
+
+          attempts += 1;
           const candidateLoginUrl = `${candidateBaseUrl}${loginEndpoint}`;
 
           try {
@@ -306,7 +318,7 @@ serve(async (req) => {
                 body: loginBody,
               },
               allowTlsFallback,
-              7000,
+              5000,
             );
             const responseTime = Date.now() - startTime;
 
@@ -333,7 +345,7 @@ serve(async (req) => {
           }
         }
 
-        if (loginResponse) {
+        if (loginResponse || attempts >= MAX_LOGIN_ATTEMPTS || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
           break;
         }
       }
