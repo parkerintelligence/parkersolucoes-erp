@@ -117,6 +117,28 @@ const BackupsFileTable: React.FC<BackupsFileTableProps> = ({
               <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingFiles ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
+            {onCalculateSizes && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setIsCalculatingSizes(true);
+                  try {
+                    await onCalculateSizes();
+                    toast({ title: "✅ Tamanhos calculados", description: "Os tamanhos das pastas foram atualizados." });
+                  } catch {
+                    toast({ title: "❌ Erro ao calcular", description: "Não foi possível calcular os tamanhos.", variant: "destructive" });
+                  } finally {
+                    setIsCalculatingSizes(false);
+                  }
+                }}
+                disabled={isCalculatingSizes}
+                className="h-7 text-xs"
+              >
+                <Calculator className={`h-3 w-3 mr-1 ${isCalculatingSizes ? 'animate-spin' : ''}`} />
+                {isCalculatingSizes ? 'Calculando...' : 'Calcular Tamanhos'}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
