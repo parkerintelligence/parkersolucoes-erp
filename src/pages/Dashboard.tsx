@@ -73,7 +73,26 @@ const useDashboardData = () => {
     staleTime: 60000,
   });
 
-  // FTP backup directories (root level)
+  // Schedule items (upcoming 15 days)
+  const scheduleItems = useQuery({
+    queryKey: ['dashboard-schedule-items'],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const future = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('schedule_items')
+        .select('*')
+        .gte('due_date', today)
+        .lte('due_date', future)
+        .neq('status', 'completed')
+        .order('due_date', { ascending: true })
+        .limit(10);
+      return data || [];
+    },
+    staleTime: 60000,
+  });
+
+
   const ftpIntegration = integrations.data?.find((i: any) => i.type === 'ftp' && i.is_active);
   const ftpFiles = useQuery({
     queryKey: ['dashboard-ftp-files', ftpIntegration?.id],
