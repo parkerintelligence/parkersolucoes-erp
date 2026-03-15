@@ -134,19 +134,21 @@ const UniFiSimpleDashboard = () => {
             </span>
           )}
           {currentIntegration && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="outline" className={`text-[10px] h-5 gap-1 cursor-default ${isLocalController ? 'border-orange-500/40 text-orange-400' : 'border-blue-500/40 text-blue-400'}`}>
-                  {isLocalController ? <Server className="h-2.5 w-2.5" /> : <Cloud className="h-2.5 w-2.5" />}
-                  {isLocalController ? 'Local' : 'Cloud'}
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs max-w-xs">
-                {isLocalController
-                  ? `Controladora Local — ${currentIntegration.base_url}`
-                  : 'UniFi Site Manager (unifi.ui.com) — via API Token'}
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className={`text-[10px] h-5 gap-1 cursor-default ${isLocalController ? 'border-orange-500/40 text-orange-400' : 'border-blue-500/40 text-blue-400'}`}>
+                    {isLocalController ? <Server className="h-2.5 w-2.5" /> : <Cloud className="h-2.5 w-2.5" />}
+                    {isLocalController ? 'Local' : 'Cloud'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs max-w-xs">
+                  {isLocalController
+                    ? `Controladora Local — ${currentIntegration.base_url}`
+                    : 'UniFi Site Manager (unifi.ui.com) — via API Token'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
         <div className="flex items-center gap-2">
