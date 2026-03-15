@@ -351,7 +351,7 @@ export const useUniFiAPI = () => {
         console.log('✅ Usando controladora local devices');
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId && !!siteId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -382,7 +382,7 @@ export const useUniFiAPI = () => {
         console.log('✅ Usando controladora local clients');
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId && !!siteId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -396,7 +396,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/rest/wlanconf` : '/api/rest/wlanconf';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 60000, // 1 minute
       retry: 2,
     });
@@ -410,7 +410,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/stat/alarm` : '/api/stat/alarm';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -424,7 +424,7 @@ export const useUniFiAPI = () => {
         const endpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -435,7 +435,7 @@ export const useUniFiAPI = () => {
     return useQuery({
       queryKey: ['unifi-stats', integrationId, hostId, siteId],
       queryFn: async () => {
-        if (!hostId) return null;
+        if (!siteId) return null;
         
         const deviceEndpoint = siteId ? `/api/s/${siteId}/stat/device` : '/api/stat/device';
         const clientEndpoint = siteId ? `/api/s/${siteId}/stat/sta` : '/api/stat/sta';
@@ -464,7 +464,7 @@ export const useUniFiAPI = () => {
           clients
         };
       },
-      enabled: !!integrationId && !!hostId,
+      enabled: !!integrationId && !!siteId,
       staleTime: 30000, // 30 seconds
       retry: 2,
     });
@@ -472,7 +472,7 @@ export const useUniFiAPI = () => {
 
   // Device operations
   const restartDevice = useMutation({
-    mutationFn: async ({ integrationId, hostId, deviceId, siteId }: { integrationId: string, hostId: string, deviceId: string, siteId?: string }) => {
+    mutationFn: async ({ integrationId, hostId, deviceId, siteId }: { integrationId: string, hostId?: string, deviceId: string, siteId?: string }) => {
       const endpoint = siteId ? `/api/s/${siteId}/cmd/devmgr` : '/api/cmd/devmgr';
       return makeUniFiRequest(endpoint, 'POST', integrationId, {
         cmd: 'restart',
@@ -498,7 +498,7 @@ export const useUniFiAPI = () => {
 
   // Block/Unblock client
   const toggleClientBlock = useMutation({
-    mutationFn: async ({ integrationId, hostId, clientId, block, siteId }: { integrationId: string, hostId: string, clientId: string, block: boolean, siteId?: string }) => {
+    mutationFn: async ({ integrationId, hostId, clientId, block, siteId }: { integrationId: string, hostId?: string, clientId: string, block: boolean, siteId?: string }) => {
       const endpoint = siteId ? `/api/s/${siteId}/cmd/stamgr` : '/api/cmd/stamgr';
       return makeUniFiRequest(endpoint, 'POST', integrationId, {
         cmd: block ? 'block-sta' : 'unblock-sta',
