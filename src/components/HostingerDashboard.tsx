@@ -28,20 +28,23 @@ export const HostingerDashboard = () => {
     }
   }, [integrations, selectedIntegration]);
 
-  const handleRestart = (vpsId: string) => {
+  const handleVPSAction = (vpsId: string, action: 'restart' | 'start' | 'stop') => {
     if (!isMaster) {
-      toast({ title: "Acesso Negado", description: "Apenas usuários master podem reiniciar VPS", variant: "destructive" });
+      toast({ title: "Acesso Negado", description: "Apenas usuários master podem gerenciar VPS", variant: "destructive" });
       return;
     }
-    setPendingRestartVpsId(vpsId);
+    setPendingRestartVpsId(`${action}:${vpsId}`);
     setShowMasterPasswordDialog(true);
   };
 
   const handleMasterPasswordSuccess = async () => {
     if (!pendingRestartVpsId) return;
+    const [action, vpsId] = pendingRestartVpsId.split(':');
     try {
-      await restartVPS.mutateAsync({ integrationId: selectedIntegration, vpsId: pendingRestartVpsId });
-      setTimeout(() => refetchVPS(), 2000);
+      const mutationMap = { restart: restartVPS, start: startVPS, stop: stopVPS };
+      const mutation = mutationMap[action as keyof typeof mutationMap];
+      await mutation.mutateAsync({ integrationId: selectedIntegration, vpsId });
+      setTimeout(() => refetchVPS(), 3000);
     } finally {
       setPendingRestartVpsId(null);
     }
