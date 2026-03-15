@@ -241,6 +241,16 @@ serve(async (req) => {
         baseApiUrl = baseApiUrl.replace(/^http:\/\//i, 'https://');
       }
 
+      if (port) {
+        try {
+          const urlWithConfiguredPort = new URL(baseApiUrl);
+          urlWithConfiguredPort.port = String(port);
+          baseApiUrl = normalizeUrlNoTrailingSlash(urlWithConfiguredPort.toString());
+        } catch (portError) {
+          console.warn('Could not apply configured port to base URL:', portError);
+        }
+      }
+
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
       // Use Site Manager API
