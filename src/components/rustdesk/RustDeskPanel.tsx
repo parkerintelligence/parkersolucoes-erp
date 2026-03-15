@@ -490,16 +490,16 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                               <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="py-1">
+                          <TableCell className="py-1.5">
                             {conn.glpi_asset_name ? (
                               <div className="flex items-center gap-1" title={[conn.glpi_asset_name, conn.glpi_asset_serial && `S/N: ${conn.glpi_asset_serial}`, conn.glpi_asset_entity, conn.glpi_asset_comment].filter(Boolean).join(' | ')}>
                                 <Package className="h-3 w-3 text-blue-400 flex-shrink-0" />
-                                <span className="text-[11px] text-foreground truncate max-w-[120px]">{conn.glpi_asset_name}</span>
-                                {conn.glpi_asset_entity && <span className="text-[10px] text-blue-400/70 truncate max-w-[80px]">{conn.glpi_asset_entity}</span>}
-                                {conn.glpi_asset_comment && <span className="text-[10px] text-muted-foreground italic truncate max-w-[100px]">{conn.glpi_asset_comment.substring(0, 30)}</span>}
+                                <span className="text-xs text-foreground truncate max-w-[120px]">{conn.glpi_asset_name}</span>
+                                {conn.glpi_asset_entity && <span className="text-[11px] text-blue-400/70 truncate max-w-[80px]">{conn.glpi_asset_entity}</span>}
+                                {conn.glpi_asset_comment && <span className="text-[11px] text-muted-foreground italic truncate max-w-[100px]">{conn.glpi_asset_comment.substring(0, 30)}</span>}
                               </div>
                             ) : (
-                              <span className="text-muted-foreground/50 text-[10px]">-</span>
+                              <span className="text-muted-foreground/50 text-xs">-</span>
                             )}
                           </TableCell>
                           <TableCell className="py-1 text-right">
