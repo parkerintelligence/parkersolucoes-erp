@@ -126,6 +126,7 @@ const Backups = () => {
         onRefresh={refetchFiles}
         downloadFile={downloadFile}
         deleteFile={deleteFile}
+        onCalculateSizes={calculateSizes}
       />
     </div>
   );
