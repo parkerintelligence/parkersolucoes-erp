@@ -324,8 +324,8 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Alerts Section - FTP Backups, Bacula Errors, Zabbix Problems */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Alerts Section - FTP Backups, Bacula Errors, Zabbix Problems, MikroTik Resources */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* FTP Backups sem fazer há dias */}
         <Card className="bg-gradient-to-br from-amber-900/20 to-amber-950/40 border-amber-600/30">
           <CardHeader className="pb-2 pt-4 px-4">
