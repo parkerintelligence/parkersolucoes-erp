@@ -683,6 +683,14 @@ serve(async (req) => {
       } else if (error.message.includes('Authorization header')) {
         status = 401;
         errorMessage = 'Header de autorização ausente.';
+      } else if (error.message.includes('Falha SSL/TLS na controladora')) {
+        status = 502;
+        errorMessage = 'Falha de certificado TLS na controladora local.';
+        troubleshooting = 'Use certificado público válido com cadeia completa ou exponha um endpoint HTTP interno confiável para a Edge Function.';
+      } else if (error.message.includes('Falha ao conectar na controladora')) {
+        status = 502;
+        errorMessage = 'Não foi possível conectar à controladora local.';
+        troubleshooting = 'Verifique URL, porta/protocolo, firewall e se a API UniFi está acessível externamente.';
       } else if (error.message.includes('Conexão falhou com HTTPS e HTTP')) {
         status = 502;
         errorMessage = 'Falha na conectividade de rede com a controladora.';
