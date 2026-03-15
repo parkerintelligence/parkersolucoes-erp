@@ -74,9 +74,9 @@ serve(async (req) => {
       .from('integrations')
       .select('*')
       .eq('id', integrationId)
-      .eq('user_id', user.id)
       .eq('type', 'unifi')
-      .single();
+      .or(`user_id.eq.${user.id},is_global.eq.true`)
+      .maybeSingle();
 
     if (integrationError || !integration) {
       console.error('Integration not found:', integrationError);
@@ -89,32 +89,42 @@ serve(async (req) => {
       throw new Error('UniFi integration is not active');
     }
 
-    // Check if this is a local controller integration (has username/password) or Site Manager API (has api_token)
+    // Determine connection mode based on integration data + endpoint requested
     const { base_url, username, password, api_token, use_ssl = true } = integration;
-    
-    // Priorizar Site Manager API se api_token estiver presente
-    const isSiteManagerAPI = !!(api_token);
-    const isLocalController = !isSiteManagerAPI && !!(username && password && base_url);
-    
-    console.log("Integration config:", { 
-      hasBaseUrl: !!base_url,
-      hasUsername: !!username,
-      hasPassword: !!password,
-      hasApiToken: !!api_token,
+    const normalizedBaseUrl = typeof base_url === 'string' ? base_url.trim().replace(/\/+$/, '') : '';
+    const normalizedUsername = typeof username === 'string' ? username.trim() : '';
+    const normalizedPassword = typeof password === 'string' ? password.trim() : '';
+    const normalizedApiToken = typeof api_token === 'string' ? api_token.trim() : '';
+
+    const hasLocalCredentials = !!(normalizedBaseUrl && normalizedUsername && normalizedPassword);
+    const hasApiToken = !!normalizedApiToken;
+    const endpointIsLocalController = typeof endpoint === 'string' && endpoint.startsWith('/api/');
+
+    // If endpoint is local (/api/*), prioritize local controller when credentials exist.
+    const useLocalController = hasLocalCredentials && (endpointIsLocalController || !hasApiToken);
+    const useSiteManagerApi = hasApiToken && !useLocalController;
+
+    console.log("Integration config:", {
+      hasBaseUrl: !!normalizedBaseUrl,
+      hasUsername: !!normalizedUsername,
+      hasPassword: !!normalizedPassword,
+      hasApiToken: !!normalizedApiToken,
       useSSL: use_ssl,
-      isLocalController,
-      isSiteManagerAPI
+      endpoint,
+      endpointIsLocalController,
+      useLocalController,
+      useSiteManagerApi
     });
-    
-    if (!isLocalController && !isSiteManagerAPI) {
+
+    if (!useLocalController && !useSiteManagerApi) {
       console.error('Invalid UniFi integration configuration');
       throw new Error('UniFi integration requires either (base_url, username, password) for local controller OR (api_token) for Site Manager API');
     }
 
     let baseApiUrl;
-    if (isLocalController) {
+    if (useLocalController) {
       // Use local UniFi Controller
-      baseApiUrl = base_url.replace(/\/+$/, ''); // Remove trailing slashes
+      baseApiUrl = normalizedBaseUrl;
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
       // Use Site Manager API
@@ -123,9 +133,9 @@ serve(async (req) => {
     }
     console.log('API endpoint:', endpoint);
 
-    if (isLocalController) {
+    if (useLocalController) {
       // LOCAL CONTROLLER - Authenticate with username/password
-      let loginUrl = `${baseApiUrl}/api/login`;
+      let loginUrl = `${baseApiUrl}/api/auth/login`;
       console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
       console.log('Controller URL:', baseApiUrl);
       console.log('Login endpoint:', loginUrl);
