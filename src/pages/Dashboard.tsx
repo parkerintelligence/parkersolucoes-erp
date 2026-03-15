@@ -176,6 +176,7 @@ const useDashboardData = () => {
     integrations: integrations.data || [],
     reports: reports.data || [],
     logs: logs.data || [],
+    webhookLogs: webhookLogs.data || [],
     ftpFiles: ftpFiles.data || [],
     baculaErrors: baculaJobs.data || [],
     zabbixProblems: (zabbixProblems.data as any)?.active || [],
@@ -188,6 +189,7 @@ const useDashboardData = () => {
       integrations.refetch();
       reports.refetch();
       logs.refetch();
+      webhookLogs.refetch();
       ftpFiles.refetch();
       baculaJobs.refetch();
       zabbixProblems.refetch();
