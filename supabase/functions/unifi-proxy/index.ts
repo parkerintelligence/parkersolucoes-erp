@@ -171,8 +171,8 @@ serve(async (req) => {
           'User-Agent': 'Lovable-UniFi-Integration/1.0'
         },
         body: JSON.stringify({
-          username: username,
-          password: password,
+          username: normalizedUsername,
+          password: normalizedPassword,
           remember: true
         })
       };
