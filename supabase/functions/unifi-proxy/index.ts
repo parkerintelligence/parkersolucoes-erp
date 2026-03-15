@@ -359,7 +359,7 @@ serve(async (req) => {
       // Make API request to UniFi Controller
       // Update baseApiUrl if we used HTTP fallback
       const finalBaseUrl = usedHttpFallback ? baseApiUrl.replace('https://', 'http://') : baseApiUrl;
-      const apiUrl = `${finalBaseUrl}${endpoint}`;
+      let apiUrl = `${finalBaseUrl}${endpoint}`;
       console.log('Making Controller API request to:', apiUrl);
 
       const requestOptions: RequestInit = {
@@ -377,20 +377,30 @@ serve(async (req) => {
         requestOptions.body = JSON.stringify(postData);
       }
 
-      console.log('Request options:', { 
-        method: requestOptions.method, 
+      console.log('Request options:', {
+        method: requestOptions.method,
         url: apiUrl,
         hasCookies: !!setCookieHeaders,
-        hasBody: !!requestOptions.body 
+        hasBody: !!requestOptions.body
       });
 
-      const apiResponse = await fetch(apiUrl, requestOptions);
-      
+      let apiResponse = await fetch(apiUrl, requestOptions);
+
+      // UniFi OS controllers often expose Network API under /proxy/network
+      if (!apiResponse.ok && apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
+        const prefixedEndpoint = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+        const prefixedUrl = `${finalBaseUrl}${prefixedEndpoint}`;
+        console.warn('Primary endpoint not found, retrying with /proxy/network prefix:', prefixedUrl);
+
+        apiResponse = await fetch(prefixedUrl, requestOptions);
+        apiUrl = prefixedUrl;
+      }
+
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
         console.error('UniFi Controller API request failed:', apiResponse.status, errorText);
         console.error('Request details:', { url: apiUrl, method: requestOptions.method, endpoint });
-        
+
         if (apiResponse.status === 401) {
           throw new Error('Credenciais inválidas ou sessão expirada. Verifique usuário e senha.');
         } else if (apiResponse.status === 403) {
@@ -405,7 +415,7 @@ serve(async (req) => {
           }
           throw new Error('Endpoint não encontrado. Verifique se o site existe na controladora.');
         }
-        
+
         throw new Error(`UniFi Controller API request failed: ${apiResponse.status} - ${errorText}`);
       }
 
