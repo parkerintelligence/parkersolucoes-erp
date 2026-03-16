@@ -494,41 +494,167 @@ serve(async (req) => {
     } else {
       // SITE MANAGER API - Use api_token authentication
       console.log('Using UniFi Site Manager API with token auth');
+
+      const extractSiteIdFromEndpoint = (requestedEndpoint: string) => {
+        const match = requestedEndpoint.match(/\/api\/s\/([^\/]+)/);
+        return match ? match[1] : '';
+      };
+
+      const coerceArrayResponse = (payload: any) => {
+        if (Array.isArray(payload)) return payload;
+        if (Array.isArray(payload?.data)) return payload.data;
+        return [];
+      };
+
+      const safeNumber = (value: unknown): number | undefined => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : undefined;
+      };
+
+      const toUnixSeconds = (value: unknown): number | undefined => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          return value > 1000000000000 ? Math.floor(value / 1000) : Math.floor(value);
+        }
+
+        if (typeof value === 'string' && value.trim()) {
+          const numericValue = Number(value);
+          if (Number.isFinite(numericValue)) {
+            return numericValue > 1000000000000 ? Math.floor(numericValue / 1000) : Math.floor(numericValue);
+          }
+
+          const parsedDate = Date.parse(value);
+          if (!Number.isNaN(parsedDate)) {
+            return Math.floor(parsedDate / 1000);
+          }
+        }
+
+        return undefined;
+      };
+
+      const normalizeDeviceType = (device: any) => {
+        const rawType = String(
+          device.type || device.deviceType || device.model || device.product || device.category || 'unknown'
+        ).toLowerCase();
+
+        if (rawType.includes('udm')) return 'udm';
+        if (rawType.includes('uxg')) return 'uxg';
+        if (rawType.includes('ugw') || rawType.includes('gateway')) return 'ugw';
+        if (rawType.includes('usw') || rawType.includes('switch')) return 'usw';
+        if (rawType.includes('uap') || rawType.includes('access point') || rawType.includes('ap')) return 'uap';
+
+        return rawType;
+      };
+
+      const normalizeSiteManagerDevice = (device: any, siteId: string) => {
+        const latestStats = device.latestStatistics || device.statistics || device.stats || {};
+        const sysStats = device['sys-stats'] || device.sysStats || {};
+        const connectionState = String(
+          device.status ||
+          device.state ||
+          device.connectionState ||
+          device.lifecycleState ||
+          device.latestConnectionState?.state ||
+          ''
+        ).toLowerCase();
+        const isOnline = Boolean(device.isConnected) || ['online', 'connected', 'ready', 'active'].some((token) => connectionState.includes(token));
+        const cpu = safeNumber(sysStats.cpu ?? latestStats.cpuUtilizationPct ?? latestStats.cpu);
+        const mem = safeNumber(sysStats.mem ?? latestStats.memoryUtilizationPct ?? latestStats.memory);
+        const temperature = safeNumber(sysStats['system-temp'] ?? latestStats.temperatureCelsius ?? latestStats.temperature);
+        const model = device.model || device.productModel || device.deviceModel || device.product?.model || 'UniFi Device';
+        const mac = String(device.mac || device.macAddress || device.primaryMac || device.id || '');
+
+        return {
+          ...device,
+          id: String(device.id || mac || `${siteId}-${model}`),
+          mac,
+          name: device.name || device.hostname || model,
+          displayName: device.displayName || device.alias || device.name || device.hostname || model,
+          model,
+          type: normalizeDeviceType(device),
+          ip: device.ip || device.ipAddress || device.latestConnectionState?.ipAddress || '',
+          status: isOnline ? 'online' : 'offline',
+          adopted: Boolean(device.adopted ?? device.isAdopted ?? true),
+          uptime: safeNumber(device.uptime ?? latestStats.uptime ?? latestStats.uptimeSecs),
+          version: device.version || device.firmwareVersion || device.firmware?.version || device.firmware?.currentVersion || '',
+          siteId: String(device.siteId || device.site_id || siteId),
+          connectedClients: safeNumber(device.connectedClients ?? device.connectedClientsCount ?? device.num_sta ?? latestStats.clientCount) || 0,
+          'sys-stats': {
+            cpu: cpu || 0,
+            mem: mem || 0,
+            'system-temp': temperature || 0,
+          },
+        };
+      };
+
+      const normalizeSiteManagerClient = (client: any, siteId: string) => {
+        const traffic = client.traffic || client.statistics || {};
+        const signal = safeNumber(client.signal ?? client.rssi ?? client.latestConnectionState?.signal);
+        const lastSeen = toUnixSeconds(client.lastSeen ?? client.lastSeenAt ?? client.updatedAt ?? client.connectedAt);
+        const uptime = safeNumber(client.uptime ?? client.connectionDurationSeconds);
+        const rxBytes = safeNumber(client.rxBytes ?? client.downloadBytes ?? traffic.rxBytes ?? traffic.downloadBytes) || 0;
+        const txBytes = safeNumber(client.txBytes ?? client.uploadBytes ?? traffic.txBytes ?? traffic.uploadBytes) || 0;
+        const isWired = Boolean(
+          client.isWired ??
+          client.wired ??
+          String(client.connectionType || client.interfaceType || '').toLowerCase().includes('wired')
+        );
+        const mac = String(client.mac || client.macAddress || client.id || '');
+
+        return {
+          ...client,
+          id: String(client.id || mac || `${siteId}-client`),
+          mac,
+          name: client.name || client.hostname || client.displayName || 'Cliente UniFi',
+          hostname: client.hostname || client.name || client.displayName || 'Cliente UniFi',
+          ip: client.ip || client.ipAddress || '',
+          network: client.network || client.networkName || client.vlanName || client.ssid || 'N/A',
+          networkId: client.networkId || client.vlanId || client.ssidId || '',
+          accessPointMac: client.accessPointMac || client.apMac || client.accessPointId || '',
+          channel: safeNumber(client.channel),
+          radio: client.radio || client.band || '',
+          signal,
+          noise: safeNumber(client.noise),
+          rssi: safeNumber(client.rssi ?? signal),
+          rxBytes,
+          txBytes,
+          uptime,
+          lastSeen,
+          isGuest: Boolean(client.isGuest ?? client.guest),
+          isWired,
+          oui: client.oui || '',
+          userId: client.userId || client.user_id || '',
+          siteId: String(client.siteId || client.site_id || siteId),
+        };
+      };
       
-      // Map endpoints to Site Manager API format
       let siteManagerEndpoint = endpoint;
-      let siteIdForFilter = '';
+      const siteIdForFilter = extractSiteIdFromEndpoint(endpoint);
+      const isDeviceRequest = endpoint.includes('/stat/device');
+      const isClientRequest = endpoint.includes('/stat/sta');
+      const isWlanRequest = endpoint.includes('/rest/wlanconf');
+      const isAlarmRequest = endpoint.includes('/stat/alarm');
+      const isHealthRequest = endpoint.includes('/stat/health');
       
-      // Transform local controller endpoints to Site Manager API v1 endpoints
+      // Transform local controller endpoints to Site Manager API v1/site endpoints
       if (endpoint.includes('/api/self/sites')) {
-        siteManagerEndpoint = '/v1/hosts';
+        siteManagerEndpoint = '/v1/sites';
       } else if (endpoint.includes('/v1/hosts/') && endpoint.includes('/sites')) {
         siteManagerEndpoint = '/v1/sites';
-      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/device')) {
-        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/device/);
-        siteIdForFilter = match ? match[1] : '';
-        siteManagerEndpoint = '/v1/devices';
-      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/sta')) {
-        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/sta/);
-        siteIdForFilter = match ? match[1] : '';
-        // Site Manager API doesn't have a flat /v1/clients; use /v1/devices and note clients aren't available
-        siteManagerEndpoint = '/v1/devices';
-      } else if (endpoint.includes('/api/s/') && endpoint.includes('/rest/wlanconf')) {
-        const match = endpoint.match(/\/api\/s\/([^\/]+)\/rest\/wlanconf/);
-        siteIdForFilter = match ? match[1] : '';
-        siteManagerEndpoint = '/v1/devices';
-      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/alarm')) {
-        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/alarm/);
-        siteIdForFilter = match ? match[1] : '';
-        // No direct alarms endpoint in Site Manager API
+      } else if (siteIdForFilter && isDeviceRequest) {
+        siteManagerEndpoint = `/v1/sites/${siteIdForFilter}/devices`;
+      } else if (siteIdForFilter && isClientRequest) {
+        siteManagerEndpoint = `/v1/sites/${siteIdForFilter}/clients`;
+      } else if (siteIdForFilter && isWlanRequest) {
+        console.log('WLAN config not available in Site Manager API, returning empty');
+        return new Response(JSON.stringify({ data: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else if (siteIdForFilter && isAlarmRequest) {
         console.log('No alarm endpoint in Site Manager API, returning empty');
         return new Response(JSON.stringify({ data: [] }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } else if (endpoint.includes('/api/s/') && endpoint.includes('/stat/health')) {
-        const match = endpoint.match(/\/api\/s\/([^\/]+)\/stat\/health/);
-        siteIdForFilter = match ? match[1] : '';
-        // No direct health endpoint in Site Manager API
+      } else if (siteIdForFilter && isHealthRequest) {
         console.log('No health endpoint in Site Manager API, returning empty');
         return new Response(JSON.stringify({ data: [] }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -570,8 +696,7 @@ serve(async (req) => {
         } else if (apiResponse.status === 403) {
           throw new Error('API Token não tem permissões necessárias para este endpoint.');
         } else if (apiResponse.status === 404) {
-          // Para 404, retornar uma resposta vazia para endpoints de dados
-          const isDataEndpoint = ['/sites', '/devices', '/clients', '/networks', '/events', '/health', '/wlanconf', '/stat/'].some(p => endpoint.includes(p) || siteManagerEndpoint.includes(p));
+          const isDataEndpoint = ['/sites', '/devices', '/clients', '/networks', '/events', '/health', '/wlanconf', '/stat/'].some((p) => endpoint.includes(p) || siteManagerEndpoint.includes(p));
           if (isDataEndpoint) {
             console.log('404 for data endpoint, returning empty response:', siteManagerEndpoint);
             return new Response(JSON.stringify({ data: [] }), {
@@ -595,8 +720,7 @@ serve(async (req) => {
       // Transform Site Manager API response to match local controller format
       let finalResponse;
       if (siteManagerEndpoint === '/v1/hosts') {
-        // Transform hosts response to match expected format
-        const hosts = Array.isArray(responseData) ? responseData : (responseData?.data || []);
+        const hosts = coerceArrayResponse(responseData);
         
         console.log('Processing hosts response. Raw hosts count:', hosts.length);
         
@@ -624,7 +748,6 @@ serve(async (req) => {
         } else {
           finalResponse = {
             data: hosts.map((host: any) => {
-              // API can return camelCase or snake_case depending on version
               const reportedState = host.reportedState || host.reported_state;
               const userData = host.userData || host.user_data;
               const hardwareId = host.hardwareId || host.hardware_id;
@@ -649,39 +772,23 @@ serve(async (req) => {
             })
           };
           
-          console.log('Processed hosts:', finalResponse.data.map(h => ({
-            id: h.id,
-            name: h.reportedState?.name,
-            state: h.reportedState?.state,
-            ip: h.ipAddress
+          console.log('Processed hosts:', finalResponse.data.map((host: any) => ({
+            id: host.id,
+            name: host.reportedState?.name,
+            state: host.reportedState?.state,
+            ip: host.ipAddress
           })));
         }
-      } else if (siteManagerEndpoint === '/v1/devices') {
-        // /v1/devices returns all devices across all sites
-        const allDevices = Array.isArray(responseData) ? responseData : (responseData?.data || []);
-        console.log('Total devices from Site Manager API:', allDevices.length, 'Filtering by siteId:', siteIdForFilter);
-
-        let filteredDevices = allDevices;
-        if (siteIdForFilter) {
-          filteredDevices = allDevices.filter((d: any) => {
-            const deviceSiteId = d.siteId || d.site_id || d.meta?.siteId || '';
-            return deviceSiteId === siteIdForFilter;
-          });
-          console.log('Filtered devices for site:', filteredDevices.length);
-        }
-
-        // Check if original request was for clients (stat/sta) or networks (wlanconf)
-        if (endpoint.includes('/stat/sta')) {
-          // Site Manager API doesn't expose clients directly - return empty
-          console.log('Client listing not available in Site Manager API, returning empty');
-          finalResponse = { data: [] };
-        } else if (endpoint.includes('/rest/wlanconf')) {
-          // Networks not available via /v1/devices - return empty
-          console.log('WLAN config not available in Site Manager API, returning empty');
-          finalResponse = { data: [] };
-        } else {
-          finalResponse = { data: filteredDevices };
-        }
+      } else if (siteManagerEndpoint === '/v1/sites') {
+        finalResponse = { data: coerceArrayResponse(responseData) };
+      } else if (siteManagerEndpoint.endsWith('/devices')) {
+        const devices = coerceArrayResponse(responseData);
+        console.log('Site devices returned:', { siteId: siteIdForFilter, count: devices.length });
+        finalResponse = { data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)) };
+      } else if (siteManagerEndpoint.endsWith('/clients')) {
+        const clients = coerceArrayResponse(responseData);
+        console.log('Site clients returned:', { siteId: siteIdForFilter, count: clients.length });
+        finalResponse = { data: clients.map((client: any) => normalizeSiteManagerClient(client, siteIdForFilter)) };
       } else if (responseData?.data) {
         finalResponse = responseData;
       } else {
