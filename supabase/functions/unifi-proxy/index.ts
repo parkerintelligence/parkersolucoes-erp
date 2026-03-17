@@ -626,6 +626,223 @@ serve(async (req) => {
           siteId: String(client.siteId || client.site_id || siteId),
         };
       };
+
+      const siteManagerHeaders = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-API-KEY': normalizedApiToken,
+        'User-Agent': 'Lovable-UniFi-Integration/1.0'
+      };
+
+      let cachedSites: any[] | null = null;
+      const loadCloudSites = async () => {
+        if (cachedSites) return cachedSites;
+
+        try {
+          const sitesResponse = await fetch(`${baseApiUrl}/v1/sites`, {
+            method: 'GET',
+            headers: siteManagerHeaders,
+          });
+
+          if (!sitesResponse.ok) {
+            console.warn('Could not load /v1/sites for fallback data:', sitesResponse.status);
+            cachedSites = [];
+            return cachedSites;
+          }
+
+          const sitesPayload = await sitesResponse.json();
+          cachedSites = coerceArrayResponse(sitesPayload);
+          return cachedSites;
+        } catch (error) {
+          console.warn('Failed to fetch /v1/sites for fallback data:', error instanceof Error ? error.message : error);
+          cachedSites = [];
+          return cachedSites;
+        }
+      };
+
+      const getCloudSiteById = async (siteId: string) => {
+        if (!siteId) return null;
+        const sites = await loadCloudSites();
+        return sites.find((site: any) => String(site.siteId || site.id || site.name || '') === siteId) || null;
+      };
+
+      const buildSyntheticClientsFromSite = (site: any) => {
+        const siteId = String(site?.siteId || site?.id || '');
+        const counts = site?.statistics?.counts || {};
+        const wifiCount = Number(counts.wifiClient || 0);
+        const wiredCount = Number(counts.wiredClient || 0);
+        const syntheticClients: any[] = [];
+
+        for (let i = 0; i < wifiCount; i++) {
+          syntheticClients.push(normalizeSiteManagerClient({
+            id: `wifi-client-${siteId}-${i}`,
+            name: `Cliente Wi‑Fi ${i + 1}`,
+            hostname: `wifi-client-${i + 1}`,
+            isWired: false,
+            connectionType: 'wireless',
+            siteId,
+          }, siteId));
+        }
+
+        for (let i = 0; i < wiredCount; i++) {
+          syntheticClients.push(normalizeSiteManagerClient({
+            id: `wired-client-${siteId}-${i}`,
+            name: `Cliente Cabeado ${i + 1}`,
+            hostname: `wired-client-${i + 1}`,
+            isWired: true,
+            connectionType: 'wired',
+            siteId,
+          }, siteId));
+        }
+
+        return syntheticClients;
+      };
+
+      const buildSyntheticDevicesFromSite = (site: any) => {
+        const siteId = String(site?.siteId || site?.id || '');
+        const counts = site?.statistics?.counts || {};
+        const totalDevices = Math.max(0, Number(counts.totalDevice || 0));
+        const offlineDevices = Math.min(totalDevices, Math.max(0, Number(counts.offlineDevice || 0)));
+        const onlineThreshold = Math.max(0, totalDevices - offlineDevices);
+        const gatewayDevices = Math.max(0, Number(counts.gatewayDevice || 0));
+        const wifiDevices = Math.max(0, Number(counts.wifiDevice || 0));
+        const remainingAfterDeclared = Math.max(0, totalDevices - gatewayDevices - wifiDevices);
+        const explicitWiredDevices = Math.max(0, Number(counts.wiredDevice || 0));
+        const wiredDevices = Math.min(remainingAfterDeclared, explicitWiredDevices > 0 ? explicitWiredDevices : remainingAfterDeclared);
+        const wifiClients = Math.max(0, Number(counts.wifiClient || 0));
+        const syntheticDevices: any[] = [];
+        let created = 0;
+
+        const toSyntheticMac = (index: number) => {
+          const hex = index.toString(16).padStart(12, '0').match(/.{1,2}/g);
+          return hex ? hex.join(':') : '00:00:00:00:00:00';
+        };
+
+        const createDevice = (type: string, model: string, connectedClients = 0) => {
+          created += 1;
+          const isOnline = created <= onlineThreshold;
+
+          return normalizeSiteManagerDevice({
+            id: `synthetic-${siteId}-${type}-${created}`,
+            mac: toSyntheticMac(created),
+            name: `${model} ${created}`,
+            displayName: `${model} ${created}`,
+            model,
+            type,
+            ipAddress: '',
+            status: isOnline ? 'connected' : 'offline',
+            isConnected: isOnline,
+            adopted: true,
+            connectedClientsCount: connectedClients,
+            statistics: { clientCount: connectedClients },
+            siteId,
+          }, siteId);
+        };
+
+        const baseWifiClientsPerAp = wifiDevices > 0 ? Math.floor(wifiClients / wifiDevices) : 0;
+        const remainderWifiClients = wifiDevices > 0 ? wifiClients % wifiDevices : 0;
+
+        for (let i = 0; i < gatewayDevices; i++) {
+          syntheticDevices.push(createDevice('ugw', 'Gateway'));
+        }
+
+        for (let i = 0; i < wifiDevices; i++) {
+          const connectedClients = baseWifiClientsPerAp + (i < remainderWifiClients ? 1 : 0);
+          syntheticDevices.push(createDevice('uap', 'Access Point', connectedClients));
+        }
+
+        for (let i = 0; i < wiredDevices; i++) {
+          syntheticDevices.push(createDevice('usw', 'Switch'));
+        }
+
+        while (syntheticDevices.length < totalDevices) {
+          syntheticDevices.push(createDevice('device', 'UniFi Device'));
+        }
+
+        return syntheticDevices;
+      };
+
+      const buildSyntheticNetworksFromSite = (site: any) => {
+        const siteId = String(site?.siteId || site?.id || '');
+        const counts = site?.statistics?.counts || {};
+        const syntheticNetworks: any[] = [];
+
+        const appendNetworks = (prefix: string, label: string, purpose: string, total: number, security: string) => {
+          for (let index = 0; index < total; index++) {
+            syntheticNetworks.push({
+              id: `synthetic-${prefix}-${siteId}-${index + 1}`,
+              name: `${label} ${index + 1}`,
+              purpose,
+              networkGroup: purpose,
+              networkgroup: purpose,
+              enabled: true,
+              security,
+              siteId,
+              synthetic: true,
+            });
+          }
+        };
+
+        appendNetworks('lan', 'Rede LAN', 'corporate', Number(counts.lanConfiguration || 0), 'LAN');
+        appendNetworks('wifi', 'Wi‑Fi', 'wireless', Number(counts.wifiConfiguration || 0), 'WPA2/WPA3');
+        appendNetworks('wan', 'WAN', 'wan', Number(counts.wanConfiguration || 0), 'WAN');
+
+        return syntheticNetworks;
+      };
+
+      const buildSyntheticAlarmsFromSite = (site: any) => {
+        const siteId = String(site?.siteId || site?.id || '');
+        const counts = site?.statistics?.counts || {};
+        const now = Math.floor(Date.now() / 1000);
+        const syntheticAlarms: any[] = [];
+        const offlineDevices = Number(counts.offlineDevice || 0);
+        const pendingUpdates = Number(counts.pendingUpdateDevice || 0);
+        const criticalNotifications = Number(counts.criticalNotification || 0);
+
+        if (offlineDevices > 0) {
+          syntheticAlarms.push({
+            id: `synthetic-alarm-offline-${siteId}`,
+            time: now,
+            datetime: now,
+            message: `${offlineDevices} dispositivo(s) offline neste site`,
+            subsystem: 'devices',
+            key: 'offline_devices',
+            siteId,
+            archived: false,
+            synthetic: true,
+          });
+        }
+
+        if (pendingUpdates > 0) {
+          syntheticAlarms.push({
+            id: `synthetic-alarm-updates-${siteId}`,
+            time: now,
+            datetime: now,
+            message: `${pendingUpdates} dispositivo(s) com atualização pendente`,
+            subsystem: 'updates',
+            key: 'pending_updates',
+            siteId,
+            archived: false,
+            synthetic: true,
+          });
+        }
+
+        for (let index = syntheticAlarms.length; index < criticalNotifications; index++) {
+          syntheticAlarms.push({
+            id: `synthetic-alarm-critical-${siteId}-${index + 1}`,
+            time: now,
+            datetime: now,
+            message: `Notificação crítica ${index + 1} reportada pelo Site Manager`,
+            subsystem: 'site-manager',
+            key: 'critical_notification',
+            siteId,
+            archived: false,
+            synthetic: true,
+          });
+        }
+
+        return syntheticAlarms;
+      };
       
       let siteManagerEndpoint = endpoint;
       const siteIdForFilter = extractSiteIdFromEndpoint(endpoint);
@@ -636,79 +853,54 @@ serve(async (req) => {
       const isHealthRequest = endpoint.includes('/stat/health');
       
       // Transform local controller endpoints to Site Manager API v1 endpoints
-      // IMPORTANT: Site Manager API v1 only has /v1/devices (ALL devices), NOT per-site endpoints
       if (endpoint.includes('/api/self/sites')) {
         siteManagerEndpoint = '/v1/sites';
       } else if (endpoint.includes('/v1/hosts/') && endpoint.includes('/sites')) {
         siteManagerEndpoint = '/v1/sites';
       } else if (siteIdForFilter && isDeviceRequest) {
-        // /v1/devices returns ALL devices; we filter by siteId after fetching
-        siteManagerEndpoint = '/v1/devices';
-      } else if (siteIdForFilter && isClientRequest) {
-        // No /v1/clients endpoint exists in Site Manager API v1
-        // Use site statistics from /v1/sites instead
-        console.log('No clients endpoint in Site Manager API v1, fetching site stats from /v1/sites');
-        const sitesResp = await fetch(`${baseApiUrl}/v1/sites`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-API-KEY': normalizedApiToken,
-            'User-Agent': 'Lovable-UniFi-Integration/1.0'
-          },
-        });
-        if (sitesResp.ok) {
-          const sitesData = await sitesResp.json();
-          const sites = coerceArrayResponse(sitesData);
-          const targetSite = sites.find((s: any) => String(s.siteId || s.id) === siteIdForFilter);
-          if (targetSite) {
-            const counts = targetSite.statistics?.counts || {};
-            // Build synthetic client list from site statistics
-            const syntheticClients: any[] = [];
-            const wifiCount = counts.wifiClient || 0;
-            const wiredCount = counts.wiredClient || 0;
-            for (let i = 0; i < wifiCount; i++) {
-              syntheticClients.push(normalizeSiteManagerClient({
-                id: `wifi-client-${siteIdForFilter}-${i}`,
-                name: `Cliente Wi-Fi ${i + 1}`,
-                hostname: `wifi-client-${i + 1}`,
-                isWired: false,
-                connectionType: 'wireless',
-                siteId: siteIdForFilter,
-              }, siteIdForFilter));
-            }
-            for (let i = 0; i < wiredCount; i++) {
-              syntheticClients.push(normalizeSiteManagerClient({
-                id: `wired-client-${siteIdForFilter}-${i}`,
-                name: `Cliente Cabeado ${i + 1}`,
-                hostname: `wired-client-${i + 1}`,
-                isWired: true,
-                connectionType: 'wired',
-                siteId: siteIdForFilter,
-              }, siteIdForFilter));
-            }
-            console.log(`Built ${syntheticClients.length} synthetic clients from site stats (${wifiCount} wifi, ${wiredCount} wired)`);
-            return new Response(JSON.stringify({ data: syntheticClients, meta: { synthetic: true, source: 'site-statistics' } }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
+        const targetSite = await getCloudSiteById(siteIdForFilter);
+        const query = new URLSearchParams({ pageSize: '500' });
+        if (targetSite?.hostId) {
+          query.append('hostIds[]', String(targetSite.hostId));
         }
-        return new Response(JSON.stringify({ data: [] }), {
+        siteManagerEndpoint = `/v1/devices?${query.toString()}`;
+      } else if (siteIdForFilter && isClientRequest) {
+        console.log('No clients endpoint in Site Manager API v1, using site statistics fallback');
+        const targetSite = await getCloudSiteById(siteIdForFilter);
+        const syntheticClients = targetSite ? buildSyntheticClientsFromSite(targetSite) : [];
+        console.log(`Built ${syntheticClients.length} synthetic clients from site stats`);
+        return new Response(JSON.stringify({ data: syntheticClients, meta: { synthetic: true, source: 'site-statistics' } }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else if (siteIdForFilter && isWlanRequest) {
-        console.log('WLAN config not available in Site Manager API, returning empty');
-        return new Response(JSON.stringify({ data: [] }), {
+        const targetSite = await getCloudSiteById(siteIdForFilter);
+        const syntheticNetworks = targetSite ? buildSyntheticNetworksFromSite(targetSite) : [];
+        console.log(`Built ${syntheticNetworks.length} synthetic networks from site stats`);
+        return new Response(JSON.stringify({ data: syntheticNetworks, meta: { synthetic: true, source: 'site-statistics' } }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else if (siteIdForFilter && isAlarmRequest) {
-        console.log('No alarm endpoint in Site Manager API, returning empty');
-        return new Response(JSON.stringify({ data: [] }), {
+        const targetSite = await getCloudSiteById(siteIdForFilter);
+        const syntheticAlarms = targetSite ? buildSyntheticAlarmsFromSite(targetSite) : [];
+        console.log(`Built ${syntheticAlarms.length} synthetic alarms from site stats`);
+        return new Response(JSON.stringify({ data: syntheticAlarms, meta: { synthetic: true, source: 'site-statistics' } }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else if (siteIdForFilter && isHealthRequest) {
-        console.log('No health endpoint in Site Manager API, returning empty');
-        return new Response(JSON.stringify({ data: [] }), {
+        const targetSite = await getCloudSiteById(siteIdForFilter);
+        const counts = targetSite?.statistics?.counts || {};
+        const syntheticHealth = targetSite
+          ? [{
+              subsystem: 'network',
+              status: Number(counts.offlineDevice || 0) > 0 ? 'degraded' : 'ok',
+              num_adopted: Number(counts.totalDevice || 0),
+              num_disconnected: Number(counts.offlineDevice || 0),
+              num_user: Number(counts.wifiClient || 0) + Number(counts.wiredClient || 0),
+              siteId: siteIdForFilter,
+              synthetic: true,
+            }]
+          : [];
+        return new Response(JSON.stringify({ data: syntheticHealth, meta: { synthetic: true, source: 'site-statistics' } }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else if (endpoint.includes('/v1/')) {
@@ -833,24 +1025,32 @@ serve(async (req) => {
         }
       } else if (siteManagerEndpoint === '/v1/sites') {
         finalResponse = { data: coerceArrayResponse(responseData) };
-      } else if (siteManagerEndpoint === '/v1/devices') {
+      } else if (siteManagerEndpoint.startsWith('/v1/devices')) {
         const allDevices = coerceArrayResponse(responseData);
-        // Filter devices by siteId if we have one
         let devices = allDevices;
+
         if (siteIdForFilter) {
-          devices = allDevices.filter((d: any) => {
-            const deviceSiteId = String(d.siteId || d.site_id || d.hostSiteId || '');
+          devices = allDevices.filter((device: any) => {
+            const deviceSiteId = String(device.siteId || device.site_id || device.hostSiteId || '');
             return deviceSiteId === siteIdForFilter;
           });
-          // If no devices match siteId filter, try matching by hostId
-          // (some API versions don't include siteId on devices)
-          if (devices.length === 0 && allDevices.length > 0) {
-            console.log(`No devices matched siteId=${siteIdForFilter}, showing all ${allDevices.length} devices`);
-            devices = allDevices;
+
+          if (devices.length === 0) {
+            const targetSite = await getCloudSiteById(siteIdForFilter);
+            devices = targetSite ? buildSyntheticDevicesFromSite(targetSite) : [];
+            console.log('No detailed devices returned from Site Manager API, using synthetic fallback', {
+              siteId: siteIdForFilter,
+              totalFromApi: allDevices.length,
+              synthetic: devices.length,
+            });
           }
         }
-        console.log('Devices returned:', { siteId: siteIdForFilter, total: allDevices.length, filtered: devices.length });
-        finalResponse = { data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)) };
+
+        console.log('Devices returned:', { siteId: siteIdForFilter, total: allDevices.length, final: devices.length });
+        finalResponse = {
+          data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)),
+          meta: devices === allDevices ? undefined : { synthetic: allDevices.length === 0 || !devices.some((device: any) => !device.synthetic), source: 'site-manager-fallback' }
+        };
       } else if (siteManagerEndpoint.endsWith('/clients')) {
         const clients = coerceArrayResponse(responseData);
         console.log('Site clients returned:', { siteId: siteIdForFilter, count: clients.length });
