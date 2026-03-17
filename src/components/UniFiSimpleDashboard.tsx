@@ -196,12 +196,12 @@ const UniFiSimpleDashboard = () => {
       {/* Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {[
-          { label: "Dispositivos", value: devicesList.length, icon: Router, color: "text-primary" },
-          { label: "Online", value: stats?.online_devices ?? onlineDevices, icon: CheckCircle2, color: "text-green-500" },
-          { label: "Offline", value: stats?.total_devices ? (stats.total_devices - (stats.online_devices || 0)) : offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
-          { label: "Clientes", value: clientsList.length, icon: Users, color: "text-primary" },
-          { label: "Wi-Fi", value: stats?.wireless_clients ?? wifiClients, icon: Signal, color: "text-primary" },
-          { label: "Redes", value: networksList.length, icon: Network, color: "text-muted-foreground" },
+          { label: "Dispositivos", value: totalDevices, icon: Router, color: "text-primary" },
+          { label: "Online", value: onlineDevices, icon: CheckCircle2, color: "text-green-500" },
+          { label: "Offline", value: offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
+          { label: "Clientes", value: totalClients, icon: Users, color: "text-primary" },
+          { label: "Wi-Fi", value: wifiClients, icon: Signal, color: "text-primary" },
+          { label: "Redes", value: siteStats.wifiConfiguration ?? networksList.length, icon: Network, color: "text-muted-foreground" },
           { label: "Alertas", value: selectedSite?.newAlarmCount || alarmsList.length, icon: AlertTriangle, color: (selectedSite?.newAlarmCount || alarmsList.length) > 0 ? "text-destructive" : "text-muted-foreground" },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
