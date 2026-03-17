@@ -126,10 +126,22 @@ const UniFiSimpleDashboard = () => {
   const networksList = networks?.data || [];
   const alarmsList = alarms?.data || [];
 
-  const onlineDevices = devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
-  const offlineDevices = devicesList.length - onlineDevices;
-  const wifiClients = clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
-  const wiredClients = clientsList.filter((c: any) => c.isWired || c.is_wired).length;
+  // Use site statistics from the Cloud API when available (more accurate than empty device lists)
+  const siteStats = selectedSite?.statistics?.counts || {};
+  const onlineDevices = siteStats.totalDevice != null
+    ? (siteStats.totalDevice - (siteStats.offlineDevice || 0))
+    : devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
+  const offlineDevices = siteStats.offlineDevice != null
+    ? siteStats.offlineDevice
+    : devicesList.length - onlineDevices;
+  const totalDevices = siteStats.totalDevice != null ? siteStats.totalDevice : devicesList.length;
+  const wifiClients = siteStats.wifiClient != null
+    ? siteStats.wifiClient
+    : clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
+  const wiredClients = siteStats.wiredClient != null
+    ? siteStats.wiredClient
+    : clientsList.filter((c: any) => c.isWired || c.is_wired).length;
+  const totalClients = wifiClients + wiredClients;
 
   return (
     <div className="space-y-4">
