@@ -833,9 +833,23 @@ serve(async (req) => {
         }
       } else if (siteManagerEndpoint === '/v1/sites') {
         finalResponse = { data: coerceArrayResponse(responseData) };
-      } else if (siteManagerEndpoint.endsWith('/devices')) {
-        const devices = coerceArrayResponse(responseData);
-        console.log('Site devices returned:', { siteId: siteIdForFilter, count: devices.length });
+      } else if (siteManagerEndpoint === '/v1/devices') {
+        const allDevices = coerceArrayResponse(responseData);
+        // Filter devices by siteId if we have one
+        let devices = allDevices;
+        if (siteIdForFilter) {
+          devices = allDevices.filter((d: any) => {
+            const deviceSiteId = String(d.siteId || d.site_id || d.hostSiteId || '');
+            return deviceSiteId === siteIdForFilter;
+          });
+          // If no devices match siteId filter, try matching by hostId
+          // (some API versions don't include siteId on devices)
+          if (devices.length === 0 && allDevices.length > 0) {
+            console.log(`No devices matched siteId=${siteIdForFilter}, showing all ${allDevices.length} devices`);
+            devices = allDevices;
+          }
+        }
+        console.log('Devices returned:', { siteId: siteIdForFilter, total: allDevices.length, filtered: devices.length });
         finalResponse = { data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)) };
       } else if (siteManagerEndpoint.endsWith('/clients')) {
         const clients = coerceArrayResponse(responseData);
