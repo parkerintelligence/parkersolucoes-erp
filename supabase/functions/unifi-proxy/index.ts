@@ -635,15 +635,67 @@ serve(async (req) => {
       const isAlarmRequest = endpoint.includes('/stat/alarm');
       const isHealthRequest = endpoint.includes('/stat/health');
       
-      // Transform local controller endpoints to Site Manager API v1/site endpoints
+      // Transform local controller endpoints to Site Manager API v1 endpoints
+      // IMPORTANT: Site Manager API v1 only has /v1/devices (ALL devices), NOT per-site endpoints
       if (endpoint.includes('/api/self/sites')) {
         siteManagerEndpoint = '/v1/sites';
       } else if (endpoint.includes('/v1/hosts/') && endpoint.includes('/sites')) {
         siteManagerEndpoint = '/v1/sites';
       } else if (siteIdForFilter && isDeviceRequest) {
-        siteManagerEndpoint = `/v1/sites/${siteIdForFilter}/devices`;
+        // /v1/devices returns ALL devices; we filter by siteId after fetching
+        siteManagerEndpoint = '/v1/devices';
       } else if (siteIdForFilter && isClientRequest) {
-        siteManagerEndpoint = `/v1/sites/${siteIdForFilter}/clients`;
+        // No /v1/clients endpoint exists in Site Manager API v1
+        // Use site statistics from /v1/sites instead
+        console.log('No clients endpoint in Site Manager API v1, fetching site stats from /v1/sites');
+        const sitesResp = await fetch(`${baseApiUrl}/v1/sites`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-API-KEY': normalizedApiToken,
+            'User-Agent': 'Lovable-UniFi-Integration/1.0'
+          },
+        });
+        if (sitesResp.ok) {
+          const sitesData = await sitesResp.json();
+          const sites = coerceArrayResponse(sitesData);
+          const targetSite = sites.find((s: any) => String(s.siteId || s.id) === siteIdForFilter);
+          if (targetSite) {
+            const counts = targetSite.statistics?.counts || {};
+            // Build synthetic client list from site statistics
+            const syntheticClients: any[] = [];
+            const wifiCount = counts.wifiClient || 0;
+            const wiredCount = counts.wiredClient || 0;
+            for (let i = 0; i < wifiCount; i++) {
+              syntheticClients.push(normalizeSiteManagerClient({
+                id: `wifi-client-${siteIdForFilter}-${i}`,
+                name: `Cliente Wi-Fi ${i + 1}`,
+                hostname: `wifi-client-${i + 1}`,
+                isWired: false,
+                connectionType: 'wireless',
+                siteId: siteIdForFilter,
+              }, siteIdForFilter));
+            }
+            for (let i = 0; i < wiredCount; i++) {
+              syntheticClients.push(normalizeSiteManagerClient({
+                id: `wired-client-${siteIdForFilter}-${i}`,
+                name: `Cliente Cabeado ${i + 1}`,
+                hostname: `wired-client-${i + 1}`,
+                isWired: true,
+                connectionType: 'wired',
+                siteId: siteIdForFilter,
+              }, siteIdForFilter));
+            }
+            console.log(`Built ${syntheticClients.length} synthetic clients from site stats (${wifiCount} wifi, ${wiredCount} wired)`);
+            return new Response(JSON.stringify({ data: syntheticClients, meta: { synthetic: true, source: 'site-statistics' } }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+        return new Response(JSON.stringify({ data: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       } else if (siteIdForFilter && isWlanRequest) {
         console.log('WLAN config not available in Site Manager API, returning empty');
         return new Response(JSON.stringify({ data: [] }), {
