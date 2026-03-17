@@ -1025,24 +1025,32 @@ serve(async (req) => {
         }
       } else if (siteManagerEndpoint === '/v1/sites') {
         finalResponse = { data: coerceArrayResponse(responseData) };
-      } else if (siteManagerEndpoint === '/v1/devices') {
+      } else if (siteManagerEndpoint.startsWith('/v1/devices')) {
         const allDevices = coerceArrayResponse(responseData);
-        // Filter devices by siteId if we have one
         let devices = allDevices;
+
         if (siteIdForFilter) {
-          devices = allDevices.filter((d: any) => {
-            const deviceSiteId = String(d.siteId || d.site_id || d.hostSiteId || '');
+          devices = allDevices.filter((device: any) => {
+            const deviceSiteId = String(device.siteId || device.site_id || device.hostSiteId || '');
             return deviceSiteId === siteIdForFilter;
           });
-          // If no devices match siteId filter, try matching by hostId
-          // (some API versions don't include siteId on devices)
-          if (devices.length === 0 && allDevices.length > 0) {
-            console.log(`No devices matched siteId=${siteIdForFilter}, showing all ${allDevices.length} devices`);
-            devices = allDevices;
+
+          if (devices.length === 0) {
+            const targetSite = await getCloudSiteById(siteIdForFilter);
+            devices = targetSite ? buildSyntheticDevicesFromSite(targetSite) : [];
+            console.log('No detailed devices returned from Site Manager API, using synthetic fallback', {
+              siteId: siteIdForFilter,
+              totalFromApi: allDevices.length,
+              synthetic: devices.length,
+            });
           }
         }
-        console.log('Devices returned:', { siteId: siteIdForFilter, total: allDevices.length, filtered: devices.length });
-        finalResponse = { data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)) };
+
+        console.log('Devices returned:', { siteId: siteIdForFilter, total: allDevices.length, final: devices.length });
+        finalResponse = {
+          data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)),
+          meta: devices === allDevices ? undefined : { synthetic: allDevices.length === 0 || !devices.some((device: any) => !device.synthetic), source: 'site-manager-fallback' }
+        };
       } else if (siteManagerEndpoint.endsWith('/clients')) {
         const clients = coerceArrayResponse(responseData);
         console.log('Site clients returned:', { siteId: siteIdForFilter, count: clients.length });
