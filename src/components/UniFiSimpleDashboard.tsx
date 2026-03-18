@@ -68,11 +68,12 @@ const UniFiSimpleDashboard = () => {
   }, [unifiIntegrations, selectedIntegration]);
 
   const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(selectedIntegration);
-  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, undefined, selectedSiteId);
-  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, undefined, selectedSiteId);
-  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, undefined, selectedSiteId);
-  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, undefined, selectedSiteId);
-  const { data: stats } = useUniFiStats(selectedIntegration, undefined, selectedSiteId);
+  const selectedSite = sites?.data?.find((site: any) => site.id === selectedSiteId);
+  const selectedSiteHostId = selectedSite?.controllerId;
+  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, selectedSiteHostId, selectedSiteId);
+  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, selectedSiteHostId, selectedSiteId);
+  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, selectedSiteHostId, selectedSiteId);
+  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, selectedSiteHostId, selectedSiteId);
 
   useEffect(() => {
     if (sites?.data && sites.data.length > 0 && !selectedSiteId) {
@@ -81,67 +82,29 @@ const UniFiSimpleDashboard = () => {
   }, [sites, selectedSiteId]);
 
   const handleRefresh = () => {
-    refreshData(selectedIntegration, undefined, selectedSiteId);
+    refreshData(selectedIntegration, selectedSiteHostId, selectedSiteId);
     toast({ title: "Dados atualizados", description: "Informações da rede UniFi foram atualizadas." });
   };
-
-  if (unifiIntegrations.length === 0) {
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border text-xs text-muted-foreground">
-        <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-        Nenhuma integração UniFi ativa encontrada. Configure na página de Administração.
-      </div>
-    );
-  }
-
-  if (sitesError && selectedIntegration) {
-    const isTokenError = sitesError.message?.includes('API Token inválido') ||
-      sitesError.message?.includes('unauthorized') ||
-      sitesError.message?.includes('401');
-
-    if (isTokenError) {
-      return (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          Token UniFi inválido ou expirado. Gere um novo em{' '}
-          <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="underline">unifi.ui.com</a>
-          {' '}→ Settings → API
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive">
-        <AlertTriangle className="h-3.5 w-3.5" />
-        {integrationMode === 'local'
-          ? `Falha na controladora local: ${sitesError.message}`
-          : `Falha na integração UniFi Cloud: ${sitesError.message}`}
-      </div>
-    );
-  }
-
-  const selectedSite = sites?.data?.find((site: any) => site.id === selectedSiteId);
   const devicesList = devices?.data || [];
   const clientsList = clients?.data || [];
   const networksList = networks?.data || [];
   const alarmsList = alarms?.data || [];
 
-  // Use site statistics from the Cloud API when available (more accurate than empty device lists)
   const siteStats = selectedSite?.statistics?.counts || {};
-  const onlineDevices = siteStats.totalDevice != null
-    ? (siteStats.totalDevice - (siteStats.offlineDevice || 0))
-    : devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
-  const offlineDevices = siteStats.offlineDevice != null
-    ? siteStats.offlineDevice
-    : devicesList.length - onlineDevices;
-  const totalDevices = siteStats.totalDevice != null ? siteStats.totalDevice : devicesList.length;
-  const wifiClients = siteStats.wifiClient != null
-    ? siteStats.wifiClient
-    : clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
-  const wiredClients = siteStats.wiredClient != null
-    ? siteStats.wiredClient
-    : clientsList.filter((c: any) => c.isWired || c.is_wired).length;
-  const totalClients = wifiClients + wiredClients;
+  const onlineDevices = devicesList.length > 0
+    ? devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length
+    : (siteStats.totalDevice != null ? (siteStats.totalDevice - (siteStats.offlineDevice || 0)) : 0);
+  const totalDevices = devicesList.length > 0
+    ? devicesList.length
+    : (siteStats.totalDevice ?? 0);
+  const offlineDevices = totalDevices - onlineDevices;
+  const wifiClients = clientsList.length > 0
+    ? clientsList.filter((c: any) => !c.isWired && !c.is_wired).length
+    : (siteStats.wifiClient ?? 0);
+  const wiredClients = clientsList.length > 0
+    ? clientsList.filter((c: any) => c.isWired || c.is_wired).length
+    : (siteStats.wiredClient ?? 0);
+  const totalClients = clientsList.length > 0 ? clientsList.length : (wifiClients + wiredClients);
 
   return (
     <div className="space-y-4">
