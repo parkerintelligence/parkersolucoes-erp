@@ -85,7 +85,6 @@ const UniFiSimpleDashboard = () => {
     refreshData(selectedIntegration, selectedSiteHostId, selectedSiteId);
     toast({ title: "Dados atualizados", description: "Informações da rede UniFi foram atualizadas." });
   };
-...
   const devicesList = devices?.data || [];
   const clientsList = clients?.data || [];
   const networksList = networks?.data || [];
