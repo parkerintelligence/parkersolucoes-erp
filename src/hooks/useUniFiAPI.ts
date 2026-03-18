@@ -379,13 +379,50 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Devices - always use /api/s/ format, proxy handles mapping to Site Manager if needed
+  const isCloudSiteManagerRequest = (hostId?: string) => Boolean(hostId && hostId !== 'local-controller');
+
+  const buildUniFiReadEndpoint = (
+    resource: 'devices' | 'clients' | 'networks' | 'alarms' | 'health',
+    siteId?: string,
+    hostId?: string,
+  ) => {
+    if (!siteId) return '';
+
+    if (isCloudSiteManagerRequest(hostId)) {
+      switch (resource) {
+        case 'devices':
+          return `/ea/hosts/${hostId}/sites/${siteId}/devices`;
+        case 'clients':
+          return `/ea/hosts/${hostId}/sites/${siteId}/clients`;
+        case 'networks':
+          return `/ea/hosts/${hostId}/sites/${siteId}/networks`;
+        case 'alarms':
+          return `/ea/hosts/${hostId}/sites/${siteId}/alarms`;
+        case 'health':
+          return `/ea/hosts/${hostId}/sites/${siteId}/health`;
+      }
+    }
+
+    switch (resource) {
+      case 'devices':
+        return `/api/s/${siteId}/stat/device`;
+      case 'clients':
+        return `/api/s/${siteId}/stat/sta`;
+      case 'networks':
+        return `/api/s/${siteId}/rest/networkconf`;
+      case 'alarms':
+        return `/api/s/${siteId}/stat/alarm`;
+      case 'health':
+        return `/api/s/${siteId}/stat/health`;
+    }
+  };
+
   const useUniFiDevices = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-devices', integrationId, hostId, siteId],
       queryFn: async () => {
-        if (!siteId) return { data: [] };
-        const endpoint = `/api/s/${siteId}/stat/device`;
+        const endpoint = buildUniFiReadEndpoint('devices', siteId, hostId);
+        if (!endpoint) return { data: [] };
         console.log('📡 Fetching devices:', endpoint);
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
@@ -395,13 +432,12 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Clients - always use /api/s/ format, proxy handles mapping
   const useUniFiClients = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-clients', integrationId, hostId, siteId],
       queryFn: async () => {
-        if (!siteId) return { data: [] };
-        const endpoint = `/api/s/${siteId}/stat/sta`;
+        const endpoint = buildUniFiReadEndpoint('clients', siteId, hostId);
+        if (!endpoint) return { data: [] };
         console.log('📡 Fetching clients:', endpoint);
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
@@ -411,59 +447,58 @@ export const useUniFiAPI = () => {
     });
   };
 
-  // Networks - usar endpoint correto da Controladora Local
   const useUniFiNetworks = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-networks', integrationId, hostId, siteId],
       queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/rest/wlanconf` : '/api/rest/wlanconf';
+        const endpoint = buildUniFiReadEndpoint('networks', siteId, hostId);
+        if (!endpoint) return { data: [] };
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
       enabled: !!integrationId && !!siteId,
-      staleTime: 60000, // 1 minute
+      staleTime: 60000,
       retry: 2,
     });
   };
 
-  // Alarms - usar endpoint correto da Controladora Local
   const useUniFiAlarms = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-alarms', integrationId, hostId, siteId],
       queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/alarm` : '/api/stat/alarm';
+        const endpoint = buildUniFiReadEndpoint('alarms', siteId, hostId);
+        if (!endpoint) return { data: [] };
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
       enabled: !!integrationId && !!siteId,
-      staleTime: 30000, // 30 seconds
+      staleTime: 30000,
       retry: 2,
     });
   };
 
-  // Health - usar endpoint correto da Controladora Local
   const useUniFiHealth = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-health', integrationId, hostId, siteId],
       queryFn: () => {
-        const endpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
+        const endpoint = buildUniFiReadEndpoint('health', siteId, hostId);
+        if (!endpoint) return { data: [] };
         return makeUniFiRequest(endpoint, 'GET', integrationId);
       },
       enabled: !!integrationId && !!siteId,
-      staleTime: 30000, // 30 seconds
+      staleTime: 30000,
       retry: 2,
     });
   };
 
-  // Statistics
   const useUniFiStats = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-stats', integrationId, hostId, siteId],
       queryFn: async () => {
-        if (!siteId) return null;
-        
-        const deviceEndpoint = siteId ? `/api/s/${siteId}/stat/device` : '/api/stat/device';
-        const clientEndpoint = siteId ? `/api/s/${siteId}/stat/sta` : '/api/stat/sta';
-        const healthEndpoint = siteId ? `/api/s/${siteId}/stat/health` : '/api/stat/health';
-        
+        const deviceEndpoint = buildUniFiReadEndpoint('devices', siteId, hostId);
+        const clientEndpoint = buildUniFiReadEndpoint('clients', siteId, hostId);
+        const healthEndpoint = buildUniFiReadEndpoint('health', siteId, hostId);
+
+        if (!deviceEndpoint || !clientEndpoint || !healthEndpoint) return null;
+
         const [devicesResponse, clientsResponse, healthResponse] = await Promise.all([
           makeUniFiRequest(deviceEndpoint, 'GET', integrationId),
           makeUniFiRequest(clientEndpoint, 'GET', integrationId),
@@ -484,11 +519,11 @@ export const useUniFiAPI = () => {
           guest_clients: clients.filter((c: UniFiClient & any) => Boolean(c.isGuest ?? c.is_guest)).length,
           health_status: health,
           devices,
-          clients
+          clients,
         };
       },
       enabled: !!integrationId && !!siteId,
-      staleTime: 30000, // 30 seconds
+      staleTime: 30000,
       retry: 2,
     });
   };
