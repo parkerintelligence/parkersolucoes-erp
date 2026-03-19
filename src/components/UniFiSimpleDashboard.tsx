@@ -254,7 +254,7 @@ const UniFiSimpleDashboard = () => {
                 A integração via API Token do UniFi Site Manager está mostrando apenas dados realmente retornados pela API. Para inventário completo de dispositivos, clientes, redes e alertas em tempo real, configure acesso direto à controladora.
               </p>
             </div>
-          )
+          )}
           {/* Devices */}
           {activeSection === 'devices' && (
             <Collapsible open={devicesOpen} onOpenChange={setDevicesOpen} defaultOpen>
