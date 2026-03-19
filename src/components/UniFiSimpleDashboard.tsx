@@ -385,9 +385,6 @@ const UniFiSimpleDashboard = () => {
                 <AlertTriangle className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">Alertas</span>
                 <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{alarmsList.length}</Badge>
-                {selectedSite?.newAlarmCount > 0 && (
-                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">{selectedSite.newAlarmCount} novos</Badge>
-                )}
               </div>
               <div className="p-4">
                 {alarmsLoading ? (

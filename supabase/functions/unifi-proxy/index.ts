@@ -944,16 +944,60 @@ serve(async (req) => {
           return deviceSiteId === siteIdForFilter;
         });
 
-        finalResponse = { data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)) };
+        const normalizedDevices = devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter));
+        finalResponse = {
+          data: normalizedDevices,
+          ...(normalizedDevices.length === 0 && Number(targetSiteCounts.totalDevice || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'devices',
+                  'A controladora reporta dispositivos no resumo do site, mas o endpoint oficial /v1/devices não retornou inventário detalhado para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isClientRequest || resolvedEndpoint.includes('/clients')) {
         const clients = coerceArrayResponse(responseData);
-        finalResponse = { data: clients.map((client: any) => normalizeSiteManagerClient(client, siteIdForFilter)) };
+        const normalizedClients = clients.map((client: any) => normalizeSiteManagerClient(client, siteIdForFilter));
+        finalResponse = {
+          data: normalizedClients,
+          ...(normalizedClients.length === 0 && Number(targetSiteCounts.wifiClient || 0) + Number(targetSiteCounts.wiredClient || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'clients',
+                  'A controladora reporta clientes no resumo do site, mas o endpoint detalhado não retornou clientes reais para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isNetworkRequest || resolvedEndpoint.includes('/networks') || resolvedEndpoint.includes('/wlans')) {
         const networks = coerceArrayResponse(responseData);
-        finalResponse = { data: networks.map((network: any) => normalizeSiteManagerNetwork(network, siteIdForFilter)) };
+        const normalizedNetworks = networks.map((network: any) => normalizeSiteManagerNetwork(network, siteIdForFilter));
+        finalResponse = {
+          data: normalizedNetworks,
+          ...(normalizedNetworks.length === 0 && Number(targetSiteCounts.wifiConfiguration || 0) + Number(targetSiteCounts.lanConfiguration || 0) + Number(targetSiteCounts.wanConfiguration || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'networks',
+                  'A controladora reporta redes/configurações no resumo do site, mas o endpoint detalhado não retornou redes reais para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isAlarmRequest || resolvedEndpoint.includes('/alarms') || resolvedEndpoint.includes('/alerts') || resolvedEndpoint.includes('/events')) {
         const alarms = coerceArrayResponse(responseData);
-        finalResponse = { data: alarms.map((alarm: any) => normalizeSiteManagerAlarm(alarm, siteIdForFilter)) };
+        const normalizedAlarms = alarms.map((alarm: any) => normalizeSiteManagerAlarm(alarm, siteIdForFilter));
+        finalResponse = {
+          data: normalizedAlarms,
+          ...(normalizedAlarms.length === 0 && Number(targetSiteCounts.criticalNotification || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'alarms',
+                  'A controladora reporta alertas no resumo do site, mas o endpoint detalhado não retornou alertas reais para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isHealthRequest || resolvedEndpoint.includes('/health')) {
         const healthItems = coerceArrayResponse(responseData);
         finalResponse = { data: healthItems.map((health: any) => normalizeSiteManagerHealth(health, siteIdForFilter)) };
