@@ -730,7 +730,16 @@ serve(async (req) => {
       const isAlarmRequest = endpoint.includes('/stat/alarm') || endpoint.includes('/alarms') || endpoint.includes('/alerts');
       const isHealthRequest = endpoint.includes('/stat/health') || endpoint.includes('/health');
       const targetSite = siteIdForFilter ? await getCloudSiteById(siteIdForFilter) : null;
+      const targetSiteCounts = targetSite?.statistics?.counts || {};
       const hostIdForSite = requestedHostId || String(targetSite?.hostId || targetSite?.controllerId || '');
+
+      const buildUnavailableMeta = (resource: 'devices' | 'clients' | 'networks' | 'alarms' | 'health', reason: string) => ({
+        cloudDetailUnavailable: true,
+        source: 'site-manager',
+        resource,
+        reason,
+        siteId: siteIdForFilter,
+      });
 
       const candidateEndpoints: string[] = [];
       const pushCandidate = (candidate?: string) => {
@@ -741,46 +750,42 @@ serve(async (req) => {
 
       if (endpoint.includes('/api/self/sites')) {
         pushCandidate('/v1/sites');
-      } else if (endpoint.startsWith('/ea/hosts/')) {
-        pushCandidate(endpoint);
-      } else if (endpoint.includes('/v1/')) {
-        pushCandidate(endpoint);
-      } else if (siteIdForFilter && isDeviceRequest) {
-        if (hostIdForSite) {
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/devices`);
-        }
-        const query = new URLSearchParams({ pageSize: '500' });
-        if (hostIdForSite) {
-          query.append('hostIds[]', hostIdForSite);
-        }
-        pushCandidate(`/v1/devices?${query.toString()}`);
-      } else if (siteIdForFilter && isClientRequest) {
-        if (hostIdForSite) {
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/clients`);
-        }
-        pushCandidate(`/v1/sites/${siteIdForFilter}/clients`);
-      } else if (siteIdForFilter && isNetworkRequest) {
-        if (hostIdForSite) {
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/networks`);
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/wlans`);
-        }
-        pushCandidate(`/v1/sites/${siteIdForFilter}/networks`);
-        pushCandidate(`/v1/sites/${siteIdForFilter}/wlans`);
-      } else if (siteIdForFilter && isAlarmRequest) {
-        if (hostIdForSite) {
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/alarms`);
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/alerts`);
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/events`);
-        }
-        pushCandidate(`/v1/sites/${siteIdForFilter}/alarms`);
-        pushCandidate(`/v1/sites/${siteIdForFilter}/alerts`);
-      } else if (siteIdForFilter && isHealthRequest) {
-        if (hostIdForSite) {
-          pushCandidate(`/ea/hosts/${hostIdForSite}/sites/${siteIdForFilter}/health`);
-        }
-        pushCandidate(`/v1/sites/${siteIdForFilter}/health`);
       } else {
-        pushCandidate(endpoint);
+        if (siteIdForFilter && isDeviceRequest) {
+          const query = new URLSearchParams({ pageSize: '500' });
+          if (hostIdForSite) {
+            query.append('hostIds[]', hostIdForSite);
+          }
+          pushCandidate(`/v1/devices?${query.toString()}`);
+        }
+
+        if (siteIdForFilter && isClientRequest) {
+          pushCandidate(`/v1/sites/${siteIdForFilter}/clients?limit=500`);
+          pushCandidate(`/v1/sites/${siteIdForFilter}/clients`);
+        }
+
+        if (siteIdForFilter && isNetworkRequest) {
+          pushCandidate(`/v1/sites/${siteIdForFilter}/networks`);
+          pushCandidate(`/v1/sites/${siteIdForFilter}/wlans`);
+        }
+
+        if (siteIdForFilter && isAlarmRequest) {
+          pushCandidate(`/v1/sites/${siteIdForFilter}/alarms`);
+          pushCandidate(`/v1/sites/${siteIdForFilter}/alerts`);
+          pushCandidate(`/v1/sites/${siteIdForFilter}/events`);
+        }
+
+        if (siteIdForFilter && isHealthRequest) {
+          pushCandidate(`/v1/sites/${siteIdForFilter}/health`);
+        }
+
+        if (endpoint.startsWith('/ea/hosts/') || endpoint.includes('/v1/')) {
+          pushCandidate(endpoint);
+        }
+
+        if (candidateEndpoints.length === 0) {
+          pushCandidate(endpoint);
+        }
       }
 
       console.log('Endpoint mapping:', {
@@ -844,7 +849,24 @@ serve(async (req) => {
           candidateEndpoints,
           lastNotFoundError,
         });
-        return new Response(JSON.stringify({ data: [] }), {
+
+        const resource = isDeviceRequest
+          ? 'devices'
+          : isClientRequest
+            ? 'clients'
+            : isNetworkRequest
+              ? 'networks'
+              : isAlarmRequest
+                ? 'alarms'
+                : 'health';
+
+        return new Response(JSON.stringify({
+          data: [],
+          meta: buildUnavailableMeta(
+            resource,
+            'A API Token do UniFi Site Manager não expôs este inventário detalhado para a controladora/site selecionados.'
+          ),
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -922,16 +944,60 @@ serve(async (req) => {
           return deviceSiteId === siteIdForFilter;
         });
 
-        finalResponse = { data: devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter)) };
+        const normalizedDevices = devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter));
+        finalResponse = {
+          data: normalizedDevices,
+          ...(normalizedDevices.length === 0 && Number(targetSiteCounts.totalDevice || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'devices',
+                  'A controladora reporta dispositivos no resumo do site, mas o endpoint oficial /v1/devices não retornou inventário detalhado para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isClientRequest || resolvedEndpoint.includes('/clients')) {
         const clients = coerceArrayResponse(responseData);
-        finalResponse = { data: clients.map((client: any) => normalizeSiteManagerClient(client, siteIdForFilter)) };
+        const normalizedClients = clients.map((client: any) => normalizeSiteManagerClient(client, siteIdForFilter));
+        finalResponse = {
+          data: normalizedClients,
+          ...(normalizedClients.length === 0 && Number(targetSiteCounts.wifiClient || 0) + Number(targetSiteCounts.wiredClient || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'clients',
+                  'A controladora reporta clientes no resumo do site, mas o endpoint detalhado não retornou clientes reais para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isNetworkRequest || resolvedEndpoint.includes('/networks') || resolvedEndpoint.includes('/wlans')) {
         const networks = coerceArrayResponse(responseData);
-        finalResponse = { data: networks.map((network: any) => normalizeSiteManagerNetwork(network, siteIdForFilter)) };
+        const normalizedNetworks = networks.map((network: any) => normalizeSiteManagerNetwork(network, siteIdForFilter));
+        finalResponse = {
+          data: normalizedNetworks,
+          ...(normalizedNetworks.length === 0 && Number(targetSiteCounts.wifiConfiguration || 0) + Number(targetSiteCounts.lanConfiguration || 0) + Number(targetSiteCounts.wanConfiguration || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'networks',
+                  'A controladora reporta redes/configurações no resumo do site, mas o endpoint detalhado não retornou redes reais para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isAlarmRequest || resolvedEndpoint.includes('/alarms') || resolvedEndpoint.includes('/alerts') || resolvedEndpoint.includes('/events')) {
         const alarms = coerceArrayResponse(responseData);
-        finalResponse = { data: alarms.map((alarm: any) => normalizeSiteManagerAlarm(alarm, siteIdForFilter)) };
+        const normalizedAlarms = alarms.map((alarm: any) => normalizeSiteManagerAlarm(alarm, siteIdForFilter));
+        finalResponse = {
+          data: normalizedAlarms,
+          ...(normalizedAlarms.length === 0 && Number(targetSiteCounts.criticalNotification || 0) > 0
+            ? {
+                meta: buildUnavailableMeta(
+                  'alarms',
+                  'A controladora reporta alertas no resumo do site, mas o endpoint detalhado não retornou alertas reais para este token.'
+                ),
+              }
+            : {}),
+        };
       } else if (isHealthRequest || resolvedEndpoint.includes('/health')) {
         const healthItems = coerceArrayResponse(responseData);
         finalResponse = { data: healthItems.map((health: any) => normalizeSiteManagerHealth(health, siteIdForFilter)) };

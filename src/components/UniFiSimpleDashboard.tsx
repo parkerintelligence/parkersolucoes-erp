@@ -90,21 +90,15 @@ const UniFiSimpleDashboard = () => {
   const networksList = networks?.data || [];
   const alarmsList = alarms?.data || [];
 
-  const siteStats = selectedSite?.statistics?.counts || {};
-  const onlineDevices = devicesList.length > 0
-    ? devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length
-    : (siteStats.totalDevice != null ? (siteStats.totalDevice - (siteStats.offlineDevice || 0)) : 0);
-  const totalDevices = devicesList.length > 0
-    ? devicesList.length
-    : (siteStats.totalDevice ?? 0);
-  const offlineDevices = totalDevices - onlineDevices;
-  const wifiClients = clientsList.length > 0
-    ? clientsList.filter((c: any) => !c.isWired && !c.is_wired).length
-    : (siteStats.wifiClient ?? 0);
-  const wiredClients = clientsList.length > 0
-    ? clientsList.filter((c: any) => c.isWired || c.is_wired).length
-    : (siteStats.wiredClient ?? 0);
-  const totalClients = clientsList.length > 0 ? clientsList.length : (wifiClients + wiredClients);
+  const onlineDevices = devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
+  const totalDevices = devicesList.length;
+  const offlineDevices = Math.max(totalDevices - onlineDevices, 0);
+  const wifiClients = clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
+  const wiredClients = clientsList.filter((c: any) => c.isWired || c.is_wired).length;
+  const totalClients = clientsList.length;
+  const cloudDetailUnavailable = !isLocalController && [devices, clients, networks, alarms].some(
+    (response: any) => response?.meta?.cloudDetailUnavailable,
+  );
 
   return (
     <div className="space-y-4">
@@ -164,8 +158,8 @@ const UniFiSimpleDashboard = () => {
           { label: "Offline", value: offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
           { label: "Clientes", value: totalClients, icon: Users, color: "text-primary" },
           { label: "Wi-Fi", value: wifiClients, icon: Signal, color: "text-primary" },
-          { label: "Redes", value: siteStats.wifiConfiguration ?? networksList.length, icon: Network, color: "text-muted-foreground" },
-          { label: "Alertas", value: selectedSite?.newAlarmCount || alarmsList.length, icon: AlertTriangle, color: (selectedSite?.newAlarmCount || alarmsList.length) > 0 ? "text-destructive" : "text-muted-foreground" },
+          { label: "Redes", value: networksList.length, icon: Network, color: "text-muted-foreground" },
+          { label: "Alertas", value: alarmsList.length, icon: AlertTriangle, color: alarmsList.length > 0 ? "text-destructive" : "text-muted-foreground" },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
             <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
@@ -253,6 +247,14 @@ const UniFiSimpleDashboard = () => {
       {/* Content Sections */}
       {selectedSiteId && (
         <div className="space-y-3">
+          {cloudDetailUnavailable && (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-3 text-xs text-muted-foreground">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p>
+                A integração via API Token do UniFi Site Manager está mostrando apenas dados realmente retornados pela API. Para inventário completo de dispositivos, clientes, redes e alertas em tempo real, configure acesso direto à controladora.
+              </p>
+            </div>
+          )}
           {/* Devices */}
           {activeSection === 'devices' && (
             <Collapsible open={devicesOpen} onOpenChange={setDevicesOpen} defaultOpen>
@@ -383,9 +385,6 @@ const UniFiSimpleDashboard = () => {
                 <AlertTriangle className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">Alertas</span>
                 <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{alarmsList.length}</Badge>
-                {selectedSite?.newAlarmCount > 0 && (
-                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">{selectedSite.newAlarmCount} novos</Badge>
-                )}
               </div>
               <div className="p-4">
                 {alarmsLoading ? (

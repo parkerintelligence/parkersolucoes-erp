@@ -390,16 +390,21 @@ export const useUniFiAPI = () => {
 
     if (isCloudSiteManagerRequest(hostId)) {
       switch (resource) {
-        case 'devices':
-          return `/ea/hosts/${hostId}/sites/${siteId}/devices`;
+        case 'devices': {
+          const query = new URLSearchParams({ pageSize: '500' });
+          if (hostId) {
+            query.append('hostIds[]', hostId);
+          }
+          return `/v1/devices?${query.toString()}`;
+        }
         case 'clients':
-          return `/ea/hosts/${hostId}/sites/${siteId}/clients`;
+          return `/v1/sites/${siteId}/clients?limit=500`;
         case 'networks':
-          return `/ea/hosts/${hostId}/sites/${siteId}/networks`;
+          return `/v1/sites/${siteId}/networks`;
         case 'alarms':
-          return `/ea/hosts/${hostId}/sites/${siteId}/alarms`;
+          return `/v1/sites/${siteId}/alarms`;
         case 'health':
-          return `/ea/hosts/${hostId}/sites/${siteId}/health`;
+          return `/v1/sites/${siteId}/health`;
       }
     }
 
