@@ -247,6 +247,14 @@ const UniFiSimpleDashboard = () => {
       {/* Content Sections */}
       {selectedSiteId && (
         <div className="space-y-3">
+          {cloudDetailUnavailable && (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-3 text-xs text-muted-foreground">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p>
+                A integração via API Token do UniFi Site Manager está mostrando apenas dados realmente retornados pela API. Para inventário completo de dispositivos, clientes, redes e alertas em tempo real, configure acesso direto à controladora.
+              </p>
+            </div>
+          )
           {/* Devices */}
           {activeSection === 'devices' && (
             <Collapsible open={devicesOpen} onOpenChange={setDevicesOpen} defaultOpen>
