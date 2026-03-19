@@ -158,8 +158,8 @@ const UniFiSimpleDashboard = () => {
           { label: "Offline", value: offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
           { label: "Clientes", value: totalClients, icon: Users, color: "text-primary" },
           { label: "Wi-Fi", value: wifiClients, icon: Signal, color: "text-primary" },
-          { label: "Redes", value: siteStats.wifiConfiguration ?? networksList.length, icon: Network, color: "text-muted-foreground" },
-          { label: "Alertas", value: selectedSite?.newAlarmCount || alarmsList.length, icon: AlertTriangle, color: (selectedSite?.newAlarmCount || alarmsList.length) > 0 ? "text-destructive" : "text-muted-foreground" },
+          { label: "Redes", value: networksList.length, icon: Network, color: "text-muted-foreground" },
+          { label: "Alertas", value: alarmsList.length, icon: AlertTriangle, color: alarmsList.length > 0 ? "text-destructive" : "text-muted-foreground" },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
             <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
