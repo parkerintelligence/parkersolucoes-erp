@@ -90,21 +90,15 @@ const UniFiSimpleDashboard = () => {
   const networksList = networks?.data || [];
   const alarmsList = alarms?.data || [];
 
-  const siteStats = selectedSite?.statistics?.counts || {};
-  const onlineDevices = devicesList.length > 0
-    ? devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length
-    : (siteStats.totalDevice != null ? (siteStats.totalDevice - (siteStats.offlineDevice || 0)) : 0);
-  const totalDevices = devicesList.length > 0
-    ? devicesList.length
-    : (siteStats.totalDevice ?? 0);
-  const offlineDevices = totalDevices - onlineDevices;
-  const wifiClients = clientsList.length > 0
-    ? clientsList.filter((c: any) => !c.isWired && !c.is_wired).length
-    : (siteStats.wifiClient ?? 0);
-  const wiredClients = clientsList.length > 0
-    ? clientsList.filter((c: any) => c.isWired || c.is_wired).length
-    : (siteStats.wiredClient ?? 0);
-  const totalClients = clientsList.length > 0 ? clientsList.length : (wifiClients + wiredClients);
+  const onlineDevices = devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
+  const totalDevices = devicesList.length;
+  const offlineDevices = Math.max(totalDevices - onlineDevices, 0);
+  const wifiClients = clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
+  const wiredClients = clientsList.filter((c: any) => c.isWired || c.is_wired).length;
+  const totalClients = clientsList.length;
+  const cloudDetailUnavailable = !isLocalController && [devices, clients, networks, alarms].some(
+    (response: any) => response?.meta?.cloudDetailUnavailable,
+  );
 
   return (
     <div className="space-y-4">
