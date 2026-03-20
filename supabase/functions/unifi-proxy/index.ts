@@ -309,6 +309,9 @@ serve(async (req) => {
         Math.max(controllerCandidates.length * loginEndpoints.length, 8),
       );
 
+      // Use longer timeout for first candidate (the configured one), shorter for alternatives
+      const getLoginTimeout = (attemptIndex: number) => attemptIndex < loginEndpoints.length ? 10000 : 6000;
+
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
@@ -324,9 +327,10 @@ serve(async (req) => {
 
           attempts += 1;
           const candidateLoginUrl = `${candidateBaseUrl}${loginEndpoint}`;
+          const loginTimeout = getLoginTimeout(attempts - 1);
 
           try {
-            console.log('[UNIFI-LOCAL] Testing login URL:', candidateLoginUrl);
+            console.log(`[UNIFI-LOCAL] Testing login URL (timeout ${loginTimeout}ms):`, candidateLoginUrl);
 
             const startTime = Date.now();
             const response = await fetchWithTlsFallback(
@@ -337,7 +341,7 @@ serve(async (req) => {
                 body: loginBody,
               },
               allowTlsFallback,
-              5000,
+              loginTimeout,
             );
             const responseTime = Date.now() - startTime;
 
