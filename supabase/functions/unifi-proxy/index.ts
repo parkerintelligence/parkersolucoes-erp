@@ -65,19 +65,32 @@ const buildLocalControllerCandidates = (
   return Array.from(candidates).slice(0, 6);
 };
 
-const fetchIgnoringCerts = async (url: string, options: RequestInit = {}) => {
+const fetchIgnoringCerts = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
+) => {
   const hostname = new URL(url).hostname;
   console.log(`[TLS-BYPASS] Creating insecure client for hostname: ${hostname}`);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const insecureClient = Deno.createHttpClient({
       // deno-lint-ignore no-explicit-any
       dangerouslyIgnoreCertificateErrors: [hostname],
     } as any);
-    return await fetch(url, { ...options, client: insecureClient } as any);
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      client: insecureClient,
+    } as any);
   } catch (error) {
     console.error('[TLS-BYPASS] Unable to bypass certificate validation:', error instanceof Error ? error.message : error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 
@@ -114,7 +127,7 @@ const fetchWithTlsFallback = async (
 
     console.warn(`[TLS-FALLBACK] Error for ${url} (${error instanceof Error ? error.message : error}), retrying with TLS bypass...`);
     try {
-      return await fetchIgnoringCerts(url, { ...options, signal: undefined } as any);
+      return await fetchIgnoringCerts(url, { ...options, signal: undefined } as any, timeoutMs);
     } catch (retryError) {
       console.error(`[TLS-FALLBACK] Insecure fetch also failed:`, retryError instanceof Error ? retryError.message : retryError);
       throw retryError;

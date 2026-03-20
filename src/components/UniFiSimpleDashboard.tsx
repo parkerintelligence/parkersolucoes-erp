@@ -67,7 +67,7 @@ const UniFiSimpleDashboard = () => {
     }
   }, [unifiIntegrations, selectedIntegration]);
 
-  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(selectedIntegration);
+  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(selectedIntegration, undefined, isLocalController);
   const selectedSite = sites?.data?.find((site: any) => site.id === selectedSiteId);
   const selectedSiteHostId = selectedSite?.controllerId;
   const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, selectedSiteHostId, selectedSiteId);
