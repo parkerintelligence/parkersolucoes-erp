@@ -18,10 +18,10 @@ const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(
 
 const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
 
-const DEFAULT_FETCH_TIMEOUT_MS = 9000;
+const DEFAULT_FETCH_TIMEOUT_MS = 12000;
 
-const MAX_LOGIN_ATTEMPTS = 24;
-const MAX_LOGIN_DURATION_MS = 20000;
+const MAX_LOGIN_ATTEMPTS = 12;
+const MAX_LOGIN_DURATION_MS = 25000;
 
 const buildLocalControllerCandidates = (
   baseUrl: string,
