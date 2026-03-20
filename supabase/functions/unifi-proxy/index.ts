@@ -18,10 +18,10 @@ const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(
 
 const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
 
-const DEFAULT_FETCH_TIMEOUT_MS = 9000;
+const DEFAULT_FETCH_TIMEOUT_MS = 12000;
 
-const MAX_LOGIN_ATTEMPTS = 24;
-const MAX_LOGIN_DURATION_MS = 20000;
+const MAX_LOGIN_ATTEMPTS = 12;
+const MAX_LOGIN_DURATION_MS = 25000;
 
 const buildLocalControllerCandidates = (
   baseUrl: string,
@@ -101,13 +101,20 @@ const fetchWithTlsFallback = async (
   try {
     return await fetchWithTimeout(url, options, timeoutMs);
   } catch (error) {
-    if (!allowInsecureFallback || !isTlsCertificateError(error)) {
+    if (!allowInsecureFallback) {
       throw error;
     }
 
-    console.warn(`[TLS-FALLBACK] Certificate error for ${url}, retrying with TLS bypass...`);
+    const isAbortOrTls = isTlsCertificateError(error) ||
+      (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted')));
+
+    if (!isAbortOrTls) {
+      throw error;
+    }
+
+    console.warn(`[TLS-FALLBACK] Error for ${url} (${error instanceof Error ? error.message : error}), retrying with TLS bypass...`);
     try {
-      return await fetchIgnoringCerts(url, options);
+      return await fetchIgnoringCerts(url, { ...options, signal: undefined } as any);
     } catch (retryError) {
       console.error(`[TLS-FALLBACK] Insecure fetch also failed:`, retryError instanceof Error ? retryError.message : retryError);
       throw retryError;
@@ -302,6 +309,9 @@ serve(async (req) => {
         Math.max(controllerCandidates.length * loginEndpoints.length, 8),
       );
 
+      // Use longer timeout for first candidate (the configured one), shorter for alternatives
+      const getLoginTimeout = (attemptIndex: number) => attemptIndex < loginEndpoints.length ? 10000 : 6000;
+
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
 
@@ -317,9 +327,10 @@ serve(async (req) => {
 
           attempts += 1;
           const candidateLoginUrl = `${candidateBaseUrl}${loginEndpoint}`;
+          const loginTimeout = getLoginTimeout(attempts - 1);
 
           try {
-            console.log('[UNIFI-LOCAL] Testing login URL:', candidateLoginUrl);
+            console.log(`[UNIFI-LOCAL] Testing login URL (timeout ${loginTimeout}ms):`, candidateLoginUrl);
 
             const startTime = Date.now();
             const response = await fetchWithTlsFallback(
@@ -330,7 +341,7 @@ serve(async (req) => {
                 body: loginBody,
               },
               allowTlsFallback,
-              5000,
+              loginTimeout,
             );
             const responseTime = Date.now() - startTime;
 
