@@ -101,13 +101,20 @@ const fetchWithTlsFallback = async (
   try {
     return await fetchWithTimeout(url, options, timeoutMs);
   } catch (error) {
-    if (!allowInsecureFallback || !isTlsCertificateError(error)) {
+    if (!allowInsecureFallback) {
       throw error;
     }
 
-    console.warn(`[TLS-FALLBACK] Certificate error for ${url}, retrying with TLS bypass...`);
+    const isAbortOrTls = isTlsCertificateError(error) ||
+      (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted')));
+
+    if (!isAbortOrTls) {
+      throw error;
+    }
+
+    console.warn(`[TLS-FALLBACK] Error for ${url} (${error instanceof Error ? error.message : error}), retrying with TLS bypass...`);
     try {
-      return await fetchIgnoringCerts(url, options);
+      return await fetchIgnoringCerts(url, { ...options, signal: undefined } as any);
     } catch (retryError) {
       console.error(`[TLS-FALLBACK] Insecure fetch also failed:`, retryError instanceof Error ? retryError.message : retryError);
       throw retryError;
