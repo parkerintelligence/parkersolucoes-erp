@@ -259,74 +259,78 @@ export const useUniFiAPI = () => {
   };
 
   // Sites - buscar todos os sites disponíveis via Site Manager API
-  const useUniFiSites = (integrationId: string, hostId?: string) => {
+  const useUniFiSites = (integrationId: string, hostId?: string, preferLocalController: boolean = false) => {
     return useQuery({
-      queryKey: ['unifi-sites', integrationId, hostId],
+      queryKey: ['unifi-sites', integrationId, hostId, preferLocalController],
       queryFn: async () => {
         if (!integrationId) return { data: [] };
         
-        try {
-          // Primeiro, buscar hosts disponíveis para enriquecer informações dos sites
-          console.log('🔍 Buscando hosts via Site Manager API v1...');
-          const hostsResponse = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
-          
-          console.log('Hosts response:', { 
-            hasData: !!hostsResponse?.data, 
-            isArray: Array.isArray(hostsResponse?.data),
-            length: hostsResponse?.data?.length,
-            meta: hostsResponse?.meta 
-          });
-          
-          // Check if we got an empty response with suggestion for local setup
-          if (hostsResponse?.meta?.empty_response) {
-            console.log('❌ Empty response detected - no controllers in UniFi Cloud');
-            toast({
-              title: "Controladora não encontrada no Cloud",
-              description: "Nenhuma controladora encontrada no UniFi Cloud. Verifique se a controladora está registrada em unifi.ui.com ou configure uma controladora local.",
-              variant: "destructive",
+        if (!preferLocalController) {
+          try {
+            // Primeiro, buscar hosts disponíveis para enriquecer informações dos sites
+            console.log('🔍 Buscando hosts via Site Manager API v1...');
+            const hostsResponse = await makeUniFiRequest('/v1/hosts', 'GET', integrationId);
+            
+            console.log('Hosts response:', { 
+              hasData: !!hostsResponse?.data, 
+              isArray: Array.isArray(hostsResponse?.data),
+              length: hostsResponse?.data?.length,
+              meta: hostsResponse?.meta 
             });
-            return { data: [] };
+            
+            // Check if we got an empty response with suggestion for local setup
+            if (hostsResponse?.meta?.empty_response) {
+              console.log('❌ Empty response detected - no controllers in UniFi Cloud');
+              toast({
+                title: "Controladora não encontrada no Cloud",
+                description: "Nenhuma controladora encontrada no UniFi Cloud. Verifique se a controladora está registrada em unifi.ui.com ou configure uma controladora local.",
+                variant: "destructive",
+              });
+              return { data: [] };
+            }
+            
+            if (hostsResponse?.data && Array.isArray(hostsResponse.data) && hostsResponse.data.length > 0) {
+              console.log('✅ Hosts encontrados:', hostsResponse.data.length);
+
+              // Endpoint oficial do Site Manager para listar sites
+              const sitesResponse = await makeUniFiRequest('/v1/sites', 'GET', integrationId);
+              const rawSites = Array.isArray(sitesResponse?.data) ? sitesResponse.data : [];
+
+              const connectedHosts = hostsResponse.data.filter((host: any) => host.reportedState?.state === 'connected');
+              const connectedHostsById = new Map<string, any>(
+                connectedHosts.map((host: any): [string, any] => [String(host.id), host])
+              );
+
+              const normalizedSites = rawSites.map((site: any) => {
+                const siteControllerId = String(site.controllerId || site.controller_id || site.hostId || site.host_id || '');
+                const host = connectedHostsById.get(siteControllerId);
+                const counts = site.statistics?.counts || {};
+
+                return {
+                  ...site,
+                  id: String(site.id || site.siteId || site.site_id || site.name || site.meta?.name || ''),
+                  name: site.name || site.meta?.name || site.meta?.desc || 'Site UniFi',
+                  description: site.description || site.meta?.desc || site.meta?.name || 'Site UniFi',
+                  role: site.role || site.permission || 'admin',
+                  newAlarmCount: Number(site.newAlarmCount ?? counts.criticalNotification ?? 0),
+                  controllerName: host?.reportedState?.name || host?.reportedState?.hostname || site.controllerName || 'Controladora UniFi',
+                  controllerId: siteControllerId || host?.id || null,
+                  controllerState: host?.reportedState?.state || site.controllerState || 'connected'
+                };
+              }).filter((site: any) => site.id);
+
+              const filteredSites = hostId
+                ? normalizedSites.filter((site: any) => site.controllerId === hostId)
+                : normalizedSites;
+
+              console.log('✅ Total de sites encontrados:', normalizedSites.length, 'Filtrados:', filteredSites.length);
+              return { data: filteredSites };
+            }
+          } catch (error) {
+            console.log('❌ Site Manager API falhou, tentando controladora local...', error.message);
           }
-          
-          if (hostsResponse?.data && Array.isArray(hostsResponse.data) && hostsResponse.data.length > 0) {
-            console.log('✅ Hosts encontrados:', hostsResponse.data.length);
-
-            // Endpoint oficial do Site Manager para listar sites
-            const sitesResponse = await makeUniFiRequest('/v1/sites', 'GET', integrationId);
-            const rawSites = Array.isArray(sitesResponse?.data) ? sitesResponse.data : [];
-
-            const connectedHosts = hostsResponse.data.filter((host: any) => host.reportedState?.state === 'connected');
-            const connectedHostsById = new Map<string, any>(
-              connectedHosts.map((host: any): [string, any] => [String(host.id), host])
-            );
-
-            const normalizedSites = rawSites.map((site: any) => {
-              const siteControllerId = String(site.controllerId || site.controller_id || site.hostId || site.host_id || '');
-              const host = connectedHostsById.get(siteControllerId);
-              const counts = site.statistics?.counts || {};
-
-              return {
-                ...site,
-                id: String(site.id || site.siteId || site.site_id || site.name || site.meta?.name || ''),
-                name: site.name || site.meta?.name || site.meta?.desc || 'Site UniFi',
-                description: site.description || site.meta?.desc || site.meta?.name || 'Site UniFi',
-                role: site.role || site.permission || 'admin',
-                newAlarmCount: Number(site.newAlarmCount ?? counts.criticalNotification ?? 0),
-                controllerName: host?.reportedState?.name || host?.reportedState?.hostname || site.controllerName || 'Controladora UniFi',
-                controllerId: siteControllerId || host?.id || null,
-                controllerState: host?.reportedState?.state || site.controllerState || 'connected'
-              };
-            }).filter((site: any) => site.id);
-
-            const filteredSites = hostId
-              ? normalizedSites.filter((site: any) => site.controllerId === hostId)
-              : normalizedSites;
-
-            console.log('✅ Total de sites encontrados:', normalizedSites.length, 'Filtrados:', filteredSites.length);
-            return { data: filteredSites };
-          }
-        } catch (error) {
-          console.log('❌ Site Manager API falhou, tentando controladora local...', error.message);
+        } else {
+          console.log('🔍 Integração local detectada, pulando Site Manager API e buscando sites direto na controladora...');
         }
 
         // Fallback to local controller endpoint
