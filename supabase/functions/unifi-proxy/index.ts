@@ -7,199 +7,87 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-const isTlsCertificateError = (error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  return /UnknownIssuer|invalid peer certificate|self[- ]signed|certificate|CERT/i.test(message);
-};
+const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
-const normalizeUrlNoTrailingSlash = (value: string) => value.trim().replace(/\/+$/, '');
-
-const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^https:\/\//i, 'http://');
-
-const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
-
-const DEFAULT_FETCH_TIMEOUT_MS = 10000;
-
-const MAX_LOGIN_DURATION_MS = 30000;
-
-const buildLocalControllerCandidates = (
-  baseUrl: string,
-  preferSsl: boolean,
-  configuredPort?: number | string | null,
-) => {
-  const normalized = normalizeUrlNoTrailingSlash(baseUrl);
-  const parsed = new URL(normalized);
-
-  const createVariant = (protocol: 'http:' | 'https:', port?: string) => {
-    const variant = new URL(normalized);
-    variant.protocol = protocol;
-    if (port !== undefined) {
-      variant.port = port;
-    }
-    return normalizeUrlNoTrailingSlash(variant.toString());
-  };
-
-  const candidates = new Set<string>();
-  const push = (url: string) => {
-    if (url) candidates.add(normalizeUrlNoTrailingSlash(url));
-  };
-
-  const configuredPortValue = String(configuredPort ?? '').trim();
-  // Extract the port from the URL itself – this is what the user explicitly typed
-  const urlPort = parsed.port || '';
-  const protocolOrder: Array<'https:' | 'http:'> = preferSsl ? ['https:', 'http:'] : ['http:', 'https:'];
-
-  // Priority: 1) URL port (user explicitly set it), 2) configured port field, 3) common alternatives
-  const prioritizedPorts = [
-    urlPort,
-    configuredPortValue,
-    '8443',
-    '8445',
-    preferSsl ? '443' : '80',
-  ].filter((value, index, arr) => !!value && arr.indexOf(value) === index);
-
-  for (const portValue of prioritizedPorts.slice(0, 4)) {
-    for (const protocol of protocolOrder) {
-      push(createVariant(protocol, portValue));
-    }
-  }
-
-  return Array.from(candidates).slice(0, 8);
-};
-
-const fetchIgnoringCerts = async (
-  url: string,
-  options: RequestInit = {},
-  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
-) => {
+// For local controllers, ALWAYS use insecure fetch since they use self-signed certs
+const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 12000): Promise<Response> => {
   const hostname = new URL(url).hostname;
-  console.log(`[TLS-BYPASS] Creating insecure client for hostname: ${hostname}`);
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    // Try with TLS bypass first (most common for local controllers)
     const insecureClient = Deno.createHttpClient({
-      // deno-lint-ignore no-explicit-any
-      dangerouslyIgnoreCertificateErrors: [hostname],
+      certs: [],
     } as any);
+    
     return await fetch(url, {
       ...options,
       signal: controller.signal,
       client: insecureClient,
     } as any);
-  } catch (error) {
-    console.error('[TLS-BYPASS] Unable to bypass certificate validation:', error instanceof Error ? error.message : error);
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
-
-const fetchWithTlsFallback = async (
-  url: string,
-  options: RequestInit = {},
-  allowInsecureFallback: boolean = true,
-  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS,
-) => {
-  try {
-    return await fetchWithTimeout(url, options, timeoutMs);
-  } catch (error) {
-    if (!allowInsecureFallback) {
-      throw error;
-    }
-
-    const isAbortOrTls = isTlsCertificateError(error) ||
-      (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted')));
-
-    if (!isAbortOrTls) {
-      throw error;
-    }
-
-    console.warn(`[TLS-FALLBACK] Error for ${url} (${error instanceof Error ? error.message : error}), retrying with TLS bypass...`);
+  } catch (e1) {
+    // If that fails, try with dangerouslyIgnoreCertificateErrors
     try {
-      return await fetchIgnoringCerts(url, { ...options, signal: undefined } as any, timeoutMs);
-    } catch (retryError) {
-      console.error(`[TLS-FALLBACK] Insecure fetch also failed:`, retryError instanceof Error ? retryError.message : retryError);
-      throw retryError;
+      const insecureClient2 = Deno.createHttpClient({
+        dangerouslyIgnoreCertificateErrors: [hostname],
+      } as any);
+      
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        client: insecureClient2,
+      } as any);
+    } catch (e2) {
+      // Last resort: standard fetch (maybe it's HTTP or valid cert)
+      try {
+        return await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+      } catch (e3) {
+        throw e3;
+      }
     }
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 
-console.log("UniFi Local Controller API proxy function starting...");
+console.log("UniFi proxy function starting...");
 
 serve(async (req) => {
-  console.log(`Received ${req.method} request to unifi-proxy`);
-  
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Creating Supabase client...");
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
     const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
-    
     if (!authHeader) {
-      console.error('No authorization header found');
       throw new Error('Authorization header is required');
     }
 
-    console.log("Authenticating user...");
-    const token = authHeader.replace('Bearer ', '');
-    console.log('Token extracted, length:', token.length);
-    
-    // Create a client with the user's token instead of service role
     const userSupabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
+      { global: { headers: { Authorization: authHeader } } }
     );
     
     const { data: { user }, error: authError } = await userSupabaseClient.auth.getUser();
-
     if (authError || !user) {
-      console.error('Authentication failed:', { 
-        error: authError?.message, 
-        hasUser: !!user,
-        tokenPresent: !!token 
-      });
       throw new Error(`Authentication failed: ${authError?.message || 'User not found'}`);
     }
 
-    console.log(`User authenticated: ${user.id}`);
-
     const requestBody = await req.json();
-    const { method, endpoint, integrationId, data: postData, ignore_ssl = false } = requestBody;
+    const { method, endpoint, integrationId, data: postData } = requestBody;
 
-    console.log('UniFi API request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('UniFi request:', { method, endpoint, integrationId });
 
-    // Get UniFi integration configuration
-    console.log("Fetching UniFi integration...");
     const { data: integration, error: integrationError } = await supabaseClient
       .from('integrations')
       .select('*')
@@ -209,98 +97,82 @@ serve(async (req) => {
       .maybeSingle();
 
     if (integrationError || !integration) {
-      console.error('Integration not found:', integrationError);
       throw new Error('UniFi integration not found');
     }
-
-    console.log("Integration found:", { id: integration.id, name: integration.name, is_active: integration.is_active });
 
     if (!integration.is_active) {
       throw new Error('UniFi integration is not active');
     }
 
-    // Determine connection mode based on integration data + endpoint requested
-    const { base_url, username, password, api_token, use_ssl = true, port } = integration;
-    const normalizedBaseUrl = typeof base_url === 'string' ? base_url.trim().replace(/\/+$/, '') : '';
-    const normalizedUsername = typeof username === 'string' ? username.trim() : '';
-    const normalizedPassword = typeof password === 'string' ? password.trim() : '';
-    const normalizedApiToken = typeof api_token === 'string' ? api_token.trim() : '';
+    const { base_url, username, password, api_token, use_ssl, port } = integration;
+    const baseUrl = typeof base_url === 'string' ? normalizeUrl(base_url) : '';
+    const user_ = typeof username === 'string' ? username.trim() : '';
+    const pass_ = typeof password === 'string' ? password.trim() : '';
+    const token_ = typeof api_token === 'string' ? api_token.trim() : '';
 
-    const hasLocalCredentials = !!(normalizedBaseUrl && normalizedUsername && normalizedPassword);
-    const hasApiToken = !!normalizedApiToken;
-    const endpointIsLocalController = typeof endpoint === 'string' && endpoint.startsWith('/api/');
+    const hasLocal = !!(baseUrl && user_ && pass_);
+    const hasCloud = !!token_;
+    const isLocalEndpoint = typeof endpoint === 'string' && endpoint.startsWith('/api/');
+    const useLocal = hasLocal && (isLocalEndpoint || !hasCloud);
 
-    // If endpoint is local (/api/*), prioritize local controller when credentials exist.
-    const useLocalController = hasLocalCredentials && (endpointIsLocalController || !hasApiToken);
-    const useSiteManagerApi = hasApiToken && !useLocalController;
+    console.log('Mode:', useLocal ? 'LOCAL' : 'CLOUD', { baseUrl, hasLocal, hasCloud, endpoint });
 
-    console.log("Integration config:", {
-      hasBaseUrl: !!normalizedBaseUrl,
-      hasUsername: !!normalizedUsername,
-      hasPassword: !!normalizedPassword,
-      hasApiToken: !!normalizedApiToken,
-      useSSL: use_ssl,
-      configuredPort: port,
-      endpoint,
-      endpointIsLocalController,
-      useLocalController,
-      useSiteManagerApi
-    });
-
-    if (!useLocalController && !useSiteManagerApi) {
-      console.error('Invalid UniFi integration configuration');
-      throw new Error('UniFi integration requires either (base_url, username, password) for local controller OR (api_token) for Site Manager API');
+    if (!useLocal && !hasCloud) {
+      throw new Error('Configuração UniFi incompleta. Necessário: (base_url + username + password) para local OU (api_token) para cloud.');
     }
 
-    let baseApiUrl;
-    if (useLocalController) {
-      // Use local UniFi Controller - keep the URL as-is (don't override port)
-      baseApiUrl = normalizedBaseUrl;
+    // ===================== LOCAL CONTROLLER =====================
+    if (useLocal) {
+      // Build candidate URLs to try
+      const candidates: string[] = [];
+      const addCandidate = (url: string) => {
+        const normalized = normalizeUrl(url);
+        if (!candidates.includes(normalized)) candidates.push(normalized);
+      };
 
-      if (!use_ssl && baseApiUrl.startsWith('https://')) {
-        baseApiUrl = toHttpUrl(baseApiUrl);
-      } else if (use_ssl && baseApiUrl.startsWith('http://')) {
-        baseApiUrl = baseApiUrl.replace(/^http:\/\//i, 'https://');
+      // Priority 1: Exact URL as configured
+      addCandidate(baseUrl);
+      
+      // Priority 2: Same URL with opposite protocol
+      if (baseUrl.startsWith('https://')) {
+        addCandidate(baseUrl.replace(/^https:\/\//, 'http://'));
+      } else {
+        addCandidate(baseUrl.replace(/^http:\/\//, 'https://'));
       }
 
-      // Do NOT override the URL port with the `port` field here.
-      // The buildLocalControllerCandidates function will try both the URL port
-      // and the configured port as separate candidates.
+      // Priority 3: If port field is different from URL port, try that
+      const parsed = new URL(baseUrl);
+      const urlPort = parsed.port;
+      const configPort = String(port ?? '').trim();
+      if (configPort && configPort !== urlPort) {
+        const withPort = new URL(baseUrl);
+        withPort.port = configPort;
+        addCandidate(normalizeUrl(withPort.toString()));
+        // Also try opposite protocol with config port
+        const withPortAlt = new URL(baseUrl);
+        withPortAlt.port = configPort;
+        withPortAlt.protocol = baseUrl.startsWith('https://') ? 'http:' : 'https:';
+        addCandidate(normalizeUrl(withPortAlt.toString()));
+      }
 
-      console.log('Using UniFi Local Controller:', baseApiUrl);
-    } else {
-      // Use Site Manager API
-      baseApiUrl = 'https://api.ui.com';
-      console.log('Using UniFi Site Manager API:', baseApiUrl);
-    }
-    console.log('API endpoint:', endpoint);
+      // Priority 4: Common UniFi ports if not already tried
+      for (const commonPort of ['8443', '8445', '443']) {
+        if (commonPort !== urlPort && commonPort !== configPort) {
+          const withCommon = new URL(baseUrl);
+          withCommon.port = commonPort;
+          withCommon.protocol = 'https:';
+          addCandidate(normalizeUrl(withCommon.toString()));
+        }
+      }
 
-    if (useLocalController) {
-      // LOCAL CONTROLLER - Authenticate with username/password
-      let activeBaseApiUrl = baseApiUrl;
-      let loginResponse: Response | null = null;
-      let lastConnectionError = '';
-      let lastConnectionErrorWasTls = false;
+      console.log('Local controller candidates:', candidates.slice(0, 6));
 
-      const controllerCandidates = buildLocalControllerCandidates(baseApiUrl, use_ssl ?? true, port);
-      const loginEndpoints = [
-        '/api/auth/login',
-        '/api/login',
-        '/proxy/network/api/auth/login',
-        '/proxy/network/api/login',
-      ];
-
-      console.log('=== UNIFI CONTROLLER CONNECTION DIAGNOSTICS ===');
-      console.log('Controller candidates:', controllerCandidates);
-      console.log('Username provided:', !!username);
-      console.log('Password provided:', !!password);
-      console.log('Use SSL configured:', use_ssl);
-      console.log('Configured port:', port);
-      console.log('Ignore SSL configured:', requestBody.ignore_ssl);
-
+      // Login endpoints to try
+      const loginPaths = ['/api/auth/login', '/api/login'];
+      
       const loginBody = JSON.stringify({
-        username: normalizedUsername,
-        password: normalizedPassword,
+        username: user_,
+        password: pass_,
         remember: true,
         rememberMe: true,
       });
@@ -308,780 +180,377 @@ serve(async (req) => {
       const loginHeaders = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Lovable-UniFi-Integration/1.0',
       };
 
-      const loginStartedAt = Date.now();
-      let attempts = 0;
-      const maxLoginAttempts = Math.max(controllerCandidates.length * loginEndpoints.length, 8);
+      let loginResponse: Response | null = null;
+      let activeBase = '';
+      let lastError = '';
+      const startTime = Date.now();
+      const MAX_TIME = 25000;
 
-      // Use longer timeout for first candidate (the configured one), shorter for alternatives
-      const getLoginTimeout = (attemptIndex: number) => attemptIndex < 2 ? 8000 : 5000;
-
-      for (const candidateBaseUrl of controllerCandidates) {
-        const allowTlsFallback = candidateBaseUrl.startsWith('https://');
-
-        for (const loginEndpoint of loginEndpoints) {
-          if (attempts >= maxLoginAttempts || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
-            console.warn('[UNIFI-LOCAL] Login attempts/time budget exceeded', {
-              attempts,
-              maxLoginAttempts,
-              elapsedMs: Date.now() - loginStartedAt,
-            });
-            break;
-          }
-
-          attempts += 1;
-          const candidateLoginUrl = `${candidateBaseUrl}${loginEndpoint}`;
-          const loginTimeout = getLoginTimeout(attempts - 1);
+      for (const candidate of candidates.slice(0, 6)) {
+        if (Date.now() - startTime > MAX_TIME) break;
+        
+        for (const loginPath of loginPaths) {
+          if (Date.now() - startTime > MAX_TIME) break;
+          
+          const loginUrl = `${candidate}${loginPath}`;
+          console.log(`[LOCAL] Trying: ${loginUrl}`);
 
           try {
-            console.log(`[UNIFI-LOCAL] Testing login URL (timeout ${loginTimeout}ms):`, candidateLoginUrl);
+            const resp = await fetchLocal(loginUrl, {
+              method: 'POST',
+              headers: loginHeaders,
+              body: loginBody,
+            }, 10000);
 
-            const startTime = Date.now();
-            const response = await fetchWithTlsFallback(
-              candidateLoginUrl,
-              {
-                method: 'POST',
-                headers: loginHeaders,
-                body: loginBody,
-              },
-              allowTlsFallback,
-              loginTimeout,
-            );
-            const responseTime = Date.now() - startTime;
+            console.log(`[LOCAL] ${loginUrl} => ${resp.status}`);
 
-            console.log(`[UNIFI-LOCAL] Login response ${response.status} in ${responseTime}ms for ${candidateLoginUrl}`);
-
-            if (response.status === 404) {
+            if (resp.status === 404) {
+              await resp.text(); // consume body
               continue;
             }
 
-            if (response.ok || response.status === 401 || response.status === 403) {
-              loginResponse = response;
-              activeBaseApiUrl = candidateBaseUrl;
+            if (resp.ok) {
+              loginResponse = resp;
+              activeBase = candidate;
               break;
             }
 
-            const errorBody = await response.text();
-            lastConnectionError = `${response.status} em ${candidateLoginUrl}: ${errorBody}`;
-            lastConnectionErrorWasTls = false;
-          } catch (connectionError) {
-            const errorMessage = connectionError instanceof Error ? connectionError.message : String(connectionError);
-            lastConnectionError = `${candidateLoginUrl} => ${errorMessage}`;
-            lastConnectionErrorWasTls = isTlsCertificateError(connectionError);
-            console.warn('[UNIFI-LOCAL] Login attempt failed:', lastConnectionError);
+            if (resp.status === 401 || resp.status === 403) {
+              const body = await resp.text();
+              throw new Error(`Credenciais inválidas (${resp.status}): ${body}`);
+            }
+
+            const body = await resp.text();
+            lastError = `${resp.status}: ${body}`;
+          } catch (e) {
+            if (e instanceof Error && e.message.startsWith('Credenciais')) throw e;
+            lastError = e instanceof Error ? e.message : String(e);
+            console.warn(`[LOCAL] Failed: ${loginUrl} => ${lastError}`);
           }
         }
-
-        if (loginResponse || attempts >= maxLoginAttempts || Date.now() - loginStartedAt > MAX_LOGIN_DURATION_MS) {
-          break;
-        }
+        if (loginResponse) break;
       }
 
       if (!loginResponse) {
-        if (lastConnectionErrorWasTls) {
-          throw new Error(
-            `Falha SSL/TLS na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'certificado inválido'}. ` +
-            'O Supabase Edge não consegue ignorar certificado autoassinado. Use certificado público válido (cadeia completa) ou endpoint HTTP interno acessível.'
-          );
-        }
-
-        throw new Error(
-          `Falha ao conectar na controladora (${baseApiUrl}). Último erro: ${lastConnectionError || 'sem resposta'}. ` +
-          'Verifique URL, porta, protocolo (HTTP/HTTPS), firewall e se a API está exposta.'
-        );
+        throw new Error(`Falha ao conectar na controladora local. Tentativas: ${candidates.slice(0, 6).join(', ')}. Último erro: ${lastError}`);
       }
 
-      if (!loginResponse.ok) {
-        const loginErrorText = await loginResponse.text();
-        console.error('Login failed:', loginResponse.status, loginErrorText);
-
-        if (loginResponse.status === 401) {
-          throw new Error('Credenciais inválidas. Verifique usuário e senha da controladora.');
-        } else if (loginResponse.status === 403) {
-          throw new Error('Acesso proibido. Verifique permissões do usuário.');
-        } else {
-          throw new Error(`Erro de autenticação (${loginResponse.status}): ${loginErrorText}`);
-        }
-      }
-
-      // Extract cookies from login response
+      // Extract cookies and CSRF token
       const headerWithSetCookie = loginResponse.headers as Headers & { getSetCookie?: () => string[] };
       const cookieList = headerWithSetCookie.getSetCookie?.() || [];
-      const setCookieHeaders = cookieList.length > 0
-        ? cookieList.map((cookie) => cookie.split(';')[0]).join('; ')
+      const cookies = cookieList.length > 0
+        ? cookieList.map((c) => c.split(';')[0]).join('; ')
         : (loginResponse.headers.get('set-cookie') || '');
       const csrfToken = loginResponse.headers.get('x-csrf-token') || '';
-      console.log('Login successful, cookies present:', !!setCookieHeaders, 'csrf token present:', !!csrfToken);
+      
+      console.log(`[LOCAL] Login OK at ${activeBase}, cookies: ${!!cookies}, csrf: ${!!csrfToken}`);
 
-      // Make API request to UniFi Controller
-      let apiUrl = `${activeBaseApiUrl}${endpoint}`;
-      console.log('Making Controller API request to:', apiUrl);
-
+      // Make the actual API request
       const apiHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
+      if (cookies) apiHeaders['Cookie'] = cookies;
+      if (csrfToken) apiHeaders['X-CSRF-Token'] = csrfToken;
 
-      if (setCookieHeaders) {
-        apiHeaders['Cookie'] = setCookieHeaders;
-      }
-
-      if (csrfToken) {
-        apiHeaders['X-CSRF-Token'] = csrfToken;
-      }
-
-      const apiBody = (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH'))
+      const apiBody = (postData && ['POST', 'PUT', 'PATCH'].includes(method))
         ? JSON.stringify(postData)
         : undefined;
 
-      const shouldAllowTlsFallback = activeBaseApiUrl.startsWith('https://');
+      let apiUrl = `${activeBase}${endpoint}`;
+      console.log(`[LOCAL] API request: ${method || 'GET'} ${apiUrl}`);
 
-      let apiResponse = await fetchWithTlsFallback(apiUrl, {
+      let apiResponse = await fetchLocal(apiUrl, {
         method: method || 'GET',
         headers: apiHeaders,
-        body: apiBody
-      }, shouldAllowTlsFallback);
+        body: apiBody,
+      });
 
-      // UniFi OS controllers often expose Network API under /proxy/network
+      // If 404, try with /proxy/network prefix (UniFi OS)
       if (apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
-        const prefixedEndpoint = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-        const prefixedUrl = `${activeBaseApiUrl}${prefixedEndpoint}`;
-        console.warn('Retrying with /proxy/network prefix:', prefixedUrl);
-
-        apiResponse = await fetchWithTlsFallback(prefixedUrl, {
+        await apiResponse.text();
+        const prefixed = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+        apiUrl = `${activeBase}${prefixed}`;
+        console.log(`[LOCAL] Retrying with prefix: ${apiUrl}`);
+        
+        apiResponse = await fetchLocal(apiUrl, {
           method: method || 'GET',
           headers: apiHeaders,
-          body: apiBody
-        }, shouldAllowTlsFallback);
-        apiUrl = prefixedUrl;
+          body: apiBody,
+        });
       }
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
-        console.error('UniFi Controller API request failed:', apiResponse.status, errorText);
-        console.error('Request details:', { url: apiUrl, method: method || 'GET', endpoint });
-
-        if (apiResponse.status === 401) {
-          throw new Error('Credenciais inválidas ou sessão expirada. Verifique usuário e senha.');
-        } else if (apiResponse.status === 403) {
-          throw new Error('Acesso negado. Verifique as permissões do usuário na controladora.');
-        } else if (apiResponse.status === 404) {
-          // Para 404, retornar uma resposta vazia ao invés de erro para alguns endpoints
-          if (endpoint.includes('/sites') || endpoint.includes('/devices') || endpoint.includes('/clients')) {
-            console.log('404 for data endpoint, returning empty response');
-            return new Response(JSON.stringify({ data: [] }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          throw new Error('Endpoint não encontrado. Verifique se o site existe na controladora.');
+        
+        // For data endpoints, return empty instead of error on 404
+        if (apiResponse.status === 404 && (endpoint.includes('/stat/') || endpoint.includes('/rest/'))) {
+          return new Response(JSON.stringify({ data: [] }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
-
-        throw new Error(`UniFi Controller API request failed: ${apiResponse.status} - ${errorText}`);
+        
+        throw new Error(`UniFi API error ${apiResponse.status}: ${errorText}`);
       }
 
       const responseData = await apiResponse.json();
-      console.log('UniFi Controller API successful, response structure:', {
-        hasData: !!responseData,
-        dataKeys: responseData ? Object.keys(responseData) : [],
-        dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
-        fullResponse: JSON.stringify(responseData, null, 2)
-      });
+      console.log(`[LOCAL] Response keys: ${Object.keys(responseData)}, data length: ${Array.isArray(responseData?.data) ? responseData.data.length : 'N/A'}`);
 
-      // Transform data structure for consistency with frontend
+      // Normalize response
       let finalResponse;
-      if (responseData?.data) {
-        // Already in the expected format
+      if (responseData?.data !== undefined) {
         finalResponse = responseData;
       } else if (Array.isArray(responseData)) {
-        // Wrap array response in data object
         finalResponse = { data: responseData };
       } else {
-        // Single object response
         finalResponse = { data: responseData };
       }
-      
-      console.log('Final response being sent:', JSON.stringify(finalResponse, null, 2));
 
       return new Response(JSON.stringify(finalResponse), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // ===================== CLOUD / SITE MANAGER API =====================
+    else {
+      const baseApiUrl = 'https://api.ui.com';
       
-    } else {
-      // SITE MANAGER API - Use api_token authentication
-      console.log('Using UniFi Site Manager API with token auth');
-
-      const extractSiteIdFromEndpoint = (requestedEndpoint: string) => {
-        const apiSiteMatch = requestedEndpoint.match(/\/api\/s\/([^\/]+)/);
-        if (apiSiteMatch) return apiSiteMatch[1];
-
-        const cloudSiteMatch = requestedEndpoint.match(/\/sites\/([^\/]+)/);
-        return cloudSiteMatch ? cloudSiteMatch[1] : '';
+      const siteManagerHeaders = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-API-KEY': token_,
       };
 
-      const extractHostIdFromEndpoint = (requestedEndpoint: string) => {
-        const match = requestedEndpoint.match(/\/hosts\/([^\/]+)/);
-        return match ? match[1] : '';
-      };
-
-      const coerceArrayResponse = (payload: any) => {
+      const coerceArray = (payload: any) => {
         if (Array.isArray(payload)) return payload;
         if (Array.isArray(payload?.data)) return payload.data;
         if (Array.isArray(payload?.dataExpand)) return payload.dataExpand;
         return [];
       };
 
-      const safeNumber = (value: unknown): number | undefined => {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : undefined;
+      const safeNumber = (v: unknown): number | undefined => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : undefined;
       };
 
-      const toUnixSeconds = (value: unknown): number | undefined => {
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          return value > 1000000000000 ? Math.floor(value / 1000) : Math.floor(value);
+      const toUnix = (v: unknown): number | undefined => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v > 1e12 ? Math.floor(v / 1000) : Math.floor(v);
+        if (typeof v === 'string' && v.trim()) {
+          const n = Number(v);
+          if (Number.isFinite(n)) return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+          const d = Date.parse(v);
+          if (!isNaN(d)) return Math.floor(d / 1000);
         }
-
-        if (typeof value === 'string' && value.trim()) {
-          const numericValue = Number(value);
-          if (Number.isFinite(numericValue)) {
-            return numericValue > 1000000000000 ? Math.floor(numericValue / 1000) : Math.floor(numericValue);
-          }
-
-          const parsedDate = Date.parse(value);
-          if (!Number.isNaN(parsedDate)) {
-            return Math.floor(parsedDate / 1000);
-          }
-        }
-
         return undefined;
       };
 
-      const normalizeDeviceType = (device: any) => {
-        const rawType = String(
-          device.type || device.deviceType || device.model || device.product || device.category || 'unknown'
-        ).toLowerCase();
+      // Extract siteId from endpoint
+      const siteMatch = endpoint.match(/\/api\/s\/([^\/]+)/) || endpoint.match(/\/sites\/([^\/]+)/);
+      const siteId = siteMatch ? siteMatch[1] : '';
+      const hostMatch = endpoint.match(/\/hosts\/([^\/]+)/);
+      const hostId = hostMatch ? hostMatch[1] : '';
 
-        if (rawType.includes('udm')) return 'udm';
-        if (rawType.includes('uxg')) return 'uxg';
-        if (rawType.includes('ugw') || rawType.includes('gateway')) return 'ugw';
-        if (rawType.includes('usw') || rawType.includes('switch')) return 'usw';
-        if (rawType.includes('uap') || rawType.includes('access point') || rawType.includes('ap')) return 'uap';
+      // Determine request type
+      const isDevice = endpoint.includes('/stat/device') || endpoint.includes('/devices');
+      const isClient = endpoint.includes('/stat/sta') || endpoint.includes('/clients');
+      const isNetwork = endpoint.includes('/rest/wlanconf') || endpoint.includes('/rest/networkconf') || endpoint.includes('/networks') || endpoint.includes('/wlans');
+      const isAlarm = endpoint.includes('/stat/alarm') || endpoint.includes('/alarms') || endpoint.includes('/alerts');
+      const isHealth = endpoint.includes('/stat/health') || endpoint.includes('/health');
+      const isSites = endpoint.includes('/self/sites') || endpoint === '/v1/sites';
 
-        return rawType;
-      };
-
-      const normalizeSiteManagerDevice = (device: any, siteId: string) => {
-        const latestStats = device.latestStatistics || device.statistics || device.stats || {};
-        const sysStats = device['sys-stats'] || device.sysStats || {};
-        const connectionState = String(
-          device.status ||
-          device.state ||
-          device.connectionState ||
-          device.lifecycleState ||
-          device.latestConnectionState?.state ||
-          ''
-        ).toLowerCase();
-        const isOnline = Boolean(device.isConnected) || ['online', 'connected', 'ready', 'active'].some((token) => connectionState.includes(token));
-        const cpu = safeNumber(sysStats.cpu ?? latestStats.cpuUtilizationPct ?? latestStats.cpu);
-        const mem = safeNumber(sysStats.mem ?? latestStats.memoryUtilizationPct ?? latestStats.memory);
-        const temperature = safeNumber(sysStats['system-temp'] ?? latestStats.temperatureCelsius ?? latestStats.temperature);
-        const model = device.model || device.productModel || device.deviceModel || device.product?.model || 'UniFi Device';
-        const mac = String(device.mac || device.macAddress || device.primaryMac || device.id || '');
-
-        return {
-          ...device,
-          id: String(device.id || mac || `${siteId}-${model}`),
-          mac,
-          name: device.name || device.hostname || model,
-          displayName: device.displayName || device.alias || device.name || device.hostname || model,
-          model,
-          type: normalizeDeviceType(device),
-          ip: device.ip || device.ipAddress || device.latestConnectionState?.ipAddress || '',
-          status: isOnline ? 'online' : 'offline',
-          adopted: Boolean(device.adopted ?? device.isAdopted ?? true),
-          uptime: safeNumber(device.uptime ?? latestStats.uptime ?? latestStats.uptimeSecs),
-          version: device.version || device.firmwareVersion || device.firmware?.version || device.firmware?.currentVersion || '',
-          siteId: String(device.siteId || device.site_id || device.hostSiteId || device.site?.id || device.site?.siteId || siteId),
-          connectedClients: safeNumber(device.connectedClients ?? device.connectedClientsCount ?? device.num_sta ?? latestStats.clientCount) || 0,
-          'sys-stats': {
-            cpu: cpu || 0,
-            mem: mem || 0,
-            'system-temp': temperature || 0,
-          },
-        };
-      };
-
-      const normalizeSiteManagerClient = (client: any, siteId: string) => {
-        const traffic = client.traffic || client.statistics || {};
-        const signal = safeNumber(client.signal ?? client.rssi ?? client.latestConnectionState?.signal);
-        const lastSeen = toUnixSeconds(client.lastSeen ?? client.lastSeenAt ?? client.updatedAt ?? client.connectedAt);
-        const uptime = safeNumber(client.uptime ?? client.connectionDurationSeconds);
-        const rxBytes = safeNumber(client.rxBytes ?? client.downloadBytes ?? traffic.rxBytes ?? traffic.downloadBytes) || 0;
-        const txBytes = safeNumber(client.txBytes ?? client.uploadBytes ?? traffic.txBytes ?? traffic.uploadBytes) || 0;
-        const isWired = Boolean(
-          client.isWired ??
-          client.wired ??
-          String(client.connectionType || client.interfaceType || client.type || '').toLowerCase().includes('wired')
-        );
-        const mac = String(client.mac || client.macAddress || client.id || '');
-
-        return {
-          ...client,
-          id: String(client.id || mac || `${siteId}-client`),
-          mac,
-          name: client.name || client.hostname || client.displayName || 'Cliente UniFi',
-          hostname: client.hostname || client.name || client.displayName || 'Cliente UniFi',
-          ip: client.ip || client.ipAddress || '',
-          network: client.network || client.networkName || client.vlanName || client.ssid || 'N/A',
-          networkId: client.networkId || client.vlanId || client.ssidId || '',
-          accessPointMac: client.accessPointMac || client.apMac || client.accessPointId || '',
-          channel: safeNumber(client.channel),
-          radio: client.radio || client.band || '',
-          signal,
-          noise: safeNumber(client.noise),
-          rssi: safeNumber(client.rssi ?? signal),
-          rxBytes,
-          txBytes,
-          uptime,
-          lastSeen,
-          isGuest: Boolean(client.isGuest ?? client.guest),
-          isWired,
-          oui: client.oui || '',
-          userId: client.userId || client.user_id || '',
-          siteId: String(client.siteId || client.site_id || client.site?.id || client.site?.siteId || siteId),
-        };
-      };
-
-      const normalizeSiteManagerNetwork = (network: any, siteId: string) => {
-        const purpose = network.purpose || network.type || network.networkGroup || network.networkgroup || (network.isGuest ? 'guest' : 'corporate');
-        const security = network.security || network.encryption || network.wpaMode || network.authMode || (network.password ? 'WPA2/WPA3' : 'Open');
-
-        return {
-          ...network,
-          id: String(network.id || network._id || network.uid || network.networkId || network.name || `${siteId}-network`),
-          name: network.name || network.ssid || network.displayName || 'Rede UniFi',
-          purpose,
-          vlan: safeNumber(network.vlan ?? network.vlanId),
-          enabled: Boolean(network.enabled ?? network.isEnabled ?? true),
-          isGuest: Boolean(network.isGuest ?? network.guest),
-          security,
-          wpaMode: network.wpaMode || network.authMode || '',
-          wpaEncryption: network.wpaEncryption || network.encryption || '',
-          networkGroup: network.networkGroup || network.networkgroup || purpose,
-          networkgroup: network.networkgroup || network.networkGroup || purpose,
-          siteId: String(network.siteId || network.site_id || network.site?.id || network.site?.siteId || siteId),
-        };
-      };
-
-      const normalizeSiteManagerAlarm = (alarm: any, siteId: string) => {
-        const timestamp = toUnixSeconds(alarm.time ?? alarm.timestamp ?? alarm.createdAt ?? alarm.datetime) || Math.floor(Date.now() / 1000);
-
-        return {
-          ...alarm,
-          id: String(alarm.id || alarm._id || alarm.eventId || `${siteId}-alarm-${timestamp}`),
-          time: timestamp,
-          datetime: timestamp,
-          message: alarm.message || alarm.description || alarm.text || alarm.title || alarm.name || 'Alerta UniFi',
-          subsystem: alarm.subsystem || alarm.category || alarm.scope || 'network',
-          key: alarm.key || alarm.code || alarm.type || 'alarm',
-          siteId: String(alarm.siteId || alarm.site_id || alarm.site?.id || alarm.site?.siteId || siteId),
-          archived: Boolean(alarm.archived ?? alarm.isArchived ?? alarm.dismissed ?? false),
-        };
-      };
-
-      const normalizeSiteManagerHealth = (health: any, siteId: string) => ({
-        ...health,
-        subsystem: health.subsystem || health.name || health.category || 'network',
-        status: String(health.status || health.state || health.health || 'unknown').toLowerCase(),
-        num_adopted: safeNumber(health.num_adopted ?? health.deviceCount ?? health.adoptedDevices) || 0,
-        num_disconnected: safeNumber(health.num_disconnected ?? health.offlineDevices ?? health.disconnectedDevices) || 0,
-        num_user: safeNumber(health.num_user ?? health.clientCount ?? health.connectedClients) || 0,
-        siteId: String(health.siteId || health.site_id || health.site?.id || health.site?.siteId || siteId),
-      });
-
-      const siteManagerHeaders = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-API-KEY': normalizedApiToken,
-        'User-Agent': 'Lovable-UniFi-Integration/1.0'
-      };
-
-      let cachedSites: any[] | null = null;
-      const loadCloudSites = async () => {
-        if (cachedSites) return cachedSites;
-
-        try {
-          const sitesResponse = await fetch(`${baseApiUrl}/v1/sites`, {
-            method: 'GET',
-            headers: siteManagerHeaders,
-          });
-
-          if (!sitesResponse.ok) {
-            console.warn('Could not load /v1/sites for site lookup:', sitesResponse.status);
-            cachedSites = [];
-            return cachedSites;
-          }
-
-          const sitesPayload = await sitesResponse.json();
-          cachedSites = coerceArrayResponse(sitesPayload);
-          return cachedSites;
-        } catch (error) {
-          console.warn('Failed to fetch /v1/sites for site lookup:', error instanceof Error ? error.message : error);
-          cachedSites = [];
-          return cachedSites;
-        }
-      };
-
-      const getCloudSiteById = async (siteId: string) => {
-        if (!siteId) return null;
-        const sites = await loadCloudSites();
-        return sites.find((site: any) => String(site.siteId || site.id || site.name || site.meta?.name || '') === siteId) || null;
-      };
-
-      const siteIdForFilter = extractSiteIdFromEndpoint(endpoint);
-      const requestedHostId = extractHostIdFromEndpoint(endpoint);
-      const isDeviceRequest = endpoint.includes('/stat/device') || endpoint.includes('/devices');
-      const isClientRequest = endpoint.includes('/stat/sta') || endpoint.includes('/clients');
-      const isNetworkRequest = endpoint.includes('/rest/wlanconf') || endpoint.includes('/rest/networkconf') || endpoint.includes('/networks') || endpoint.includes('/wlans');
-      const isAlarmRequest = endpoint.includes('/stat/alarm') || endpoint.includes('/alarms') || endpoint.includes('/alerts');
-      const isHealthRequest = endpoint.includes('/stat/health') || endpoint.includes('/health');
-      const targetSite = siteIdForFilter ? await getCloudSiteById(siteIdForFilter) : null;
-      const targetSiteCounts = targetSite?.statistics?.counts || {};
-      const hostIdForSite = requestedHostId || String(targetSite?.hostId || targetSite?.controllerId || '');
-
-      const buildUnavailableMeta = (resource: 'devices' | 'clients' | 'networks' | 'alarms' | 'health', reason: string) => ({
-        cloudDetailUnavailable: true,
-        source: 'site-manager',
-        resource,
-        reason,
-        siteId: siteIdForFilter,
-      });
-
-      const candidateEndpoints: string[] = [];
-      const pushCandidate = (candidate?: string) => {
-        if (candidate && !candidateEndpoints.includes(candidate)) {
-          candidateEndpoints.push(candidate);
-        }
-      };
-
-      if (endpoint.includes('/api/self/sites')) {
-        pushCandidate('/v1/sites');
+      // Build candidate cloud endpoints
+      const cloudEndpoints: string[] = [];
+      
+      if (isSites) {
+        cloudEndpoints.push('/v1/sites');
+      } else if (isDevice && siteId) {
+        // Try site-specific first, then global with host filter
+        cloudEndpoints.push(`/v1/sites/${siteId}/devices`);
+        const q = new URLSearchParams({ pageSize: '500' });
+        cloudEndpoints.push(`/v1/devices?${q.toString()}`);
+      } else if (isClient && siteId) {
+        cloudEndpoints.push(`/v1/sites/${siteId}/clients?limit=500`);
+        cloudEndpoints.push(`/v1/sites/${siteId}/clients`);
+      } else if (isNetwork && siteId) {
+        cloudEndpoints.push(`/v1/sites/${siteId}/networks`);
+        cloudEndpoints.push(`/v1/sites/${siteId}/wlans`);
+      } else if (isAlarm && siteId) {
+        cloudEndpoints.push(`/v1/sites/${siteId}/alarms`);
+        cloudEndpoints.push(`/v1/sites/${siteId}/alerts`);
+        cloudEndpoints.push(`/v1/sites/${siteId}/events`);
+      } else if (isHealth && siteId) {
+        cloudEndpoints.push(`/v1/sites/${siteId}/health`);
+      } else if (endpoint.startsWith('/v1/') || endpoint.startsWith('/ea/')) {
+        cloudEndpoints.push(endpoint);
       } else {
-        if (siteIdForFilter && isDeviceRequest) {
-          const query = new URLSearchParams({ pageSize: '500' });
-          if (hostIdForSite) {
-            query.append('hostIds[]', hostIdForSite);
-          }
-          pushCandidate(`/v1/devices?${query.toString()}`);
-        }
-
-        if (siteIdForFilter && isClientRequest) {
-          pushCandidate(`/v1/sites/${siteIdForFilter}/clients?limit=500`);
-          pushCandidate(`/v1/sites/${siteIdForFilter}/clients`);
-        }
-
-        if (siteIdForFilter && isNetworkRequest) {
-          pushCandidate(`/v1/sites/${siteIdForFilter}/networks`);
-          pushCandidate(`/v1/sites/${siteIdForFilter}/wlans`);
-        }
-
-        if (siteIdForFilter && isAlarmRequest) {
-          pushCandidate(`/v1/sites/${siteIdForFilter}/alarms`);
-          pushCandidate(`/v1/sites/${siteIdForFilter}/alerts`);
-          pushCandidate(`/v1/sites/${siteIdForFilter}/events`);
-        }
-
-        if (siteIdForFilter && isHealthRequest) {
-          pushCandidate(`/v1/sites/${siteIdForFilter}/health`);
-        }
-
-        if (endpoint.startsWith('/ea/hosts/') || endpoint.includes('/v1/')) {
-          pushCandidate(endpoint);
-        }
-
-        if (candidateEndpoints.length === 0) {
-          pushCandidate(endpoint);
-        }
+        cloudEndpoints.push(endpoint);
       }
-
-      console.log('Endpoint mapping:', {
-        original: endpoint,
-        candidates: candidateEndpoints,
-        siteIdForFilter,
-        hostIdForSite,
-      });
 
       const requestOptions: RequestInit = {
         method: method || 'GET',
         headers: siteManagerHeaders,
       };
-
-      if (postData && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+      if (postData && ['POST', 'PUT', 'PATCH'].includes(method)) {
         requestOptions.body = JSON.stringify(postData);
       }
 
-      let resolvedEndpoint = candidateEndpoints[0] || endpoint;
       let apiResponse: Response | null = null;
-      let lastNotFoundError = '';
+      let resolvedEndpoint = '';
 
-      for (const candidateEndpoint of candidateEndpoints) {
-        const candidateUrl = `${baseApiUrl}${candidateEndpoint}`;
-        console.log('Trying Site Manager API endpoint:', candidateUrl);
-
-        const candidateResponse = await fetch(candidateUrl, requestOptions);
-
-        if (candidateResponse.ok) {
-          apiResponse = candidateResponse;
-          resolvedEndpoint = candidateEndpoint;
+      for (const ep of cloudEndpoints) {
+        const url = `${baseApiUrl}${ep}`;
+        console.log(`[CLOUD] Trying: ${url}`);
+        const resp = await fetch(url, requestOptions);
+        
+        if (resp.ok) {
+          apiResponse = resp;
+          resolvedEndpoint = ep;
           break;
         }
 
-        const errorText = await candidateResponse.text();
-        console.warn('Site Manager endpoint failed:', {
-          candidateEndpoint,
-          status: candidateResponse.status,
-          errorText,
-        });
-
-        if (candidateResponse.status === 404) {
-          lastNotFoundError = `${candidateEndpoint} => ${errorText}`;
-          continue;
-        }
-
-        if (candidateResponse.status === 401) {
-          throw new Error('API Token inválido ou expirado. Verifique o token na configuração.');
-        }
-
-        if (candidateResponse.status === 403) {
-          throw new Error('API Token não tem permissões necessárias para este endpoint.');
-        }
-
-        throw new Error(`Site Manager API request failed: ${candidateResponse.status} - ${errorText}`);
+        const errText = await resp.text();
+        console.warn(`[CLOUD] ${ep} => ${resp.status}: ${errText.substring(0, 200)}`);
+        
+        if (resp.status === 401) throw new Error('API Token inválido ou expirado.');
+        if (resp.status === 403) throw new Error('API Token sem permissões.');
+        if (resp.status !== 404) throw new Error(`Cloud API error: ${resp.status} - ${errText}`);
       }
 
       if (!apiResponse) {
-        console.warn('No Site Manager endpoint returned data, sending empty response', {
-          originalEndpoint: endpoint,
-          candidateEndpoints,
-          lastNotFoundError,
-        });
-
-        const resource = isDeviceRequest
-          ? 'devices'
-          : isClientRequest
-            ? 'clients'
-            : isNetworkRequest
-              ? 'networks'
-              : isAlarmRequest
-                ? 'alarms'
-                : 'health';
-
-        return new Response(JSON.stringify({
-          data: [],
-          meta: buildUnavailableMeta(
-            resource,
-            'A API Token do UniFi Site Manager não expôs este inventário detalhado para a controladora/site selecionados.'
-          ),
-        }), {
+        return new Response(JSON.stringify({ data: [], meta: { cloudDetailUnavailable: true } }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const responseData = await apiResponse.json();
-      console.log('Site Manager API successful, response structure:', {
-        resolvedEndpoint,
-        hasData: !!responseData,
-        dataKeys: responseData ? Object.keys(responseData) : [],
-        dataLength: Array.isArray(responseData?.data) ? responseData.data.length : 'not array',
-        fullResponse: JSON.stringify(responseData, null, 2)
+      const items = coerceArray(responseData);
+      
+      console.log(`[CLOUD] ${resolvedEndpoint} => ${items.length} items`);
+
+      // Normalize based on type
+      const normalizeDevice = (d: any) => {
+        const state = String(d.status || d.state || d.connectionState || '').toLowerCase();
+        const isOnline = Boolean(d.isConnected) || ['online','connected','ready','active'].some(t => state.includes(t));
+        const sysStats = d['sys-stats'] || d.sysStats || d.latestStatistics || {};
+        return {
+          ...d,
+          id: String(d.id || d.mac || ''),
+          mac: String(d.mac || d.macAddress || d.primaryMac || ''),
+          name: d.name || d.hostname || d.model || 'UniFi Device',
+          displayName: d.displayName || d.alias || d.name || d.hostname || d.model || 'Device',
+          model: d.model || d.productModel || 'UniFi',
+          type: String(d.type || d.deviceType || d.model || 'unknown').toLowerCase(),
+          ip: d.ip || d.ipAddress || d.latestConnectionState?.ipAddress || '',
+          status: isOnline ? 'online' : 'offline',
+          state: isOnline ? 1 : 0,
+          adopted: Boolean(d.adopted ?? d.isAdopted ?? true),
+          uptime: safeNumber(d.uptime ?? sysStats.uptime),
+          version: d.version || d.firmwareVersion || '',
+          siteId: String(d.siteId || d.site_id || siteId),
+          connectedClients: safeNumber(d.connectedClients ?? d.num_sta) || 0,
+          'sys-stats': { cpu: safeNumber(sysStats.cpu ?? sysStats.cpuUtilizationPct) || 0, mem: safeNumber(sysStats.mem ?? sysStats.memoryUtilizationPct) || 0 },
+        };
+      };
+
+      const normalizeClient = (c: any) => {
+        const isWired = Boolean(c.isWired ?? c.wired ?? String(c.connectionType || c.type || '').toLowerCase().includes('wired'));
+        return {
+          ...c,
+          id: String(c.id || c.mac || ''),
+          mac: String(c.mac || c.macAddress || ''),
+          name: c.name || c.hostname || c.displayName || 'Client',
+          hostname: c.hostname || c.name || '',
+          ip: c.ip || c.ipAddress || '',
+          network: c.network || c.networkName || c.ssid || 'N/A',
+          isWired, is_wired: isWired,
+          isGuest: Boolean(c.isGuest ?? c.guest),
+          signal: safeNumber(c.signal ?? c.rssi),
+          rssi: safeNumber(c.rssi ?? c.signal),
+          uptime: safeNumber(c.uptime),
+          lastSeen: toUnix(c.lastSeen ?? c.lastSeenAt),
+          rxBytes: safeNumber(c.rxBytes ?? c.downloadBytes) || 0,
+          txBytes: safeNumber(c.txBytes ?? c.uploadBytes) || 0,
+          siteId: String(c.siteId || c.site_id || siteId),
+        };
+      };
+
+      const normalizeNetwork = (n: any) => ({
+        ...n,
+        id: String(n.id || n._id || n.name || ''),
+        name: n.name || n.ssid || 'Network',
+        purpose: n.purpose || n.type || n.networkGroup || 'corporate',
+        enabled: Boolean(n.enabled ?? n.isEnabled ?? true),
+        networkgroup: n.networkgroup || n.networkGroup || n.purpose || '',
+        siteId: String(n.siteId || siteId),
       });
 
-      let finalResponse;
+      const normalizeAlarm = (a: any) => ({
+        ...a,
+        id: String(a.id || a._id || ''),
+        message: a.message || a.description || a.text || 'Alert',
+        datetime: toUnix(a.time ?? a.timestamp ?? a.createdAt) || Math.floor(Date.now() / 1000),
+        archived: Boolean(a.archived ?? a.isArchived ?? false),
+        siteId: String(a.siteId || siteId),
+      });
+
+      let finalData;
       if (resolvedEndpoint === '/v1/hosts') {
-        const hosts = coerceArrayResponse(responseData);
-
+        const hosts = items;
         if (hosts.length === 0) {
-          finalResponse = {
-            data: [],
-            meta: {
-              empty_response: true,
-              suggestion: 'local_controller_setup',
-              message: 'No controllers found in UniFi Cloud. Consider using local controller configuration.',
-              debug_info: {
-                raw_response: responseData,
-                endpoint_called: `${baseApiUrl}${resolvedEndpoint}`,
-                token_used: true
-              }
-            }
-          };
-        } else {
-          finalResponse = {
-            data: hosts.map((host: any) => {
-              const reportedState = host.reportedState || host.reported_state;
-              const userData = host.userData || host.user_data;
-              const hardwareId = host.hardwareId || host.hardware_id;
-              const registrationTime = host.registrationTime || host.registration_time;
-              const lastConnectionStateChange = host.lastConnectionStateChange || host.last_connection_state_change;
-              const isBlocked = host.isBlocked ?? host.is_blocked ?? false;
-
-              return {
-                id: host.id || hardwareId,
-                hardwareId: hardwareId,
-                type: reportedState?.host_type === 0 ? 'network-server' : (host.type || 'unknown'),
-                ipAddress: reportedState?.ipAddrs?.[0] || host.ipAddress || host.ip_address || 'unknown',
-                owner: host.owner || false,
-                isBlocked: isBlocked,
-                registrationTime: registrationTime,
-                lastConnectionStateChange: lastConnectionStateChange,
-                userData: userData,
-                reportedState: reportedState,
-                sitesCount: 0,
-                isValid: true
-              };
-            })
-          };
+          return new Response(JSON.stringify({ data: [], meta: { empty_response: true } }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
-      } else if (resolvedEndpoint === '/v1/sites') {
-        finalResponse = { data: coerceArrayResponse(responseData) };
-      } else if (isDeviceRequest || resolvedEndpoint.includes('/devices')) {
-        const devices = coerceArrayResponse(responseData).filter((device: any) => {
-          if (!siteIdForFilter || resolvedEndpoint.includes(`/sites/${siteIdForFilter}/devices`)) {
-            return true;
-          }
-
-          const deviceSiteId = String(
-            device.siteId ||
-            device.site_id ||
-            device.hostSiteId ||
-            device.site?.id ||
-            device.site?.siteId ||
-            ''
-          );
-          return deviceSiteId === siteIdForFilter;
-        });
-
-        const normalizedDevices = devices.map((device: any) => normalizeSiteManagerDevice(device, siteIdForFilter));
-        finalResponse = {
-          data: normalizedDevices,
-          ...(normalizedDevices.length === 0 && Number(targetSiteCounts.totalDevice || 0) > 0
-            ? {
-                meta: buildUnavailableMeta(
-                  'devices',
-                  'A controladora reporta dispositivos no resumo do site, mas o endpoint oficial /v1/devices não retornou inventário detalhado para este token.'
-                ),
-              }
-            : {}),
-        };
-      } else if (isClientRequest || resolvedEndpoint.includes('/clients')) {
-        const clients = coerceArrayResponse(responseData);
-        const normalizedClients = clients.map((client: any) => normalizeSiteManagerClient(client, siteIdForFilter));
-        finalResponse = {
-          data: normalizedClients,
-          ...(normalizedClients.length === 0 && Number(targetSiteCounts.wifiClient || 0) + Number(targetSiteCounts.wiredClient || 0) > 0
-            ? {
-                meta: buildUnavailableMeta(
-                  'clients',
-                  'A controladora reporta clientes no resumo do site, mas o endpoint detalhado não retornou clientes reais para este token.'
-                ),
-              }
-            : {}),
-        };
-      } else if (isNetworkRequest || resolvedEndpoint.includes('/networks') || resolvedEndpoint.includes('/wlans')) {
-        const networks = coerceArrayResponse(responseData);
-        const normalizedNetworks = networks.map((network: any) => normalizeSiteManagerNetwork(network, siteIdForFilter));
-        finalResponse = {
-          data: normalizedNetworks,
-          ...(normalizedNetworks.length === 0 && Number(targetSiteCounts.wifiConfiguration || 0) + Number(targetSiteCounts.lanConfiguration || 0) + Number(targetSiteCounts.wanConfiguration || 0) > 0
-            ? {
-                meta: buildUnavailableMeta(
-                  'networks',
-                  'A controladora reporta redes/configurações no resumo do site, mas o endpoint detalhado não retornou redes reais para este token.'
-                ),
-              }
-            : {}),
-        };
-      } else if (isAlarmRequest || resolvedEndpoint.includes('/alarms') || resolvedEndpoint.includes('/alerts') || resolvedEndpoint.includes('/events')) {
-        const alarms = coerceArrayResponse(responseData);
-        const normalizedAlarms = alarms.map((alarm: any) => normalizeSiteManagerAlarm(alarm, siteIdForFilter));
-        finalResponse = {
-          data: normalizedAlarms,
-          ...(normalizedAlarms.length === 0 && Number(targetSiteCounts.criticalNotification || 0) > 0
-            ? {
-                meta: buildUnavailableMeta(
-                  'alarms',
-                  'A controladora reporta alertas no resumo do site, mas o endpoint detalhado não retornou alertas reais para este token.'
-                ),
-              }
-            : {}),
-        };
-      } else if (isHealthRequest || resolvedEndpoint.includes('/health')) {
-        const healthItems = coerceArrayResponse(responseData);
-        finalResponse = { data: healthItems.map((health: any) => normalizeSiteManagerHealth(health, siteIdForFilter)) };
-      } else if (responseData?.data || responseData?.dataExpand) {
-        finalResponse = { data: coerceArrayResponse(responseData) };
+        finalData = hosts.map((h: any) => ({
+          id: h.id || h.hardwareId,
+          hardwareId: h.hardwareId || h.hardware_id,
+          type: h.reportedState?.host_type === 0 ? 'network-server' : (h.type || 'unknown'),
+          ipAddress: h.reportedState?.ipAddrs?.[0] || h.ipAddress || 'unknown',
+          owner: h.owner || false,
+          isBlocked: h.isBlocked ?? false,
+          registrationTime: h.registrationTime,
+          lastConnectionStateChange: h.lastConnectionStateChange,
+          userData: h.userData,
+          reportedState: h.reportedState,
+          sitesCount: 0,
+          isValid: true,
+        }));
+      } else if (isDevice) {
+        finalData = items
+          .filter((d: any) => !siteId || String(d.siteId || d.site_id || d.hostSiteId || '') === siteId || resolvedEndpoint.includes(`/sites/${siteId}/`))
+          .map((d: any) => normalizeDevice(d));
+      } else if (isClient) {
+        finalData = items.map((c: any) => normalizeClient(c));
+      } else if (isNetwork) {
+        finalData = items.map((n: any) => normalizeNetwork(n));
+      } else if (isAlarm) {
+        finalData = items.map((a: any) => normalizeAlarm(a));
       } else {
-        finalResponse = { data: Array.isArray(responseData) ? responseData : [] };
+        finalData = items;
       }
-      
-      console.log('Final response being sent:', JSON.stringify(finalResponse, null, 2));
 
-      return new Response(JSON.stringify(finalResponse), {
+      return new Response(JSON.stringify({ data: finalData }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
   } catch (error) {
-    console.error('Error in unifi-proxy function:', error);
+    console.error('Error in unifi-proxy:', error);
     
-    // Determine appropriate status code based on error type
     let status = 400;
-    let errorMessage = 'Erro interno do servidor';
-    let troubleshooting = '';
+    let errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     
-    if (error instanceof Error) {
-      if (error.message.includes('Unauthorized') || error.message.includes('Authentication failed')) {
-        status = 401;
-        errorMessage = 'Falha na autenticação. Verifique se você está logado.';
-      } else if (error.message.includes('Credenciais inválidas') || error.message.includes('Check username/password')) {
-        status = 400;
-        errorMessage = 'Credenciais da Controladora UniFi inválidas.';
-        troubleshooting = 'Verifique: 1) Usuário e senha estão corretos; 2) Usuário tem permissões de administrador; 3) Controladora está acessível.';
-      } else if (error.message.includes('Authorization header')) {
-        status = 401;
-        errorMessage = 'Header de autorização ausente.';
-      } else if (error.message.includes('Falha SSL/TLS na controladora')) {
-        status = 502;
-        errorMessage = 'Falha de certificado TLS na controladora local.';
-        troubleshooting = 'Use certificado público válido com cadeia completa ou exponha um endpoint HTTP interno confiável para a Edge Function.';
-      } else if (error.message.includes('Falha ao conectar na controladora')) {
-        status = 502;
-        errorMessage = 'Não foi possível conectar à controladora local.';
-        troubleshooting = 'Verifique URL, porta/protocolo, firewall e se a API UniFi está acessível externamente.';
-      } else if (error.message.includes('Conexão falhou com HTTPS e HTTP')) {
-        status = 502;
-        errorMessage = 'Falha na conectividade de rede com a controladora.';
-        troubleshooting = 'Verifique: 1) URL e porta estão corretos; 2) Controladora está online; 3) Firewall permite acesso; 4) Certificados SSL (se HTTPS).';
-      } else if (error.message.includes('sending request for url')) {
-        status = 502;
-        errorMessage = 'Erro de conectividade SSL/TLS ou DNS.';
-        troubleshooting = 'Problemas comuns: 1) Certificado auto-assinado (normal em controladora local); 2) Porta incorreta; 3) URL inacessível; 4) Problema de DNS.';
-      } else {
-        errorMessage = error.message;
-      }
+    if (errorMessage.includes('Authentication failed') || errorMessage.includes('Authorization header')) {
+      status = 401;
+    } else if (errorMessage.includes('Falha ao conectar') || errorMessage.includes('SSL/TLS')) {
+      status = 502;
     }
     
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: error instanceof Error ? error.message : 'Erro desconhecido',
-        troubleshooting: troubleshooting || 'Verifique a configuração da integração e conectividade de rede.',
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: errorMessage, details: errorMessage, timestamp: new Date().toISOString() }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
