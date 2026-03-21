@@ -3,63 +3,58 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
-  Wifi, 
-  Router, 
-  Users, 
-  Network,
-  AlertTriangle,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Activity,
-  Globe,
-  CheckCircle2,
-  XCircle,
-  Signal,
-  Cloud,
-  Server
+  Wifi, Router, Users, Network, AlertTriangle, RefreshCw, Search, Globe,
+  CheckCircle2, XCircle, Signal, Cloud, Server, Power, Ban, Plus, Trash2,
+  Edit, Activity, Cpu, HardDrive, Thermometer, Shield, Eye, EyeOff, Copy
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { UniFiDeviceManager } from '@/components/UniFiDeviceManager';
-import { UniFiClientManager } from '@/components/UniFiClientManager';
 import { useToast } from '@/hooks/use-toast';
+
+const formatUptime = (seconds?: number) => {
+  if (!seconds) return '-';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+};
+
+const formatBytes = (bytes?: number) => {
+  if (!bytes) return '-';
+  if (bytes > 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+  if (bytes > 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
+  if (bytes > 1e3) return `${(bytes / 1e3).toFixed(1)} KB`;
+  return `${bytes} B`;
+};
 
 const UniFiSimpleDashboard = () => {
   const { data: integrations } = useIntegrations();
   const { toast } = useToast();
   
-  const [selectedIntegration, setSelectedIntegration] = useState<string>('');
-  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+  const [selectedIntegration, setSelectedIntegration] = useState('');
+  const [selectedSiteId, setSelectedSiteId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<string>('devices');
-  const [devicesOpen, setDevicesOpen] = useState(true);
-  const [clientsOpen, setClientsOpen] = useState(false);
-  const [networksOpen, setNetworksOpen] = useState(false);
-  const [alarmsOpen, setAlarmsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('devices');
+  const [showCreateNetwork, setShowCreateNetwork] = useState(false);
+  const [newNetwork, setNewNetwork] = useState({ name: '', security: 'wpapsk', x_passphrase: '', enabled: true, is_guest: false });
 
   const {
-    useUniFiSites,
-    useUniFiDevices,
-    useUniFiClients,
-    useUniFiNetworks,
-    useUniFiAlarms,
-    useUniFiStats,
-    restartDevice,
-    toggleClientBlock,
-    refreshData
+    useUniFiSites, useUniFiDevices, useUniFiClients, useUniFiNetworks, useUniFiAlarms, useUniFiHealth,
+    restartDevice, toggleClientBlock, createNetwork, deleteNetwork, toggleNetwork, refreshData,
   } = useUniFiAPI();
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
-
-  // Determine integration mode
   const currentIntegration = unifiIntegrations.find(i => i.id === selectedIntegration);
-  const isLocalController = Boolean(currentIntegration?.base_url && currentIntegration?.username);
-  const integrationMode = isLocalController ? 'local' : 'site-manager';
+  const isLocal = Boolean(currentIntegration?.base_url && currentIntegration?.username);
 
   useEffect(() => {
     if (unifiIntegrations.length > 0 && !selectedIntegration) {
@@ -67,358 +62,474 @@ const UniFiSimpleDashboard = () => {
     }
   }, [unifiIntegrations, selectedIntegration]);
 
-  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(selectedIntegration, undefined, isLocalController);
-  const selectedSite = sites?.data?.find((site: any) => site.id === selectedSiteId);
-  const selectedSiteHostId = selectedSite?.controllerId;
-  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, selectedSiteHostId, selectedSiteId);
-  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, selectedSiteHostId, selectedSiteId);
-  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, selectedSiteHostId, selectedSiteId);
-  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, selectedSiteHostId, selectedSiteId);
+  const { data: sites, isLoading: sitesLoading, error: sitesError } = useUniFiSites(selectedIntegration, undefined, isLocal);
+  const selectedSite = sites?.data?.find((s: any) => s.id === selectedSiteId);
+  const hostId = selectedSite?.controllerId;
+
+  const { data: devices, isLoading: devicesLoading } = useUniFiDevices(selectedIntegration, hostId, selectedSiteId);
+  const { data: clients, isLoading: clientsLoading } = useUniFiClients(selectedIntegration, hostId, selectedSiteId);
+  const { data: networks, isLoading: networksLoading } = useUniFiNetworks(selectedIntegration, hostId, selectedSiteId);
+  const { data: alarms, isLoading: alarmsLoading } = useUniFiAlarms(selectedIntegration, hostId, selectedSiteId);
+  const { data: health } = useUniFiHealth(selectedIntegration, hostId, selectedSiteId);
 
   useEffect(() => {
-    if (sites?.data && sites.data.length > 0 && !selectedSiteId) {
+    if (sites?.data?.length > 0 && !selectedSiteId) {
       setSelectedSiteId(sites.data[0].id);
     }
   }, [sites, selectedSiteId]);
 
   const handleRefresh = () => {
-    refreshData(selectedIntegration, selectedSiteHostId, selectedSiteId);
-    toast({ title: "Dados atualizados", description: "Informações da rede UniFi foram atualizadas." });
+    refreshData(selectedIntegration, hostId, selectedSiteId);
+    toast({ title: "Dados atualizados" });
   };
+
   const devicesList = devices?.data || [];
   const clientsList = clients?.data || [];
   const networksList = networks?.data || [];
   const alarmsList = alarms?.data || [];
+  const healthList = health?.data || [];
 
   const onlineDevices = devicesList.filter((d: any) => d.status === 'online' || d.state === 1).length;
-  const totalDevices = devicesList.length;
-  const offlineDevices = Math.max(totalDevices - onlineDevices, 0);
+  const offlineDevices = devicesList.length - onlineDevices;
   const wifiClients = clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
   const wiredClients = clientsList.filter((c: any) => c.isWired || c.is_wired).length;
-  const totalClients = clientsList.length;
-  const cloudDetailUnavailable = !isLocalController && [devices, clients, networks, alarms].some(
-    (response: any) => response?.meta?.cloudDetailUnavailable,
-  );
+
+  const filter = (items: any[], fields: string[]) => {
+    if (!searchQuery) return items;
+    const q = searchQuery.toLowerCase();
+    return items.filter(item => fields.some(f => String(item[f] || '').toLowerCase().includes(q)));
+  };
+
+  const handleCreateNetwork = async () => {
+    if (!newNetwork.name) return;
+    try {
+      await createNetwork.mutateAsync({
+        integrationId: selectedIntegration,
+        siteId: selectedSiteId,
+        networkData: newNetwork,
+      });
+      setShowCreateNetwork(false);
+      setNewNetwork({ name: '', security: 'wpapsk', x_passphrase: '', enabled: true, is_guest: false });
+    } catch (e) { /* handled by mutation */ }
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Wifi className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">UniFi Network</h1>
-          {selectedSite && (
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              — {selectedSite.description || selectedSite.name}
-            </span>
-          )}
-          {currentIntegration && (
-            <TooltipProvider>
+    <TooltipProvider>
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Wifi className="h-5 w-5 text-primary" />
+            <h1 className="text-xl font-bold text-foreground">UniFi Network</h1>
+            {currentIntegration && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className={`text-[10px] h-5 gap-1 cursor-default ${isLocalController ? 'border-orange-500/40 text-orange-400' : 'border-blue-500/40 text-blue-400'}`}>
-                    {isLocalController ? <Server className="h-2.5 w-2.5" /> : <Cloud className="h-2.5 w-2.5" />}
-                    {isLocalController ? 'Local' : 'Cloud'}
+                  <Badge variant="outline" className={`text-[10px] h-5 gap-1 ${isLocal ? 'border-orange-500/40 text-orange-400' : 'border-blue-500/40 text-blue-400'}`}>
+                    {isLocal ? <Server className="h-2.5 w-2.5" /> : <Cloud className="h-2.5 w-2.5" />}
+                    {isLocal ? 'Local' : 'Cloud'}
                   </Badge>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs max-w-xs">
-                  {isLocalController
-                    ? `Controladora Local — ${currentIntegration.base_url}`
-                    : 'UniFi Site Manager (unifi.ui.com) — via API Token'}
+                <TooltipContent className="text-xs">
+                  {isLocal ? `Controladora Local — ${currentIntegration.base_url}` : 'UniFi Site Manager (unifi.ui.com)'}
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {unifiIntegrations.length > 1 && (
-            <Select value={selectedIntegration} onValueChange={setSelectedIntegration}>
-              <SelectTrigger className="w-40 h-8 bg-card border-border text-xs">
-                <SelectValue placeholder="Integração" />
-              </SelectTrigger>
-              <SelectContent>
-                {unifiIntegrations.map(int => (
-                  <SelectItem key={int.id} value={int.id}>{int.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Button onClick={handleRefresh} variant="outline" size="sm" className="h-8 text-xs gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Atualizar
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-        {[
-          { label: "Dispositivos", value: totalDevices, icon: Router, color: "text-primary" },
-          { label: "Online", value: onlineDevices, icon: CheckCircle2, color: "text-green-500" },
-          { label: "Offline", value: offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
-          { label: "Clientes", value: totalClients, icon: Users, color: "text-primary" },
-          { label: "Wi-Fi", value: wifiClients, icon: Signal, color: "text-primary" },
-          { label: "Redes", value: networksList.length, icon: Network, color: "text-muted-foreground" },
-          { label: "Alertas", value: alarmsList.length, icon: AlertTriangle, color: alarmsList.length > 0 ? "text-destructive" : "text-muted-foreground" },
-        ].map(s => (
-          <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
-            <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
-            <div className="min-w-0">
-              <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
-              <span className="text-[10px] text-muted-foreground ml-1.5">{s.label}</span>
-            </div>
+            )}
           </div>
-        ))}
-      </div>
-
-      {/* Toolbar: Site selector + Search */}
-      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-        <Select value={selectedSiteId} onValueChange={setSelectedSiteId} disabled={sitesLoading || !sites?.data?.length}>
-          <SelectTrigger className="w-56 h-8 bg-card border-border text-xs">
-            <Globe className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-            <SelectValue placeholder="Selecione um site..." />
-          </SelectTrigger>
-          <SelectContent>
-            {(sites?.data || []).map((site: any) => (
-              <SelectItem key={site.id} value={site.id} className="text-xs">
-                {site.description || site.name}
-                {site.controllerName && (
-                  <span className="text-muted-foreground ml-1">({site.controllerName})</span>
-                )}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Buscar dispositivos, clientes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 bg-card border-border h-8 text-xs"
-          />
+          <div className="flex items-center gap-2">
+            {unifiIntegrations.length > 1 && (
+              <Select value={selectedIntegration} onValueChange={v => { setSelectedIntegration(v); setSelectedSiteId(''); }}>
+                <SelectTrigger className="w-40 h-8 bg-card border-border text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {unifiIntegrations.map(i => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Button onClick={handleRefresh} variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" /> Atualizar
+            </Button>
+          </div>
         </div>
 
-        <div className="flex items-center bg-card border border-border rounded-lg p-0.5 ml-auto">
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
           {[
-            { value: "devices", icon: Router, label: "Dispositivos", count: devicesList.length },
-            { value: "clients", icon: Users, label: "Clientes", count: clientsList.length },
-            { value: "networks", icon: Network, label: "Redes", count: networksList.length },
-            { value: "alarms", icon: AlertTriangle, label: "Alertas", count: alarmsList.length },
-          ].map(view => (
-            <Button
-              key={view.value}
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveSection(view.value)}
-              className={`h-7 px-2.5 gap-1 rounded-md text-[11px] ${
-                activeSection === view.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <view.icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{view.label}</span>
-              <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-0.5">{view.count}</Badge>
-            </Button>
+            { label: "Dispositivos", value: devicesList.length, icon: Router, color: "text-primary" },
+            { label: "Online", value: onlineDevices, icon: CheckCircle2, color: "text-green-500" },
+            { label: "Offline", value: offlineDevices, icon: XCircle, color: offlineDevices > 0 ? "text-destructive" : "text-muted-foreground" },
+            { label: "Clientes", value: clientsList.length, icon: Users, color: "text-primary" },
+            { label: "Wi-Fi", value: wifiClients, icon: Signal, color: "text-primary" },
+            { label: "Redes", value: networksList.length, icon: Network, color: "text-muted-foreground" },
+            { label: "Alertas", value: alarmsList.length, icon: AlertTriangle, color: alarmsList.length > 0 ? "text-destructive" : "text-muted-foreground" },
+          ].map(s => (
+            <div key={s.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border">
+              <s.icon className={`h-3.5 w-3.5 ${s.color} flex-shrink-0`} />
+              <span className={`text-sm font-bold ${s.color}`}>{s.value}</span>
+              <span className="text-[10px] text-muted-foreground">{s.label}</span>
+            </div>
           ))}
         </div>
-      </div>
 
-      {/* Loading state */}
-      {sitesLoading && (
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground">Carregando sites...</p>
+        {/* Site + Search */}
+        <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+          <Select value={selectedSiteId} onValueChange={setSelectedSiteId} disabled={sitesLoading || !sites?.data?.length}>
+            <SelectTrigger className="w-56 h-8 bg-card border-border text-xs">
+              <Globe className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder={sitesLoading ? "Carregando..." : "Selecione um site..."} />
+            </SelectTrigger>
+            <SelectContent>
+              {(sites?.data || []).map((site: any) => (
+                <SelectItem key={site.id} value={site.id} className="text-xs">
+                  {site.description || site.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
           </div>
         </div>
-      )}
 
-      {/* No site selected */}
-      {!sitesLoading && !selectedSiteId && sites?.data?.length === 0 && (
-        <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-card border border-border text-xs text-muted-foreground justify-center">
-          <Globe className="h-4 w-4" />
-          Nenhum site encontrado. Verifique a configuração da integração.
-        </div>
-      )}
+        {/* Error state */}
+        {sitesError && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <p>{sitesError instanceof Error ? sitesError.message : 'Erro ao carregar sites'}</p>
+          </div>
+        )}
 
-      {/* Content Sections */}
-      {selectedSiteId && (
-        <div className="space-y-3">
-          {cloudDetailUnavailable && (
-            <div className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-3 text-xs text-muted-foreground">
-              <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-              <p>
-                A integração via API Token do UniFi Site Manager está mostrando apenas dados realmente retornados pela API. Para inventário completo de dispositivos, clientes, redes e alertas em tempo real, configure acesso direto à controladora.
-              </p>
+        {/* Loading */}
+        {sitesLoading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Carregando sites...</p>
             </div>
-          )}
-          {/* Devices */}
-          {activeSection === 'devices' && (
-            <Collapsible open={devicesOpen} onOpenChange={setDevicesOpen} defaultOpen>
-              <div className="rounded-lg border border-border bg-card">
-                <CollapsibleTrigger asChild>
-                  <button className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <Router className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">Dispositivos</span>
-                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{devicesList.length}</Badge>
-                      {onlineDevices > 0 && (
-                        <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-green-500 border-green-500/30">
-                          {onlineDevices} online
-                        </Badge>
-                      )}
-                    </div>
-                    {devicesOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="px-4 pb-4 border-t border-border pt-3">
-                    <UniFiDeviceManager
-                      devices={devicesList}
-                      loading={devicesLoading}
-                      restartLoading={restartDevice.isPending}
-                      onRestartDevice={async (deviceId: string) => {
-                        try {
-                          await restartDevice.mutateAsync({
-                            integrationId: selectedIntegration,
-                            hostId: undefined,
-                            deviceId,
-                            siteId: selectedSiteId
-                          });
-                        } catch (error) {
-                          console.error('Device restart failed:', error);
-                        }
-                      }}
-                    />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
-          )}
+          </div>
+        )}
 
-          {/* Clients */}
-          {activeSection === 'clients' && (
-            <Collapsible open={clientsOpen} onOpenChange={setClientsOpen} defaultOpen>
-              <div className="rounded-lg border border-border bg-card">
-                <CollapsibleTrigger asChild>
-                  <button className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">Clientes</span>
-                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{clientsList.length}</Badge>
-                      <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-muted-foreground">
-                        {wifiClients} Wi-Fi · {wiredClients} cabeados
-                      </Badge>
-                    </div>
-                    {clientsOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="px-4 pb-4 border-t border-border pt-3">
-                    <UniFiClientManager
-                      clients={clientsList}
-                      loading={clientsLoading}
-                      blockLoading={toggleClientBlock.isPending}
-                      onBlockClient={async (siteId: string, clientId: string, block: boolean) => {
-                        try {
-                          await toggleClientBlock.mutateAsync({
-                            integrationId: selectedIntegration,
-                            hostId: undefined,
-                            clientId,
-                            block,
-                            siteId: selectedSiteId
-                          });
-                        } catch (error) {
-                          console.error('Client block/unblock failed:', error);
-                        }
-                      }}
-                      selectedSiteId={selectedSiteId}
-                    />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
-          )}
+        {/* Content */}
+        {selectedSiteId && !sitesLoading && (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="bg-card border border-border">
+              <TabsTrigger value="devices" className="text-xs gap-1.5"><Router className="h-3.5 w-3.5" />Dispositivos <Badge variant="secondary" className="h-4 px-1 text-[9px]">{devicesList.length}</Badge></TabsTrigger>
+              <TabsTrigger value="clients" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" />Clientes <Badge variant="secondary" className="h-4 px-1 text-[9px]">{clientsList.length}</Badge></TabsTrigger>
+              <TabsTrigger value="networks" className="text-xs gap-1.5"><Network className="h-3.5 w-3.5" />Redes <Badge variant="secondary" className="h-4 px-1 text-[9px]">{networksList.length}</Badge></TabsTrigger>
+              <TabsTrigger value="alarms" className="text-xs gap-1.5"><AlertTriangle className="h-3.5 w-3.5" />Alertas <Badge variant="secondary" className="h-4 px-1 text-[9px]">{alarmsList.length}</Badge></TabsTrigger>
+              <TabsTrigger value="health" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" />Saúde</TabsTrigger>
+            </TabsList>
 
-          {/* Networks */}
-          {activeSection === 'networks' && (
-            <div className="rounded-lg border border-border bg-card">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
-                <Network className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Redes</span>
-                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{networksList.length}</Badge>
-              </div>
-              <div className="p-4">
-                {networksLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                  </div>
-                ) : networksList.length > 0 ? (
-                  <div className="space-y-1">
-                    {networksList.map((network: any) => (
-                      <div key={network.id || network.name} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Network className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                          <span className="text-xs text-foreground truncate" title={network.name}>{network.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{network.networkgroup || network.purpose}</span>
-                        </div>
-                        <Badge variant={network.enabled ? 'outline' : 'secondary'} className="text-[10px] h-5 px-1.5">
-                          {network.enabled ? 'Ativa' : 'Inativa'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
+            {/* DEVICES TAB */}
+            <TabsContent value="devices">
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                {devicesLoading ? (
+                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+                ) : filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model']).length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Dispositivo</TableHead>
+                        <TableHead className="text-xs">Modelo</TableHead>
+                        <TableHead className="text-xs">IP</TableHead>
+                        <TableHead className="text-xs">MAC</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">Clientes</TableHead>
+                        <TableHead className="text-xs">CPU/Mem</TableHead>
+                        <TableHead className="text-xs">Uptime</TableHead>
+                        <TableHead className="text-xs">Versão</TableHead>
+                        <TableHead className="text-xs">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model']).map((d: any) => {
+                        const isOnline = d.status === 'online' || d.state === 1;
+                        const sysStats = d['sys-stats'] || {};
+                        return (
+                          <TableRow key={d.id || d.mac}>
+                            <TableCell className="text-xs font-medium">
+                              <div className="flex items-center gap-2">
+                                {d.type?.includes('uap') ? <Wifi className="h-3.5 w-3.5 text-green-400" /> :
+                                 d.type?.includes('usw') ? <Network className="h-3.5 w-3.5 text-purple-400" /> :
+                                 <Router className="h-3.5 w-3.5 text-blue-400" />}
+                                <span className="truncate max-w-[150px]">{d.displayName || d.name || d.mac}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{d.model || '-'}</TableCell>
+                            <TableCell className="text-xs font-mono">{d.ip || '-'}</TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">{d.mac || '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant={isOnline ? 'default' : 'destructive'} className="text-[10px] h-5">
+                                {isOnline ? 'Online' : 'Offline'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{d.connectedClients ?? d.num_sta ?? '-'}</TableCell>
+                            <TableCell className="text-xs">
+                              {sysStats.cpu != null ? (
+                                <span><Cpu className="h-3 w-3 inline mr-0.5" />{Math.round(sysStats.cpu)}% / <HardDrive className="h-3 w-3 inline mr-0.5" />{Math.round(sysStats.mem || 0)}%</span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="text-xs">{formatUptime(d.uptime)}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{d.version || '-'}</TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                    disabled={restartDevice.isPending}
+                                    onClick={() => restartDevice.mutate({ integrationId: selectedIntegration, deviceId: d.mac, siteId: selectedSiteId })}
+                                  >
+                                    <Power className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">Reiniciar dispositivo</TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 ) : (
-                  <p className="text-center text-xs text-muted-foreground py-6">Nenhuma rede encontrada</p>
+                  <p className="text-center text-xs text-muted-foreground py-8">Nenhum dispositivo encontrado</p>
                 )}
               </div>
-            </div>
-          )}
+            </TabsContent>
 
-          {/* Alarms */}
-          {activeSection === 'alarms' && (
-            <div className="rounded-lg border border-border bg-card">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
-                <AlertTriangle className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Alertas</span>
-                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{alarmsList.length}</Badge>
+            {/* CLIENTS TAB */}
+            <TabsContent value="clients">
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                {clientsLoading ? (
+                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+                ) : filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'network']).length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Cliente</TableHead>
+                        <TableHead className="text-xs">IP</TableHead>
+                        <TableHead className="text-xs">MAC</TableHead>
+                        <TableHead className="text-xs">Rede</TableHead>
+                        <TableHead className="text-xs">Tipo</TableHead>
+                        <TableHead className="text-xs">Sinal</TableHead>
+                        <TableHead className="text-xs">↓ RX / ↑ TX</TableHead>
+                        <TableHead className="text-xs">Uptime</TableHead>
+                        <TableHead className="text-xs">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'network']).map((c: any) => {
+                        const isWired = c.isWired || c.is_wired;
+                        return (
+                          <TableRow key={c.id || c.mac}>
+                            <TableCell className="text-xs font-medium">
+                              <div className="flex items-center gap-2">
+                                {isWired ? <Network className="h-3.5 w-3.5 text-green-400" /> : <Signal className="h-3.5 w-3.5 text-blue-400" />}
+                                <span className="truncate max-w-[150px]">{c.name || c.hostname || c.mac}</span>
+                                {c.isGuest && <Badge variant="outline" className="text-[9px] h-4">Guest</Badge>}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs font-mono">{c.ip || '-'}</TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">{c.mac || '-'}</TableCell>
+                            <TableCell className="text-xs">{c.network || c.ssid || '-'}</TableCell>
+                            <TableCell><Badge variant="outline" className="text-[10px] h-5">{isWired ? 'Cabeado' : 'Wi-Fi'}</Badge></TableCell>
+                            <TableCell className="text-xs">{!isWired && c.signal ? `${c.signal} dBm` : '-'}</TableCell>
+                            <TableCell className="text-xs">{formatBytes(c.rxBytes)} / {formatBytes(c.txBytes)}</TableCell>
+                            <TableCell className="text-xs">{formatUptime(c.uptime)}</TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                    disabled={toggleClientBlock.isPending}
+                                    onClick={() => toggleClientBlock.mutate({ integrationId: selectedIntegration, clientId: c.mac, block: true, siteId: selectedSiteId })}
+                                  >
+                                    <Ban className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-xs">Bloquear cliente</TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground py-8">Nenhum cliente encontrado</p>
+                )}
               </div>
-              <div className="p-4">
-                {alarmsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </TabsContent>
+
+            {/* NETWORKS TAB */}
+            <TabsContent value="networks">
+              <div className="space-y-3">
+                {isLocal && (
+                  <div className="flex justify-end">
+                    <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowCreateNetwork(true)}>
+                      <Plus className="h-3.5 w-3.5" /> Nova Rede WLAN
+                    </Button>
                   </div>
+                )}
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  {networksLoading ? (
+                    <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+                  ) : filter(networksList, ['name', 'purpose', 'networkgroup']).length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Rede</TableHead>
+                          <TableHead className="text-xs">Tipo</TableHead>
+                          <TableHead className="text-xs">VLAN</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          {isLocal && <TableHead className="text-xs">Ações</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filter(networksList, ['name', 'purpose', 'networkgroup']).map((n: any) => (
+                          <TableRow key={n.id || n.name}>
+                            <TableCell className="text-xs font-medium">
+                              <div className="flex items-center gap-2">
+                                <Wifi className="h-3.5 w-3.5 text-primary" />
+                                {n.name}
+                                {n.isGuest && <Badge variant="outline" className="text-[9px] h-4">Guest</Badge>}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{n.networkgroup || n.purpose || '-'}</TableCell>
+                            <TableCell className="text-xs">{n.vlan ?? '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant={n.enabled ? 'default' : 'secondary'} className="text-[10px] h-5">
+                                {n.enabled ? 'Ativa' : 'Inativa'}
+                              </Badge>
+                            </TableCell>
+                            {isLocal && (
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                        onClick={() => toggleNetwork.mutate({ integrationId: selectedIntegration, siteId: selectedSiteId, networkId: n._id || n.id, enabled: !n.enabled })}>
+                                        {n.enabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-xs">{n.enabled ? 'Desativar' : 'Ativar'}</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                                        onClick={() => { if (confirm('Remover esta rede?')) deleteNetwork.mutate({ integrationId: selectedIntegration, siteId: selectedSiteId, networkId: n._id || n.id }); }}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-xs">Remover rede</TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground py-8">Nenhuma rede encontrada</p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* ALARMS TAB */}
+            <TabsContent value="alarms">
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                {alarmsLoading ? (
+                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
                 ) : alarmsList.length > 0 ? (
-                  <div className="space-y-1">
-                    {alarmsList.map((alarm: any, index: number) => (
-                      <div key={alarm.id || index} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                  <div className="divide-y divide-border">
+                    {alarmsList.map((a: any, i: number) => (
+                      <div key={a.id || i} className="flex items-center justify-between px-4 py-2.5">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <AlertTriangle className={`h-3.5 w-3.5 flex-shrink-0 ${alarm.archived ? 'text-muted-foreground' : 'text-destructive'}`} />
-                          <span className="text-xs text-foreground truncate" title={alarm.message}>{alarm.message}</span>
+                          <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${a.archived ? 'text-muted-foreground' : 'text-destructive'}`} />
+                          <span className="text-xs truncate">{a.message}</span>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           <span className="text-[10px] text-muted-foreground">
-                            {alarm.datetime && new Date(alarm.datetime * 1000).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            {a.datetime && new Date(typeof a.datetime === 'number' && a.datetime < 1e12 ? a.datetime * 1000 : a.datetime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          <Badge variant={alarm.archived ? 'secondary' : 'destructive'} className="text-[10px] h-5 px-1.5">
-                            {alarm.archived ? 'Arquivado' : 'Ativo'}
+                          <Badge variant={a.archived ? 'secondary' : 'destructive'} className="text-[10px] h-5">
+                            {a.archived ? 'Arquivado' : 'Ativo'}
                           </Badge>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-xs text-muted-foreground py-6">Nenhum alerta encontrado</p>
+                  <p className="text-center text-xs text-muted-foreground py-8">Nenhum alerta</p>
                 )}
               </div>
+            </TabsContent>
+
+            {/* HEALTH TAB */}
+            <TabsContent value="health">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {healthList.length > 0 ? healthList.map((h: any, i: number) => (
+                  <div key={h.subsystem || i} className="rounded-lg border border-border bg-card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold capitalize">{h.subsystem || 'Sistema'}</span>
+                      <Badge variant={h.status === 'ok' || h.status === 'healthy' ? 'default' : 'destructive'} className="text-[10px] h-5">
+                        {h.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {h.num_adopted != null && <div><span className="text-muted-foreground">Adotados:</span> {h.num_adopted}</div>}
+                      {h.num_user != null && <div><span className="text-muted-foreground">Clientes:</span> {h.num_user}</div>}
+                      {h.num_disconnected != null && <div><span className="text-muted-foreground">Desconect:</span> {h.num_disconnected}</div>}
+                      {h.tx_bytes != null && <div><span className="text-muted-foreground">TX:</span> {formatBytes(h.tx_bytes)}</div>}
+                      {h.rx_bytes != null && <div><span className="text-muted-foreground">RX:</span> {formatBytes(h.rx_bytes)}</div>}
+                      {h['lan-num_user'] != null && <div><span className="text-muted-foreground">LAN Users:</span> {h['lan-num_user']}</div>}
+                      {h.latency != null && <div><span className="text-muted-foreground">Latência:</span> {h.latency}ms</div>}
+                      {h.uptime != null && <div><span className="text-muted-foreground">Uptime:</span> {formatUptime(h.uptime)}</div>}
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-center text-xs text-muted-foreground py-8 col-span-full">Dados de saúde indisponíveis</p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Create Network Dialog */}
+        <Dialog open={showCreateNetwork} onOpenChange={setShowCreateNetwork}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Criar Rede WLAN</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div><Label className="text-xs">Nome da Rede (SSID)</Label><Input value={newNetwork.name} onChange={e => setNewNetwork(p => ({ ...p, name: e.target.value }))} placeholder="MinhaRedeWiFi" className="mt-1" /></div>
+              <div><Label className="text-xs">Segurança</Label>
+                <Select value={newNetwork.security} onValueChange={v => setNewNetwork(p => ({ ...p, security: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="wpapsk">WPA Personal</SelectItem>
+                    <SelectItem value="wpa2psk">WPA2 Personal</SelectItem>
+                    <SelectItem value="open">Aberta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {newNetwork.security !== 'open' && (
+                <div><Label className="text-xs">Senha</Label><Input type="password" value={newNetwork.x_passphrase} onChange={e => setNewNetwork(p => ({ ...p, x_passphrase: e.target.value }))} placeholder="Mínimo 8 caracteres" className="mt-1" /></div>
+              )}
+              <div className="flex items-center gap-2">
+                <Switch checked={newNetwork.is_guest} onCheckedChange={v => setNewNetwork(p => ({ ...p, is_guest: v }))} />
+                <Label className="text-xs">Rede de convidados</Label>
+              </div>
             </div>
-          )}
-        </div>
-      )}
-    </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateNetwork(false)}>Cancelar</Button>
+              <Button onClick={handleCreateNetwork} disabled={!newNetwork.name || createNetwork.isPending}>
+                {createNetwork.isPending ? 'Criando...' : 'Criar Rede'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 };
 
