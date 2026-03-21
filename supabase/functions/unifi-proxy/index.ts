@@ -255,7 +255,7 @@ serve(async (req) => {
 
     let baseApiUrl;
     if (useLocalController) {
-      // Use local UniFi Controller
+      // Use local UniFi Controller - keep the URL as-is (don't override port)
       baseApiUrl = normalizedBaseUrl;
 
       if (!use_ssl && baseApiUrl.startsWith('https://')) {
@@ -264,15 +264,9 @@ serve(async (req) => {
         baseApiUrl = baseApiUrl.replace(/^http:\/\//i, 'https://');
       }
 
-      if (port) {
-        try {
-          const urlWithConfiguredPort = new URL(baseApiUrl);
-          urlWithConfiguredPort.port = String(port);
-          baseApiUrl = normalizeUrlNoTrailingSlash(urlWithConfiguredPort.toString());
-        } catch (portError) {
-          console.warn('Could not apply configured port to base URL:', portError);
-        }
-      }
+      // Do NOT override the URL port with the `port` field here.
+      // The buildLocalControllerCandidates function will try both the URL port
+      // and the configured port as separate candidates.
 
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
