@@ -320,7 +320,7 @@ serve(async (req) => {
       );
 
       // Use longer timeout for first candidate (the configured one), shorter for alternatives
-      const getLoginTimeout = (attemptIndex: number) => attemptIndex < loginEndpoints.length ? 10000 : 6000;
+      const getLoginTimeout = (attemptIndex: number) => attemptIndex < 2 ? 8000 : 5000;
 
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
