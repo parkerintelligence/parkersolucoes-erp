@@ -46,23 +46,26 @@ const buildLocalControllerCandidates = (
   };
 
   const configuredPortValue = String(configuredPort ?? '').trim();
-  const currentPort = parsed.port || (preferSsl ? '443' : '80');
+  // Extract the port from the URL itself – this is what the user explicitly typed
+  const urlPort = parsed.port || '';
   const protocolOrder: Array<'https:' | 'http:'> = preferSsl ? ['https:', 'http:'] : ['http:', 'https:'];
 
+  // Priority: 1) URL port (user explicitly set it), 2) configured port field, 3) common alternatives
   const prioritizedPorts = [
+    urlPort,
     configuredPortValue,
-    currentPort,
-    currentPort === '8445' ? '8443' : '8445',
+    '8443',
+    '8445',
     preferSsl ? '443' : '80',
   ].filter((value, index, arr) => !!value && arr.indexOf(value) === index);
 
-  for (const portValue of prioritizedPorts.slice(0, 3)) {
+  for (const portValue of prioritizedPorts.slice(0, 4)) {
     for (const protocol of protocolOrder) {
       push(createVariant(protocol, portValue));
     }
   }
 
-  return Array.from(candidates).slice(0, 6);
+  return Array.from(candidates).slice(0, 8);
 };
 
 const fetchIgnoringCerts = async (
