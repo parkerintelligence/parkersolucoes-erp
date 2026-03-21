@@ -18,10 +18,10 @@ const toHttpUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(
 
 const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace(/^http:\/\//i, 'https://');
 
-const DEFAULT_FETCH_TIMEOUT_MS = 12000;
+const DEFAULT_FETCH_TIMEOUT_MS = 10000;
 
-const MAX_LOGIN_ATTEMPTS = 12;
-const MAX_LOGIN_DURATION_MS = 25000;
+const MAX_LOGIN_ATTEMPTS = 8;
+const MAX_LOGIN_DURATION_MS = 30000;
 
 const buildLocalControllerCandidates = (
   baseUrl: string,
@@ -46,23 +46,26 @@ const buildLocalControllerCandidates = (
   };
 
   const configuredPortValue = String(configuredPort ?? '').trim();
-  const currentPort = parsed.port || (preferSsl ? '443' : '80');
+  // Extract the port from the URL itself – this is what the user explicitly typed
+  const urlPort = parsed.port || '';
   const protocolOrder: Array<'https:' | 'http:'> = preferSsl ? ['https:', 'http:'] : ['http:', 'https:'];
 
+  // Priority: 1) URL port (user explicitly set it), 2) configured port field, 3) common alternatives
   const prioritizedPorts = [
+    urlPort,
     configuredPortValue,
-    currentPort,
-    currentPort === '8445' ? '8443' : '8445',
+    '8443',
+    '8445',
     preferSsl ? '443' : '80',
   ].filter((value, index, arr) => !!value && arr.indexOf(value) === index);
 
-  for (const portValue of prioritizedPorts.slice(0, 3)) {
+  for (const portValue of prioritizedPorts.slice(0, 4)) {
     for (const protocol of protocolOrder) {
       push(createVariant(protocol, portValue));
     }
   }
 
-  return Array.from(candidates).slice(0, 6);
+  return Array.from(candidates).slice(0, 8);
 };
 
 const fetchIgnoringCerts = async (
@@ -252,7 +255,7 @@ serve(async (req) => {
 
     let baseApiUrl;
     if (useLocalController) {
-      // Use local UniFi Controller
+      // Use local UniFi Controller - keep the URL as-is (don't override port)
       baseApiUrl = normalizedBaseUrl;
 
       if (!use_ssl && baseApiUrl.startsWith('https://')) {
@@ -261,15 +264,9 @@ serve(async (req) => {
         baseApiUrl = baseApiUrl.replace(/^http:\/\//i, 'https://');
       }
 
-      if (port) {
-        try {
-          const urlWithConfiguredPort = new URL(baseApiUrl);
-          urlWithConfiguredPort.port = String(port);
-          baseApiUrl = normalizeUrlNoTrailingSlash(urlWithConfiguredPort.toString());
-        } catch (portError) {
-          console.warn('Could not apply configured port to base URL:', portError);
-        }
-      }
+      // Do NOT override the URL port with the `port` field here.
+      // The buildLocalControllerCandidates function will try both the URL port
+      // and the configured port as separate candidates.
 
       console.log('Using UniFi Local Controller:', baseApiUrl);
     } else {
@@ -323,7 +320,7 @@ serve(async (req) => {
       );
 
       // Use longer timeout for first candidate (the configured one), shorter for alternatives
-      const getLoginTimeout = (attemptIndex: number) => attemptIndex < loginEndpoints.length ? 10000 : 6000;
+      const getLoginTimeout = (attemptIndex: number) => attemptIndex < 2 ? 8000 : 5000;
 
       for (const candidateBaseUrl of controllerCandidates) {
         const allowTlsFallback = candidateBaseUrl.startsWith('https://');
