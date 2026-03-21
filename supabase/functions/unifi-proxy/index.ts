@@ -20,7 +20,6 @@ const toHttpsUrl = (value: string) => normalizeUrlNoTrailingSlash(value).replace
 
 const DEFAULT_FETCH_TIMEOUT_MS = 10000;
 
-const MAX_LOGIN_ATTEMPTS = 8;
 const MAX_LOGIN_DURATION_MS = 30000;
 
 const buildLocalControllerCandidates = (
@@ -314,10 +313,7 @@ serve(async (req) => {
 
       const loginStartedAt = Date.now();
       let attempts = 0;
-      const maxLoginAttempts = Math.min(
-        MAX_LOGIN_ATTEMPTS,
-        Math.max(controllerCandidates.length * loginEndpoints.length, 8),
-      );
+      const maxLoginAttempts = Math.max(controllerCandidates.length * loginEndpoints.length, 8);
 
       // Use longer timeout for first candidate (the configured one), shorter for alternatives
       const getLoginTimeout = (attemptIndex: number) => attemptIndex < 2 ? 8000 : 5000;
