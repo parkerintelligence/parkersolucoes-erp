@@ -116,50 +116,55 @@ serve(async (req) => {
 
     // ===================== LOCAL CONTROLLER =====================
     if (useLocal) {
-      // Build candidate URLs to try
       const candidates: string[] = [];
       const addCandidate = (url: string) => {
         const normalized = normalizeUrl(url);
         if (!candidates.includes(normalized)) candidates.push(normalized);
       };
 
-      // Build candidate URLs - keep it focused to avoid timeout
-      const candidates: string[] = [];
-      const addCandidate = (url: string) => {
-        const normalized = normalizeUrl(url);
-        if (!candidates.includes(normalized)) candidates.push(normalized);
-      };
+      const parsedBaseUrl = new URL(baseUrl);
+      const preferHttps = parsedBaseUrl.protocol === 'https:' || use_ssl !== false;
+      const basePort = parsedBaseUrl.port || (preferHttps ? '443' : '80');
+      const configPort = String(port ?? '').trim();
 
-      // Priority 1: Exact URL as configured (user knows best)
+      // 1) URL exata configurada pelo usuário
       addCandidate(baseUrl);
-      
-      // Priority 2: If configured as HTTPS and fails, the controller might also listen on same port via HTTP redirect
-      // But UniFi controllers ALWAYS use HTTPS, so add HTTPS variants first
-      const parsed = new URL(baseUrl);
-      const urlPort = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
-      
-      // Priority 2: Common UniFi HTTPS ports if not the configured one
-      for (const commonPort of ['8443', '8445', '443']) {
-        if (commonPort !== urlPort) {
-          const u = new URL(baseUrl);
-          u.port = commonPort;
-          u.protocol = 'https:';
-          addCandidate(normalizeUrl(u.toString()));
+
+      // 2) Mesma origem com a porta do campo port, se diferente
+      if (configPort && configPort !== basePort) {
+        const urlWithConfigPort = new URL(baseUrl);
+        urlWithConfigPort.port = configPort;
+        addCandidate(urlWithConfigPort.toString());
+      }
+
+      // 3) Portas comuns do UniFi, priorizando HTTPS
+      for (const commonPort of ['8445', '8443', '443']) {
+        if (commonPort !== basePort && commonPort !== configPort) {
+          const candidate = new URL(baseUrl);
+          candidate.protocol = 'https:';
+          candidate.port = commonPort;
+          addCandidate(candidate.toString());
         }
+      }
+
+      // 4) Fallback HTTP nas mesmas portas para cenários com proxy/rewrite estranho
+      for (const fallbackPort of [basePort, configPort, '8445', '8443', '8080', '80']) {
+        if (!fallbackPort) continue;
+        const candidate = new URL(baseUrl);
+        candidate.protocol = 'http:';
+        candidate.port = fallbackPort;
+        addCandidate(candidate.toString());
       }
 
       console.log('Local controller candidates:', candidates);
 
-      // Login endpoints to try - /api/auth/login is for UniFi OS (UDM/UDR), /api/login is for legacy controllers
       const loginPaths = ['/api/auth/login', '/api/login'];
-      
       const loginBody = JSON.stringify({
         username: user_,
         password: pass_,
         remember: true,
         rememberMe: true,
       });
-
       const loginHeaders = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -169,69 +174,68 @@ serve(async (req) => {
       let activeBase = '';
       let lastError = '';
       const startTime = Date.now();
-      const MAX_TIME = 28000;
+      const maxDurationMs = 28000;
 
       for (const candidate of candidates) {
-        if (Date.now() - startTime > MAX_TIME) break;
-        
+        if (Date.now() - startTime > maxDurationMs) break;
+
         for (const loginPath of loginPaths) {
-          if (Date.now() - startTime > MAX_TIME) break;
-          
+          if (Date.now() - startTime > maxDurationMs) break;
+
           const loginUrl = `${candidate}${loginPath}`;
           console.log(`[LOCAL] Trying: ${loginUrl}`);
 
           try {
-            const resp = await fetchLocal(loginUrl, {
+            const response = await fetchLocal(loginUrl, {
               method: 'POST',
               headers: loginHeaders,
               body: loginBody,
-            }, 8000);
+            }, 7000);
 
-            console.log(`[LOCAL] ${loginUrl} => ${resp.status}`);
+            console.log(`[LOCAL] ${loginUrl} => ${response.status}`);
 
-            if (resp.status === 404) {
-              await resp.text();
+            if (response.status === 404) {
+              await response.text();
               continue;
             }
 
-            if (resp.ok) {
-              loginResponse = resp;
+            if (response.ok) {
+              loginResponse = response;
               activeBase = candidate;
               break;
             }
 
-            if (resp.status === 401 || resp.status === 403) {
-              const body = await resp.text();
-              throw new Error(`Credenciais inválidas (${resp.status}): ${body}`);
+            const bodyText = await response.text();
+
+            if (response.status === 401 || response.status === 403) {
+              throw new Error(`Credenciais inválidas (${response.status}): ${bodyText}`);
             }
 
-            const body = await resp.text();
-            lastError = `${resp.status}: ${body}`;
-            console.log(`[LOCAL] Response body: ${body.substring(0, 200)}`);
-          } catch (e) {
-            if (e instanceof Error && e.message.startsWith('Credenciais')) throw e;
-            lastError = e instanceof Error ? e.message : String(e);
+            lastError = `${response.status}: ${bodyText}`;
+            console.log(`[LOCAL] Response body: ${bodyText.substring(0, 200)}`);
+          } catch (error) {
+            if (error instanceof Error && error.message.startsWith('Credenciais inválidas')) throw error;
+            lastError = error instanceof Error ? error.message : String(error);
             console.warn(`[LOCAL] Failed: ${loginUrl} => ${lastError}`);
           }
         }
+
         if (loginResponse) break;
       }
 
-      if (!loginResponse) {
-        throw new Error(`Falha ao conectar na controladora local. Tentativas: ${candidates.join(', ')}. Último erro: ${lastError}`);
+      if (!loginResponse || !activeBase) {
+        throw new Error(`Falha ao conectar na controladora local. Tentativas: ${candidates.join(', ')}. Último erro: ${lastError || 'sem resposta da controladora'}`);
       }
 
-      // Extract cookies and CSRF token
       const headerWithSetCookie = loginResponse.headers as Headers & { getSetCookie?: () => string[] };
       const cookieList = headerWithSetCookie.getSetCookie?.() || [];
       const cookies = cookieList.length > 0
-        ? cookieList.map((c) => c.split(';')[0]).join('; ')
+        ? cookieList.map((cookie) => cookie.split(';')[0]).join('; ')
         : (loginResponse.headers.get('set-cookie') || '');
       const csrfToken = loginResponse.headers.get('x-csrf-token') || '';
-      
+
       console.log(`[LOCAL] Login OK at ${activeBase}, cookies: ${!!cookies}, csrf: ${!!csrfToken}`);
 
-      // Make the actual API request
       const apiHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -239,58 +243,68 @@ serve(async (req) => {
       if (cookies) apiHeaders['Cookie'] = cookies;
       if (csrfToken) apiHeaders['X-CSRF-Token'] = csrfToken;
 
-      const apiBody = (postData && ['POST', 'PUT', 'PATCH'].includes(method))
+      const apiBody = postData && ['POST', 'PUT', 'PATCH'].includes(method || '')
         ? JSON.stringify(postData)
         : undefined;
 
-      let apiUrl = `${activeBase}${endpoint}`;
-      console.log(`[LOCAL] API request: ${method || 'GET'} ${apiUrl}`);
+      const endpointVariants = [
+        endpoint,
+        !endpoint.startsWith('/proxy/network') ? `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` : null,
+      ].filter(Boolean) as string[];
 
-      let apiResponse = await fetchLocal(apiUrl, {
-        method: method || 'GET',
-        headers: apiHeaders,
-        body: apiBody,
-      });
+      let apiResponse: Response | null = null;
+      let resolvedEndpoint = endpoint;
 
-      // If 404, try with /proxy/network prefix (UniFi OS)
-      if (apiResponse.status === 404 && !endpoint.startsWith('/proxy/network')) {
-        await apiResponse.text();
-        const prefixed = `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-        apiUrl = `${activeBase}${prefixed}`;
-        console.log(`[LOCAL] Retrying with prefix: ${apiUrl}`);
-        
-        apiResponse = await fetchLocal(apiUrl, {
+      for (const endpointVariant of endpointVariants) {
+        const apiUrl = `${activeBase}${endpointVariant}`;
+        console.log(`[LOCAL] API request: ${method || 'GET'} ${apiUrl}`);
+
+        const response = await fetchLocal(apiUrl, {
           method: method || 'GET',
           headers: apiHeaders,
           body: apiBody,
-        });
+        }, 10000);
+
+        if (response.ok) {
+          apiResponse = response;
+          resolvedEndpoint = endpointVariant;
+          break;
+        }
+
+        if (response.status === 404) {
+          await response.text();
+          continue;
+        }
+
+        apiResponse = response;
+        resolvedEndpoint = endpointVariant;
+        break;
+      }
+
+      if (!apiResponse) {
+        throw new Error(`UniFi API error: endpoint não encontrado para ${endpoint}`);
       }
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
-        
-        // For data endpoints, return empty instead of error on 404
+
         if (apiResponse.status === 404 && (endpoint.includes('/stat/') || endpoint.includes('/rest/'))) {
-          return new Response(JSON.stringify({ data: [] }), {
+          return new Response(JSON.stringify({ data: [], meta: { resolvedEndpoint } }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        
+
         throw new Error(`UniFi API error ${apiResponse.status}: ${errorText}`);
       }
 
       const responseData = await apiResponse.json();
-      console.log(`[LOCAL] Response keys: ${Object.keys(responseData)}, data length: ${Array.isArray(responseData?.data) ? responseData.data.length : 'N/A'}`);
+      console.log(`[LOCAL] Response keys: ${Object.keys(responseData ?? {})}, data length: ${Array.isArray(responseData?.data) ? responseData.data.length : 'N/A'}`);
 
-      // Normalize response
-      let finalResponse;
-      if (responseData?.data !== undefined) {
-        finalResponse = responseData;
-      } else if (Array.isArray(responseData)) {
-        finalResponse = { data: responseData };
-      } else {
-        finalResponse = { data: responseData };
-      }
+      const finalResponse = responseData?.data !== undefined
+        ? responseData
+        : Array.isArray(responseData)
+          ? { data: responseData, meta: { resolvedEndpoint } }
+          : { data: responseData, meta: { resolvedEndpoint } };
 
       return new Response(JSON.stringify(finalResponse), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
