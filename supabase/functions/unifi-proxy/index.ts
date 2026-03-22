@@ -123,44 +123,34 @@ serve(async (req) => {
         if (!candidates.includes(normalized)) candidates.push(normalized);
       };
 
-      // Priority 1: Exact URL as configured
+      // Build candidate URLs - keep it focused to avoid timeout
+      const candidates: string[] = [];
+      const addCandidate = (url: string) => {
+        const normalized = normalizeUrl(url);
+        if (!candidates.includes(normalized)) candidates.push(normalized);
+      };
+
+      // Priority 1: Exact URL as configured (user knows best)
       addCandidate(baseUrl);
       
-      // Priority 2: Same URL with opposite protocol
-      if (baseUrl.startsWith('https://')) {
-        addCandidate(baseUrl.replace(/^https:\/\//, 'http://'));
-      } else {
-        addCandidate(baseUrl.replace(/^http:\/\//, 'https://'));
-      }
-
-      // Priority 3: If port field is different from URL port, try that
+      // Priority 2: If configured as HTTPS and fails, the controller might also listen on same port via HTTP redirect
+      // But UniFi controllers ALWAYS use HTTPS, so add HTTPS variants first
       const parsed = new URL(baseUrl);
-      const urlPort = parsed.port;
-      const configPort = String(port ?? '').trim();
-      if (configPort && configPort !== urlPort) {
-        const withPort = new URL(baseUrl);
-        withPort.port = configPort;
-        addCandidate(normalizeUrl(withPort.toString()));
-        // Also try opposite protocol with config port
-        const withPortAlt = new URL(baseUrl);
-        withPortAlt.port = configPort;
-        withPortAlt.protocol = baseUrl.startsWith('https://') ? 'http:' : 'https:';
-        addCandidate(normalizeUrl(withPortAlt.toString()));
-      }
-
-      // Priority 4: Common UniFi ports if not already tried
+      const urlPort = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
+      
+      // Priority 2: Common UniFi HTTPS ports if not the configured one
       for (const commonPort of ['8443', '8445', '443']) {
-        if (commonPort !== urlPort && commonPort !== configPort) {
-          const withCommon = new URL(baseUrl);
-          withCommon.port = commonPort;
-          withCommon.protocol = 'https:';
-          addCandidate(normalizeUrl(withCommon.toString()));
+        if (commonPort !== urlPort) {
+          const u = new URL(baseUrl);
+          u.port = commonPort;
+          u.protocol = 'https:';
+          addCandidate(normalizeUrl(u.toString()));
         }
       }
 
-      console.log('Local controller candidates:', candidates.slice(0, 6));
+      console.log('Local controller candidates:', candidates);
 
-      // Login endpoints to try
+      // Login endpoints to try - /api/auth/login is for UniFi OS (UDM/UDR), /api/login is for legacy controllers
       const loginPaths = ['/api/auth/login', '/api/login'];
       
       const loginBody = JSON.stringify({
@@ -179,9 +169,9 @@ serve(async (req) => {
       let activeBase = '';
       let lastError = '';
       const startTime = Date.now();
-      const MAX_TIME = 25000;
+      const MAX_TIME = 28000;
 
-      for (const candidate of candidates.slice(0, 6)) {
+      for (const candidate of candidates) {
         if (Date.now() - startTime > MAX_TIME) break;
         
         for (const loginPath of loginPaths) {
@@ -195,12 +185,12 @@ serve(async (req) => {
               method: 'POST',
               headers: loginHeaders,
               body: loginBody,
-            }, 10000);
+            }, 8000);
 
             console.log(`[LOCAL] ${loginUrl} => ${resp.status}`);
 
             if (resp.status === 404) {
-              await resp.text(); // consume body
+              await resp.text();
               continue;
             }
 
@@ -217,6 +207,7 @@ serve(async (req) => {
 
             const body = await resp.text();
             lastError = `${resp.status}: ${body}`;
+            console.log(`[LOCAL] Response body: ${body.substring(0, 200)}`);
           } catch (e) {
             if (e instanceof Error && e.message.startsWith('Credenciais')) throw e;
             lastError = e instanceof Error ? e.message : String(e);
@@ -227,7 +218,7 @@ serve(async (req) => {
       }
 
       if (!loginResponse) {
-        throw new Error(`Falha ao conectar na controladora local. Tentativas: ${candidates.slice(0, 6).join(', ')}. Último erro: ${lastError}`);
+        throw new Error(`Falha ao conectar na controladora local. Tentativas: ${candidates.join(', ')}. Último erro: ${lastError}`);
       }
 
       // Extract cookies and CSRF token
