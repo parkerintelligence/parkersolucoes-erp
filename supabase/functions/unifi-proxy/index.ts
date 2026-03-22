@@ -9,48 +9,41 @@ const corsHeaders = {
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
-// For local controllers, ALWAYS use insecure fetch since they use self-signed certs
-const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 12000): Promise<Response> => {
+// For local controllers, bypass self-signed certs
+const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const hostname = new URL(url).hostname;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const isHttps = url.startsWith('https://');
 
-  try {
-    // Try with TLS bypass first (most common for local controllers)
-    const insecureClient = Deno.createHttpClient({
-      certs: [],
-    } as any);
-    
-    return await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      client: insecureClient,
-    } as any);
-  } catch (e1) {
-    // If that fails, try with dangerouslyIgnoreCertificateErrors
+  // Strategy 1: For HTTPS, use dangerouslyIgnoreCertificateErrors (the ONLY way to bypass self-signed in Deno)
+  if (isHttps) {
     try {
-      const insecureClient2 = Deno.createHttpClient({
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+      const client = Deno.createHttpClient({
         dangerouslyIgnoreCertificateErrors: [hostname],
       } as any);
-      
-      return await fetch(url, {
+      const resp = await fetch(url, {
         ...options,
-        signal: controller.signal,
-        client: insecureClient2,
+        signal: ctrl.signal,
+        client,
       } as any);
-    } catch (e2) {
-      // Last resort: standard fetch (maybe it's HTTP or valid cert)
-      try {
-        return await fetch(url, {
-          ...options,
-          signal: controller.signal,
-        });
-      } catch (e3) {
-        throw e3;
-      }
+      clearTimeout(tid);
+      return resp;
+    } catch (e) {
+      throw e;
     }
-  } finally {
-    clearTimeout(timeoutId);
+  }
+
+  // Strategy 2: For HTTP, standard fetch
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { ...options, signal: ctrl.signal });
+    clearTimeout(tid);
+    return resp;
+  } catch (e) {
+    clearTimeout(tid);
+    throw e;
   }
 };
 
