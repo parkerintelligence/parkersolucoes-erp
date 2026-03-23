@@ -9,6 +9,153 @@ const corsHeaders = {
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
+const LOCAL_CERT_OVERRIDES: Record<string, string> = {
+  'unifi.parkersolucoes.com.br': `-----BEGIN CERTIFICATE-----
+MIIDfTCCAmWgAwIBAgIEZq9+szANBgkqhkiG9w0BAQsFADBrMQswCQYDVQQGEwJV
+UzERMA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQK
+DA1VYmlxdWl0aSBJbmMuMQ4wDAYDVQQLDAVVbmlGaTEOMAwGA1UEAwwFVW5pRmkw
+HhcNMjQwODA0MTMxNDI3WhcNMjYxMTA3MTMxNDI3WjBrMQswCQYDVQQGEwJVUzER
+MA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQKDA1V
+YmlxdWl0aSBJbmMuMQ4wDAYDVQQLDAVVbmlGaTEOMAwGA1UEAwwFVW5pRmkwggEi
+MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDJLVhku+xEptIgK+gUwwk/KETR
+uZ3+gEJUKHXuXUUZlKer1o+PthZc9DLrZNPqRxO26nbINYZo7JO7MPUoPmJHWBv6
+rDIQQeDkBxUOhl0VfxVgp62SOpaONxCQoBxObnZ7+yYgJ7UUFLfMS58HrQDd2Wja
+xOhOgN9AzYiGZ7UdBEo6VY1lY+OdMYqegJDlV2OpxzB4G58tb6OxkeDVrRdFU92/
+PI2MIp87ViaYY0jdpPcSuxi0Aglxu9a6vlMp4TSZF7d7AQJqA76nUAo8qKFxiYrz
+M88I3GI7ToPU2CGBUmTfwOC2oOzm/LGd5S1GyVdVFwTXLjYlmjMYVb6vJhcfAgMB
+AAGjKTAnMBAGA1UdEQQJMAeCBVVuaUZpMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA0G
+CSqGSIb3DQEBCwUAA4IBAQB+LC2L3BXsbCD5Y1NY+pI3DOenAl8/V90G25i8webl
+3Z0zDZTUlGVh0abck/kmwyTzC4CrttwQMZILi4EHyNZxBt4k4M7QjC4SMfOJEhYB
+pFpf3lHEIjQ0y9k4nUR5xmLMfjgtaiWwLQDwSyyS2FxKbW2sXp/A1JwOY46JIohB
+zptdK9t1t7JTSG5a5lRJwiQZzSHdsxpVTsJ7XYYwTtzjfKiOQOfSSEhFz3Urvq1e
+zP7T+eVdrqtHBhulKVgkESiadWc6b3riLjCZ+XRYVs9aUXPdAPJUQlXmWkuGPbMh
+G8Xsdi9SISUbbJfT8Uzg7b0F0edZRy0YMhbtmHlN/UNY
+-----END CERTIFICATE-----`,
+};
+
+const decodeChunkedBody = (body: string) => {
+  let cursor = 0;
+  let decoded = '';
+
+  while (cursor < body.length) {
+    const sizeLineEnd = body.indexOf('\r\n', cursor);
+    if (sizeLineEnd === -1) return decoded || body;
+
+    const sizeHex = body.slice(cursor, sizeLineEnd).trim();
+    const size = Number.parseInt(sizeHex, 16);
+    if (!Number.isFinite(size)) return decoded || body;
+    if (size === 0) return decoded;
+
+    cursor = sizeLineEnd + 2;
+    decoded += body.slice(cursor, cursor + size);
+    cursor += size + 2;
+  }
+
+  return decoded || body;
+};
+
+const responseFromRawHttp = (rawResponse: string) => {
+  const splitIndex = rawResponse.indexOf('\r\n\r\n');
+  if (splitIndex === -1) {
+    throw new Error('Resposta HTTP inválida da controladora local');
+  }
+
+  const head = rawResponse.slice(0, splitIndex);
+  const body = rawResponse.slice(splitIndex + 4);
+  const [statusLine, ...headerLines] = head.split('\r\n');
+  const statusMatch = statusLine.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/i);
+
+  if (!statusMatch) {
+    throw new Error(`Status HTTP inválido da controladora local: ${statusLine}`);
+  }
+
+  const headers = new Headers();
+  for (const line of headerLines) {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    headers.append(key, value);
+  }
+
+  const parsedBody = headers.get('transfer-encoding')?.toLowerCase().includes('chunked')
+    ? decodeChunkedBody(body)
+    : body;
+
+  return new Response(parsedBody, {
+    status: Number(statusMatch[1]),
+    statusText: statusMatch[2] || '',
+    headers,
+  });
+};
+
+const fetchLocalPinnedTls = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
+  const parsedUrl = new URL(url);
+  const pinnedCert = LOCAL_CERT_OVERRIDES[parsedUrl.hostname];
+
+  if (!pinnedCert) {
+    throw new Error(`Certificado TLS não configurado para ${parsedUrl.hostname}`);
+  }
+
+  const connection = await Deno.connectTls({
+    hostname: parsedUrl.hostname,
+    port: Number(parsedUrl.port || '443'),
+    caCerts: [pinnedCert],
+    unsafelyDisableHostnameVerification: true,
+  });
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const timeoutId = setTimeout(() => {
+    try {
+      connection.close();
+    } catch (_) {
+      // no-op
+    }
+  }, timeoutMs);
+
+  try {
+    const method = options.method || 'GET';
+    const headers = new Headers(options.headers || {});
+    const body = typeof options.body === 'string' ? options.body : options.body ? String(options.body) : '';
+
+    if (!headers.has('Host')) headers.set('Host', parsedUrl.host);
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+    if (!headers.has('Connection')) headers.set('Connection', 'close');
+    if (body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    if (body && !headers.has('Content-Length')) headers.set('Content-Length', String(encoder.encode(body).length));
+
+    const path = `${parsedUrl.pathname}${parsedUrl.search}` || '/';
+    let rawRequest = `${method} ${path} HTTP/1.1\r\n`;
+    headers.forEach((value, key) => {
+      rawRequest += `${key}: ${value}\r\n`;
+    });
+    rawRequest += `\r\n${body}`;
+
+    await connection.write(encoder.encode(rawRequest));
+
+    let rawResponse = '';
+    const buffer = new Uint8Array(4096);
+
+    while (true) {
+      const bytesRead = await connection.read(buffer);
+      if (bytesRead === null) break;
+      rawResponse += decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
+    }
+
+    rawResponse += decoder.decode();
+    return responseFromRawHttp(rawResponse);
+  } finally {
+    clearTimeout(timeoutId);
+    try {
+      connection.close();
+    } catch (_) {
+      // no-op
+    }
+  }
+};
+
 // For local controllers, bypass self-signed certs
 const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const hostname = new URL(url).hostname;
@@ -30,6 +177,11 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
       clearTimeout(tid);
       return resp;
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (message.includes('invalid peer certificate') && LOCAL_CERT_OVERRIDES[hostname]) {
+        console.warn(`[LOCAL] Falling back to pinned TLS socket for ${hostname}`);
+        return await fetchLocalPinnedTls(url, options, timeoutMs);
+      }
       throw e;
     }
   }
@@ -158,7 +310,7 @@ serve(async (req) => {
 
       console.log('Local controller candidates:', candidates);
 
-      const loginPaths = ['/api/auth/login', '/api/login'];
+      const loginPaths = ['/api/login', '/api/auth/login'];
       const loginBody = JSON.stringify({
         username: user_,
         password: pass_,
