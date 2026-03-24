@@ -69,7 +69,8 @@ const UniFiConnectionWizard: React.FC<UniFiConnectionWizardProps> = ({ onConnect
                 base_url: testConfig.base_url,
                 username: testConfig.username,
                 password: testConfig.password,
-                use_ssl: testConfig.use_ssl
+                use_ssl: testConfig.use_ssl,
+                port: testConfig.port,
               }
             }
           });
@@ -81,7 +82,7 @@ const UniFiConnectionWizard: React.FC<UniFiConnectionWizardProps> = ({ onConnect
               title: "Conexão bem-sucedida!",
               description: `Conectado usando: ${strategy.name}`,
             });
-            return;
+            return true;
           }
         } catch (err) {
           console.log(`Falha na estratégia ${strategy.name}:`, err);
@@ -95,11 +96,13 @@ const UniFiConnectionWizard: React.FC<UniFiConnectionWizardProps> = ({ onConnect
         'Verifique se a controladora está acessível',
         'Confirme as credenciais e URL'
       ]);
+      return false;
 
     } catch (error) {
       setConnectionResult('error');
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
       setDetectedIssues([errorMsg]);
+      return false;
       
     } finally {
       setIsTestingConnection(false);
@@ -108,8 +111,8 @@ const UniFiConnectionWizard: React.FC<UniFiConnectionWizardProps> = ({ onConnect
 
   const handleNext = async () => {
     if (step === 2) {
-      await testConnection();
-      if (connectionResult === 'success') {
+      const success = await testConnection();
+      if (success) {
         setStep(3);
       }
     } else {
