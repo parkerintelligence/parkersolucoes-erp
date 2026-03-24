@@ -37,6 +37,7 @@ const UniFiAdminConfig = () => {
     connection_mode: 'site_manager' as ConnectionMode,
     api_token: '',
     base_url: '',
+    port: '8443',
     username: '',
     password: '',
     use_ssl: true,
@@ -57,12 +58,25 @@ const UniFiAdminConfig = () => {
     return `${useSsl ? 'https' : 'http'}://${trimmed}`;
   };
 
+  const extractPortFromUrl = (value: string, useSsl: boolean) => {
+    const normalized = normalizeBaseUrl(value, useSsl);
+
+    try {
+      const parsed = new URL(normalized);
+      if (parsed.port) return parsed.port;
+      return parsed.protocol === 'https:' ? '443' : '80';
+    } catch {
+      return useSsl ? '443' : '80';
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
       connection_mode: 'site_manager',
       api_token: '',
       base_url: '',
+      port: '8443',
       username: '',
       password: '',
       use_ssl: true,
@@ -97,11 +111,14 @@ const UniFiAdminConfig = () => {
       }
 
       const normalizedBaseUrl = normalizeBaseUrl(formData.base_url, formData.use_ssl);
+      const resolvedPort = isSiteManager
+        ? '443'
+        : (formData.port.trim() || extractPortFromUrl(normalizedBaseUrl, formData.use_ssl));
 
       const integrationData: any = {
         type: 'unifi',
         name: formData.name,
-        port: 8443,
+        port: Number.parseInt(resolvedPort, 10) || 8443,
         is_active: formData.is_active,
         is_global: true
       };
@@ -156,6 +173,7 @@ const UniFiAdminConfig = () => {
       connection_mode: isLocalController ? 'local_controller' : 'site_manager',
       api_token: integration.api_token || '',
       base_url: integration.base_url || '',
+      port: integration.port ? String(integration.port) : extractPortFromUrl(integration.base_url || '', integration.use_ssl ?? true),
       username: integration.username || '',
       password: integration.password || '',
       use_ssl: integration.use_ssl ?? true,
@@ -187,17 +205,24 @@ const UniFiAdminConfig = () => {
 
     try {
       const isLocalController = !!(integration.base_url && integration.username && integration.password);
-      const endpoint = isLocalController ? '/api/self/sites' : '/v1/hosts';
-
-      const response = await supabase.functions.invoke('unifi-proxy', {
-        body: {
+      const { error } = await supabase.functions.invoke('unifi-proxy', {
+        body: isLocalController ? {
           integrationId: integration.id,
-          endpoint,
+          endpoint: '/api/self/sites',
+          method: 'GET',
+          test_config: {
+            base_url: integration.base_url,
+            username: integration.username,
+            password: integration.password,
+            use_ssl: integration.use_ssl ?? true,
+            port: integration.port,
+          }
+        } : {
+          integrationId: integration.id,
+          endpoint: '/v1/hosts',
           method: 'GET'
         }
       });
-
-      const { error } = response;
 
       if (error) {
         throw new Error(error.message || 'Falha na conexão UniFi');
@@ -383,6 +408,19 @@ const UniFiAdminConfig = () => {
                           value={formData.base_url}
                           onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
                           placeholder="https://unifi.parkersolucoes.com.br:8445"
+                          required
+                          className="bg-slate-700 border-slate-600 text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="port" className="text-white">Porta da API *</Label>
+                        <Input
+                          id="port"
+                          type="number"
+                          value={formData.port}
+                          onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                          placeholder="8445"
                           required
                           className="bg-slate-700 border-slate-600 text-white"
                         />

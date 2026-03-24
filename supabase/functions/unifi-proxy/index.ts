@@ -9,30 +9,6 @@ const corsHeaders = {
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
-const LOCAL_CERT_OVERRIDES: Record<string, string> = {
-  'unifi.parkersolucoes.com.br': `-----BEGIN CERTIFICATE-----
-MIIDfTCCAmWgAwIBAgIEZq9+szANBgkqhkiG9w0BAQsFADBrMQswCQYDVQQGEwJV
-UzERMA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQK
-DA1VYmlxdWl0aSBJbmMuMQ4wDAYDVQQLDAVVbmlGaTEOMAwGA1UEAwwFVW5pRmkw
-HhcNMjQwODA0MTMxNDI3WhcNMjYxMTA3MTMxNDI3WjBrMQswCQYDVQQGEwJVUzER
-MA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQKDA1V
-YmlxdWl0aSBJbmMuMQ4wDAYDVQQLDAVVbmlGaTEOMAwGA1UEAwwFVW5pRmkwggEi
-MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDJLVhku+xEptIgK+gUwwk/KETR
-uZ3+gEJUKHXuXUUZlKer1o+PthZc9DLrZNPqRxO26nbINYZo7JO7MPUoPmJHWBv6
-rDIQQeDkBxUOhl0VfxVgp62SOpaONxCQoBxObnZ7+yYgJ7UUFLfMS58HrQDd2Wja
-xOhOgN9AzYiGZ7UdBEo6VY1lY+OdMYqegJDlV2OpxzB4G58tb6OxkeDVrRdFU92/
-PI2MIp87ViaYY0jdpPcSuxi0Aglxu9a6vlMp4TSZF7d7AQJqA76nUAo8qKFxiYrz
-M88I3GI7ToPU2CGBUmTfwOC2oOzm/LGd5S1GyVdVFwTXLjYlmjMYVb6vJhcfAgMB
-AAGjKTAnMBAGA1UdEQQJMAeCBVVuaUZpMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA0G
-CSqGSIb3DQEBCwUAA4IBAQB+LC2L3BXsbCD5Y1NY+pI3DOenAl8/V90G25i8webl
-3Z0zDZTUlGVh0abck/kmwyTzC4CrttwQMZILi4EHyNZxBt4k4M7QjC4SMfOJEhYB
-pFpf3lHEIjQ0y9k4nUR5xmLMfjgtaiWwLQDwSyyS2FxKbW2sXp/A1JwOY46JIohB
-zptdK9t1t7JTSG5a5lRJwiQZzSHdsxpVTsJ7XYYwTtzjfKiOQOfSSEhFz3Urvq1e
-zP7T+eVdrqtHBhulKVgkESiadWc6b3riLjCZ+XRYVs9aUXPdAPJUQlXmWkuGPbMh
-G8Xsdi9SISUbbJfT8Uzg7b0F0edZRy0YMhbtmHlN/UNY
------END CERTIFICATE-----`,
-};
-
 const decodeChunkedBody = (body: string) => {
   let cursor = 0;
   let decoded = '';
@@ -54,6 +30,122 @@ const decodeChunkedBody = (body: string) => {
   return decoded || body;
 };
 
+const parseRawHeaders = (headerText: string) => {
+  const lines = headerText.split('\r\n');
+  const [statusLine, ...headerLines] = lines;
+  const headers = new Headers();
+
+  for (const line of headerLines) {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    headers.append(key, value);
+  }
+
+  return { statusLine, headers };
+};
+
+const readRawHttpResponse = async (
+  connection: Deno.Conn,
+  timeoutMs: number,
+) => {
+  const decoder = new TextDecoder();
+  const buffer = new Uint8Array(4096);
+  const startedAt = Date.now();
+  let rawResponse = '';
+  let headerEnd = -1;
+  let contentLength: number | null = null;
+  let isChunked = false;
+
+  const readWithTimeout = async (remainingMs: number) => {
+    let timeoutId: number | undefined;
+    try {
+      return await Promise.race([
+        connection.read(buffer),
+        new Promise<null>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Tempo esgotado aguardando resposta da controladora local')), remainingMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const remainingMs = Math.max(1, timeoutMs - (Date.now() - startedAt));
+    const bytesRead = await readWithTimeout(remainingMs);
+
+    if (bytesRead === null) break;
+
+    rawResponse += decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
+
+    if (headerEnd === -1) {
+      headerEnd = rawResponse.indexOf('\r\n\r\n');
+      if (headerEnd !== -1) {
+        const { headers } = parseRawHeaders(rawResponse.slice(0, headerEnd));
+        const contentLengthHeader = headers.get('content-length');
+        contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : null;
+        isChunked = headers.get('transfer-encoding')?.toLowerCase().includes('chunked') ?? false;
+      }
+    }
+
+    if (headerEnd !== -1) {
+      const body = rawResponse.slice(headerEnd + 4);
+
+      if (contentLength !== null && body.length >= contentLength) {
+        break;
+      }
+
+      if (isChunked && body.includes('\r\n0\r\n\r\n')) {
+        break;
+      }
+    }
+  }
+
+  rawResponse += decoder.decode();
+
+  if (!rawResponse) {
+    throw new Error('A controladora local não retornou dados');
+  }
+
+  return rawResponse;
+};
+
+const extractCookies = (headers: Headers) => {
+  const headerWithSetCookie = headers as Headers & { getSetCookie?: () => string[] };
+  const setCookieEntries = headerWithSetCookie.getSetCookie?.() || [];
+  const rawHeader = headers.get('set-cookie');
+
+  if (rawHeader) {
+    setCookieEntries.push(
+      ...rawHeader
+        .split(/,(?=\s*[^;,=\s]+=[^;,]+)/)
+        .map((value) => value.trim())
+        .filter(Boolean)
+    );
+  }
+
+  const cookies: Record<string, string> = {};
+  for (const cookieEntry of setCookieEntries) {
+    const pair = cookieEntry.split(';')[0]?.trim();
+    if (!pair) continue;
+    const separatorIndex = pair.indexOf('=');
+    if (separatorIndex === -1) continue;
+    const name = pair.slice(0, separatorIndex).trim();
+    const value = pair.slice(separatorIndex + 1).trim();
+    if (name) cookies[name] = value;
+  }
+
+  return {
+    cookies,
+    cookieHeader: Object.entries(cookies)
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; '),
+  };
+};
+
 const responseFromRawHttp = (rawResponse: string) => {
   const splitIndex = rawResponse.indexOf('\r\n\r\n');
   if (splitIndex === -1) {
@@ -62,21 +154,11 @@ const responseFromRawHttp = (rawResponse: string) => {
 
   const head = rawResponse.slice(0, splitIndex);
   const body = rawResponse.slice(splitIndex + 4);
-  const [statusLine, ...headerLines] = head.split('\r\n');
+  const { statusLine, headers } = parseRawHeaders(head);
   const statusMatch = statusLine.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/i);
 
   if (!statusMatch) {
     throw new Error(`Status HTTP inválido da controladora local: ${statusLine}`);
-  }
-
-  const headers = new Headers();
-  for (const line of headerLines) {
-    const separatorIndex = line.indexOf(':');
-    if (separatorIndex === -1) continue;
-
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    headers.append(key, value);
   }
 
   const parsedBody = headers.get('transfer-encoding')?.toLowerCase().includes('chunked')
@@ -90,30 +172,17 @@ const responseFromRawHttp = (rawResponse: string) => {
   });
 };
 
-const fetchLocalPinnedTls = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
+const fetchLocalTlsSocket = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const parsedUrl = new URL(url);
-  const pinnedCert = LOCAL_CERT_OVERRIDES[parsedUrl.hostname];
-
-  if (!pinnedCert) {
-    throw new Error(`Certificado TLS não configurado para ${parsedUrl.hostname}`);
-  }
 
   const connection = await Deno.connectTls({
     hostname: parsedUrl.hostname,
     port: Number(parsedUrl.port || '443'),
-    caCerts: [pinnedCert],
+    alpnProtocols: ['http/1.1'],
     unsafelyDisableHostnameVerification: true,
   });
 
   const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const timeoutId = setTimeout(() => {
-    try {
-      connection.close();
-    } catch (_) {
-      // no-op
-    }
-  }, timeoutMs);
 
   try {
     const method = options.method || 'GET';
@@ -134,20 +203,9 @@ const fetchLocalPinnedTls = async (url: string, options: RequestInit = {}, timeo
     rawRequest += `\r\n${body}`;
 
     await connection.write(encoder.encode(rawRequest));
-
-    let rawResponse = '';
-    const buffer = new Uint8Array(4096);
-
-    while (true) {
-      const bytesRead = await connection.read(buffer);
-      if (bytesRead === null) break;
-      rawResponse += decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
-    }
-
-    rawResponse += decoder.decode();
+    const rawResponse = await readRawHttpResponse(connection, timeoutMs);
     return responseFromRawHttp(rawResponse);
   } finally {
-    clearTimeout(timeoutId);
     try {
       connection.close();
     } catch (_) {
@@ -158,35 +216,34 @@ const fetchLocalPinnedTls = async (url: string, options: RequestInit = {}, timeo
 
 // For local controllers, bypass self-signed certs
 const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
-  const hostname = new URL(url).hostname;
   const isHttps = url.startsWith('https://');
 
-  // Strategy 1: For HTTPS, use dangerouslyIgnoreCertificateErrors (the ONLY way to bypass self-signed in Deno)
   if (isHttps) {
     try {
+      console.log(`[LOCAL] TLS socket request: ${url}`);
+      return await fetchLocalTlsSocket(url, options, timeoutMs);
+    } catch (socketError) {
+      const hostname = new URL(url).hostname;
+      const message = socketError instanceof Error ? socketError.message : String(socketError);
+      console.warn(`[LOCAL] TLS socket failed for ${url}: ${message}`);
+
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), timeoutMs);
-      const client = Deno.createHttpClient({
-        dangerouslyIgnoreCertificateErrors: [hostname],
-      } as any);
-      const resp = await fetch(url, {
-        ...options,
-        signal: ctrl.signal,
-        client,
-      } as any);
-      clearTimeout(tid);
-      return resp;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (message.includes('invalid peer certificate') && LOCAL_CERT_OVERRIDES[hostname]) {
-        console.warn(`[LOCAL] Falling back to pinned TLS socket for ${hostname}`);
-        return await fetchLocalPinnedTls(url, options, timeoutMs);
+      try {
+        const client = Deno.createHttpClient({
+          dangerouslyIgnoreCertificateErrors: [hostname],
+        } as any);
+        return await fetch(url, {
+          ...options,
+          signal: ctrl.signal,
+          client,
+        } as any);
+      } finally {
+        clearTimeout(tid);
       }
-      throw e;
     }
   }
 
-  // Strategy 2: For HTTP, standard fetch
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -197,6 +254,24 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
     clearTimeout(tid);
     throw e;
   }
+};
+
+const buildLocalEndpointVariants = (endpoint: string) => {
+  const variants = [endpoint];
+
+  if (endpoint === '/api/self/sites') {
+    variants.push('/api/stat/sites');
+  }
+
+  if (endpoint.includes('/rest/wlanconf')) {
+    variants.push(endpoint.replace('/rest/wlanconf', '/rest/networkconf'));
+  }
+
+  if (endpoint.includes('/rest/networkconf')) {
+    variants.push(endpoint.replace('/rest/networkconf', '/rest/wlanconf'));
+  }
+
+  return variants.filter((value, index, array) => array.indexOf(value) === index);
 };
 
 console.log("UniFi proxy function starting...");
@@ -229,34 +304,40 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
-    const { method, endpoint, integrationId, data: postData } = requestBody;
+    const { method, endpoint, integrationId, data: postData, test_config: testConfig } = requestBody;
 
     console.log('UniFi request:', { method, endpoint, integrationId });
 
-    const { data: integration, error: integrationError } = await supabaseClient
-      .from('integrations')
-      .select('*')
-      .eq('id', integrationId)
-      .eq('type', 'unifi')
-      .or(`user_id.eq.${user.id},is_global.eq.true`)
-      .maybeSingle();
+    let integration: Record<string, any> | null = null;
 
-    if (integrationError || !integration) {
-      throw new Error('UniFi integration not found');
+    if (!testConfig) {
+      const { data, error: integrationError } = await supabaseClient
+        .from('integrations')
+        .select('*')
+        .eq('id', integrationId)
+        .eq('type', 'unifi')
+        .or(`user_id.eq.${user.id},is_global.eq.true`)
+        .maybeSingle();
+
+      if (integrationError || !data) {
+        throw new Error('UniFi integration not found');
+      }
+
+      if (!data.is_active) {
+        throw new Error('UniFi integration is not active');
+      }
+
+      integration = data;
     }
 
-    if (!integration.is_active) {
-      throw new Error('UniFi integration is not active');
-    }
-
-    const { base_url, username, password, api_token, use_ssl, port } = integration;
+    const { base_url, username, password, api_token, use_ssl, port } = integration ?? testConfig ?? {};
     const baseUrl = typeof base_url === 'string' ? normalizeUrl(base_url) : '';
     const user_ = typeof username === 'string' ? username.trim() : '';
     const pass_ = typeof password === 'string' ? password.trim() : '';
     const token_ = typeof api_token === 'string' ? api_token.trim() : '';
 
     const hasLocal = !!(baseUrl && user_ && pass_);
-    const hasCloud = !!token_;
+    const hasCloud = !testConfig && !!token_;
     const isLocalEndpoint = typeof endpoint === 'string' && endpoint.startsWith('/api/');
     const useLocal = hasLocal && (isLocalEndpoint || !hasCloud);
 
@@ -299,8 +380,8 @@ serve(async (req) => {
         }
       }
 
-      // 4) Fallback HTTP nas mesmas portas para cenários com proxy/rewrite estranho
-      for (const fallbackPort of [basePort, configPort, '8445', '8443', '8080', '80']) {
+      // 4) Fallback HTTP apenas em portas realmente comuns para proxy local
+      for (const fallbackPort of ['8080', '80']) {
         if (!fallbackPort) continue;
         const candidate = new URL(baseUrl);
         candidate.protocol = 'http:';
@@ -359,7 +440,7 @@ serve(async (req) => {
 
             const bodyText = await response.text();
 
-            if (response.status === 401 || response.status === 403) {
+            if ((response.status === 401 || response.status === 403) && loginPath === '/api/login' && !bodyText.includes('NoSiteContext')) {
               throw new Error(`Credenciais inválidas (${response.status}): ${bodyText}`);
             }
 
@@ -379,12 +460,8 @@ serve(async (req) => {
         throw new Error(`Falha ao conectar na controladora local. Tentativas: ${candidates.join(', ')}. Último erro: ${lastError || 'sem resposta da controladora'}`);
       }
 
-      const headerWithSetCookie = loginResponse.headers as Headers & { getSetCookie?: () => string[] };
-      const cookieList = headerWithSetCookie.getSetCookie?.() || [];
-      const cookies = cookieList.length > 0
-        ? cookieList.map((cookie) => cookie.split(';')[0]).join('; ')
-        : (loginResponse.headers.get('set-cookie') || '');
-      const csrfToken = loginResponse.headers.get('x-csrf-token') || '';
+      const { cookieHeader: cookies, cookies: sessionCookies } = extractCookies(loginResponse.headers);
+      const csrfToken = loginResponse.headers.get('x-csrf-token') || sessionCookies.csrf_token || '';
 
       console.log(`[LOCAL] Login OK at ${activeBase}, cookies: ${!!cookies}, csrf: ${!!csrfToken}`);
 
@@ -399,10 +476,7 @@ serve(async (req) => {
         ? JSON.stringify(postData)
         : undefined;
 
-      const endpointVariants = [
-        endpoint,
-        !endpoint.startsWith('/proxy/network') ? `/proxy/network${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` : null,
-      ].filter(Boolean) as string[];
+      const endpointVariants = buildLocalEndpointVariants(endpoint);
 
       let apiResponse: Response | null = null;
       let resolvedEndpoint = endpoint;
