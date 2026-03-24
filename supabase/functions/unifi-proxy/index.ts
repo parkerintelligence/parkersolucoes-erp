@@ -304,34 +304,40 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
-    const { method, endpoint, integrationId, data: postData } = requestBody;
+    const { method, endpoint, integrationId, data: postData, test_config: testConfig } = requestBody;
 
     console.log('UniFi request:', { method, endpoint, integrationId });
 
-    const { data: integration, error: integrationError } = await supabaseClient
-      .from('integrations')
-      .select('*')
-      .eq('id', integrationId)
-      .eq('type', 'unifi')
-      .or(`user_id.eq.${user.id},is_global.eq.true`)
-      .maybeSingle();
+    let integration: Record<string, any> | null = null;
 
-    if (integrationError || !integration) {
-      throw new Error('UniFi integration not found');
+    if (!testConfig) {
+      const { data, error: integrationError } = await supabaseClient
+        .from('integrations')
+        .select('*')
+        .eq('id', integrationId)
+        .eq('type', 'unifi')
+        .or(`user_id.eq.${user.id},is_global.eq.true`)
+        .maybeSingle();
+
+      if (integrationError || !data) {
+        throw new Error('UniFi integration not found');
+      }
+
+      if (!data.is_active) {
+        throw new Error('UniFi integration is not active');
+      }
+
+      integration = data;
     }
 
-    if (!integration.is_active) {
-      throw new Error('UniFi integration is not active');
-    }
-
-    const { base_url, username, password, api_token, use_ssl, port } = integration;
+    const { base_url, username, password, api_token, use_ssl, port } = integration ?? testConfig ?? {};
     const baseUrl = typeof base_url === 'string' ? normalizeUrl(base_url) : '';
     const user_ = typeof username === 'string' ? username.trim() : '';
     const pass_ = typeof password === 'string' ? password.trim() : '';
     const token_ = typeof api_token === 'string' ? api_token.trim() : '';
 
     const hasLocal = !!(baseUrl && user_ && pass_);
-    const hasCloud = !!token_;
+    const hasCloud = !testConfig && !!token_;
     const isLocalEndpoint = typeof endpoint === 'string' && endpoint.startsWith('/api/');
     const useLocal = hasLocal && (isLocalEndpoint || !hasCloud);
 
