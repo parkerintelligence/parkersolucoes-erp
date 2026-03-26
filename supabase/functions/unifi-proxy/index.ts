@@ -204,6 +204,35 @@ const resolvePinnedCaCert = (url: string) => {
   }
 };
 
+const fetchWithIgnoredTls = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 10000,
+  caCert?: string | null,
+) => {
+  const hostname = new URL(url).hostname;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  try {
+    const client = Deno.createHttpClient({
+      caCerts: caCert ? [caCert] : undefined,
+      dangerouslyIgnoreCertificateErrors: [hostname],
+    } as any);
+
+    const response = await fetch(url, {
+      ...options,
+      signal: ctrl.signal,
+      client,
+    } as any);
+
+    console.log(`[LOCAL] HttpClient fallback: ${url} => ${response.status}`);
+    return response;
+  } finally {
+    clearTimeout(tid);
+  }
+};
+
 const fetchLocalTlsSocket = async (
   url: string,
   options: RequestInit = {},
@@ -261,29 +290,24 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
 
     try {
       console.log(`[LOCAL] TLS socket request: ${url}${pinnedCaCert ? ' (pinned CA)' : ''}`);
-      return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+      const response = await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+      const pathname = new URL(url).pathname;
+
+      if (
+        options.method === 'POST' &&
+        (pathname.endsWith('/api/login') || pathname.endsWith('/api/auth/login')) &&
+        response.status === 400
+      ) {
+        const responseText = await response.text();
+        console.warn(`[LOCAL] TLS socket login returned 400, retrying with HttpClient: ${responseText.slice(0, 160)}`);
+        return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
+      }
+
+      return response;
     } catch (socketError) {
-      const hostname = new URL(url).hostname;
       const message = socketError instanceof Error ? socketError.message : String(socketError);
       console.warn(`[LOCAL] TLS socket failed for ${url}: ${message}`);
-
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
-      try {
-        const client = Deno.createHttpClient({
-          caCerts: pinnedCaCert ? [pinnedCaCert] : undefined,
-          dangerouslyIgnoreCertificateErrors: [hostname],
-        } as any);
-        const response = await fetch(url, {
-          ...options,
-          signal: ctrl.signal,
-          client,
-        } as any);
-        console.log(`[LOCAL] HttpClient fallback: ${url} => ${response.status}`);
-        return response;
-      } finally {
-        clearTimeout(tid);
-      }
+      return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
     }
   }
 
