@@ -7,6 +7,30 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
+const PINNED_CA_CERTS: Record<string, string> = {
+  'unifi.parkersolucoes.com.br': `-----BEGIN CERTIFICATE-----
+MIIDfTCCAmWgAwIBAgIEZq9+szANBgkqhkiG9w0BAQsFADBrMQswCQYDVQQGEwJV
+UzERMA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQK
+DA1VYmlxdWl0aSBJbmMuMQ4wDAYDVQQLDAVVbmlGaTEOMAwGA1UEAwwFVW5pRmkw
+HhcNMjQwODA0MTMxNDI3WhcNMjYxMTA3MTMxNDI3WjBrMQswCQYDVQQGEwJVUzER
+MA8GA1UECAwITmV3IFlvcmsxETAPBgNVBAcMCE5ldyBZb3JrMRYwFAYDVQQKDA1V
+YmlxdWl0aSBJbmMuMQ4wDAYDVQQLDAVVbmlGaTEOMAwGA1UEAwwFVW5pRmkwggEi
+MA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDJLVhku+xEptIgK+gUwwk/KETR
+uZ3+gEJUKHXuXUUZlKer1o+PthZc9DLrZNPqRxO26nbINYZo7JO7MPUoPmJHWBv6
+rDIQQeDkBxUOhl0VfxVgp62SOpaONxCQoBxObnZ7+yYgJ7UUFLfMS58HrQDd2Wja
+xOhOgN9AzYiGZ7UdBEo6VY1lY+OdMYqegJDlV2OpxzB4G58tb6OxkeDVrRdFU92/
+PI2MIp87ViaYY0jdpPcSuxi0Aglxu9a6vlMp4TSZF7d7AQJqA76nUAo8qKFxiYrz
+M88I3GI7ToPU2CGBUmTfwOC2oOzm/LGd5S1GyVdVFwTXLjYlmjMYVb6vJhcfAgMB
+AAGjKTAnMBAGA1UdEQQJMAeCBVVuaUZpMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA0G
+CSqGSIb3DQEBCwUAA4IBAQB+LC2L3BXsbCD5Y1NY+pI3DOenAl8/V90G25i8webl
+3Z0zDZTUlGVh0abck/kmwyTzC4CrttwQMZILi4EHyNZxBt4k4M7QjC4SMfOJEhYB
+pFpf3lHEIjQ0y9k4nUR5xmLMfjgtaiWwLQDwSyyS2FxKbW2sXp/A1JwOY46JIohB
+zptdK9t1t7JTSG5a5lRJwiQZzSHdsxpVTsJ7XYYwTtzjfKiOQOfSSEhFz3Urvq1e
+zP7T+eVdrqtHBhulKVgkESiadWc6b3riLjCZ+XRYVs9aUXPdAPJUQlXmWkuGPbMh
+G8Xsdi9SISUbbJfT8Uzg7b0F0edZRy0YMhbtmHlN/UNY
+-----END CERTIFICATE-----`,
+};
+
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
 const decodeChunkedBody = (body: string) => {
@@ -172,13 +196,27 @@ const responseFromRawHttp = (rawResponse: string) => {
   });
 };
 
-const fetchLocalTlsSocket = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
+const resolvePinnedCaCert = (url: string) => {
+  try {
+    return PINNED_CA_CERTS[new URL(url).hostname] || null;
+  } catch {
+    return null;
+  }
+};
+
+const fetchLocalTlsSocket = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 10000,
+  caCert?: string | null,
+): Promise<Response> => {
   const parsedUrl = new URL(url);
 
   const connection = await Deno.connectTls({
     hostname: parsedUrl.hostname,
     port: Number(parsedUrl.port || '443'),
     alpnProtocols: ['http/1.1'],
+    caCerts: caCert ? [caCert] : undefined,
     unsafelyDisableHostnameVerification: true,
   });
 
@@ -219,9 +257,11 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
   const isHttps = url.startsWith('https://');
 
   if (isHttps) {
+    const pinnedCaCert = resolvePinnedCaCert(url);
+
     try {
-      console.log(`[LOCAL] TLS socket request: ${url}`);
-      return await fetchLocalTlsSocket(url, options, timeoutMs);
+      console.log(`[LOCAL] TLS socket request: ${url}${pinnedCaCert ? ' (pinned CA)' : ''}`);
+      return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
     } catch (socketError) {
       const hostname = new URL(url).hostname;
       const message = socketError instanceof Error ? socketError.message : String(socketError);
@@ -231,13 +271,16 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
       const tid = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
         const client = Deno.createHttpClient({
+          caCerts: pinnedCaCert ? [pinnedCaCert] : undefined,
           dangerouslyIgnoreCertificateErrors: [hostname],
         } as any);
-        return await fetch(url, {
+        const response = await fetch(url, {
           ...options,
           signal: ctrl.signal,
           client,
         } as any);
+        console.log(`[LOCAL] HttpClient fallback: ${url} => ${response.status}`);
+        return response;
       } finally {
         clearTimeout(tid);
       }
@@ -259,8 +302,14 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
 const buildLocalEndpointVariants = (endpoint: string) => {
   const variants = [endpoint];
 
+   if (endpoint.startsWith('/api/') && !endpoint.startsWith('/proxy/network/')) {
+    variants.push(`/proxy/network${endpoint}`);
+  }
+
   if (endpoint === '/api/self/sites') {
     variants.push('/api/stat/sites');
+    variants.push('/proxy/network/api/self/sites');
+    variants.push('/proxy/network/api/stat/sites');
   }
 
   if (endpoint.includes('/rest/wlanconf')) {
@@ -304,7 +353,7 @@ serve(async (req) => {
     }
 
     const requestBody = await req.json();
-    const { method, endpoint, integrationId, data: postData, test_config: testConfig } = requestBody;
+    const { method, endpoint, integrationId, data: postData, test_config: testConfig, ignore_ssl: ignoreSsl } = requestBody;
 
     console.log('UniFi request:', { method, endpoint, integrationId });
 
@@ -370,28 +419,32 @@ serve(async (req) => {
         addCandidate(urlWithConfigPort.toString());
       }
 
-      // 3) Portas comuns do UniFi, priorizando HTTPS
-      for (const commonPort of ['8445', '8443', '443']) {
-        if (commonPort !== basePort && commonPort !== configPort) {
+      const hasExplicitPort = Boolean(parsedBaseUrl.port || configPort);
+      const allowPortFanout = Boolean(testConfig) || !hasExplicitPort;
+
+      // 3) Portas comuns do UniFi apenas quando a porta não foi explicitamente configurada
+      if (allowPortFanout) {
+        for (const commonPort of ['8445', '8443', '443']) {
+          if (commonPort !== basePort && commonPort !== configPort) {
+            const candidate = new URL(baseUrl);
+            candidate.protocol = 'https:';
+            candidate.port = commonPort;
+            addCandidate(candidate.toString());
+          }
+        }
+
+        // 4) Fallback HTTP apenas quando estamos em modo diagnóstico/autodescoberta
+        for (const fallbackPort of ['8080', '80']) {
           const candidate = new URL(baseUrl);
-          candidate.protocol = 'https:';
-          candidate.port = commonPort;
+          candidate.protocol = 'http:';
+          candidate.port = fallbackPort;
           addCandidate(candidate.toString());
         }
       }
 
-      // 4) Fallback HTTP apenas em portas realmente comuns para proxy local
-      for (const fallbackPort of ['8080', '80']) {
-        if (!fallbackPort) continue;
-        const candidate = new URL(baseUrl);
-        candidate.protocol = 'http:';
-        candidate.port = fallbackPort;
-        addCandidate(candidate.toString());
-      }
-
       console.log('Local controller candidates:', candidates);
 
-      const loginPaths = ['/api/login', '/api/auth/login'];
+      const loginPaths = ['/api/login', '/api/auth/login', '/proxy/network/api/login', '/proxy/network/api/auth/login'];
       const loginBody = JSON.stringify({
         username: user_,
         password: pass_,
@@ -407,7 +460,7 @@ serve(async (req) => {
       let activeBase = '';
       let lastError = '';
       const startTime = Date.now();
-      const maxDurationMs = 28000;
+      const maxDurationMs = testConfig ? 28000 : 12000;
 
       for (const candidate of candidates) {
         if (Date.now() - startTime > maxDurationMs) break;
@@ -471,6 +524,8 @@ serve(async (req) => {
       };
       if (cookies) apiHeaders['Cookie'] = cookies;
       if (csrfToken) apiHeaders['X-CSRF-Token'] = csrfToken;
+
+      console.log(`[LOCAL] Login mode ssl=${preferHttps} ignore_ssl=${Boolean(ignoreSsl)} activeBase=${activeBase}`);
 
       const apiBody = postData && ['POST', 'PUT', 'PATCH'].includes(method || '')
         ? JSON.stringify(postData)
