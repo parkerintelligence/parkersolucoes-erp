@@ -31,6 +31,10 @@ G8Xsdi9SISUbbJfT8Uzg7b0F0edZRy0YMhbtmHlN/UNY
 -----END CERTIFICATE-----`,
 };
 
+const TLS_HOST_ALIASES: Record<string, string[]> = {
+  'unifi.parkersolucoes.com.br': ['UniFi'],
+};
+
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
 const decodeChunkedBody = (body: string) => {
@@ -204,33 +208,51 @@ const resolvePinnedCaCert = (url: string) => {
   }
 };
 
-const fetchWithIgnoredTls = async (
-  url: string,
-  options: RequestInit = {},
-  timeoutMs = 10000,
+const buildTlsHostnameCandidates = (url: string) => {
+  const hostname = new URL(url).hostname;
+  return [hostname, ...(TLS_HOST_ALIASES[hostname] || []), 'UniFi']
+    .map((value) => value.trim())
+    .filter((value, index, array) => value.length > 0 && array.indexOf(value) === index);
+};
+
+const openLocalTlsConnection = async (
+  parsedUrl: URL,
   caCert?: string | null,
 ) => {
-  const hostname = new URL(url).hostname;
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+  const tlsHostnameCandidates = buildTlsHostnameCandidates(parsedUrl.toString());
+  let lastError = '';
 
-  try {
-    const client = Deno.createHttpClient({
-      caCerts: caCert ? [caCert] : undefined,
-      dangerouslyIgnoreCertificateErrors: [hostname],
-    } as any);
+  for (const tlsHostname of tlsHostnameCandidates) {
+    let tcpConnection: Deno.Conn | null = null;
 
-    const response = await fetch(url, {
-      ...options,
-      signal: ctrl.signal,
-      client,
-    } as any);
+    try {
+      tcpConnection = await Deno.connect({
+        hostname: parsedUrl.hostname,
+        port: Number(parsedUrl.port || '443'),
+      });
 
-    console.log(`[LOCAL] HttpClient fallback: ${url} => ${response.status}`);
-    return response;
-  } finally {
-    clearTimeout(tid);
+      const tlsConnection = await Deno.startTls(tcpConnection, {
+        hostname: tlsHostname,
+        caCerts: caCert ? [caCert] : undefined,
+        alpnProtocols: ['http/1.1'],
+        unsafelyDisableHostnameVerification: tlsHostname === parsedUrl.hostname,
+      });
+
+      console.log(`[LOCAL] TLS handshake OK using hostname: ${tlsHostname}`);
+      return tlsConnection;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      console.warn(`[LOCAL] TLS handshake failed using hostname ${tlsHostname}: ${lastError}`);
+
+      try {
+        tcpConnection?.close();
+      } catch (_) {
+        // no-op
+      }
+    }
   }
+
+  throw new Error(lastError || `Falha no handshake TLS com ${parsedUrl.hostname}`);
 };
 
 const fetchLocalTlsSocket = async (
@@ -240,14 +262,7 @@ const fetchLocalTlsSocket = async (
   caCert?: string | null,
 ): Promise<Response> => {
   const parsedUrl = new URL(url);
-
-  const connection = await Deno.connectTls({
-    hostname: parsedUrl.hostname,
-    port: Number(parsedUrl.port || '443'),
-    alpnProtocols: ['http/1.1'],
-    caCerts: caCert ? [caCert] : undefined,
-    unsafelyDisableHostnameVerification: true,
-  });
+  const connection = await openLocalTlsConnection(parsedUrl, caCert);
 
   const encoder = new TextEncoder();
 
@@ -288,27 +303,8 @@ const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10
   if (isHttps) {
     const pinnedCaCert = resolvePinnedCaCert(url);
 
-    try {
-      console.log(`[LOCAL] TLS socket request: ${url}${pinnedCaCert ? ' (pinned CA)' : ''}`);
-      const response = await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
-      const pathname = new URL(url).pathname;
-
-      if (
-        options.method === 'POST' &&
-        (pathname.endsWith('/api/login') || pathname.endsWith('/api/auth/login')) &&
-        response.status === 400
-      ) {
-        const responseText = await response.text();
-        console.warn(`[LOCAL] TLS socket login returned 400, retrying with HttpClient: ${responseText.slice(0, 160)}`);
-        return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
-      }
-
-      return response;
-    } catch (socketError) {
-      const message = socketError instanceof Error ? socketError.message : String(socketError);
-      console.warn(`[LOCAL] TLS socket failed for ${url}: ${message}`);
-      return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
-    }
+    console.log(`[LOCAL] TLS socket request: ${url}${pinnedCaCert ? ' (pinned CA)' : ''}`);
+    return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
   }
 
   const ctrl = new AbortController();
