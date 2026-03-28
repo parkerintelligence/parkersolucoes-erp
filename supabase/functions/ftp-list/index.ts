@@ -234,6 +234,7 @@ serve(async (req) => {
     console.log('=== FTP List ===', 'Host:', host, 'Path:', path || '/', 'CalcSizes:', calculateSizes)
 
     let files = []
+    let isFallback = false
     const ftpPort = port || 21
     
     try {
@@ -283,6 +284,7 @@ serve(async (req) => {
       
     } catch (ftpError) {
       console.error('❌ FTP failed:', ftpError.message);
+      isFallback = true
       
       const today = new Date()
       const yesterday = new Date(today)
@@ -297,7 +299,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ files }),
+      JSON.stringify({ files, isFallback }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

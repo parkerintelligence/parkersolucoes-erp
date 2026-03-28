@@ -296,15 +296,48 @@ const fetchLocalTlsSocket = async (
   }
 };
 
+const fetchWithIgnoredTls = async (
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = 10000,
+  caCert?: string | null,
+): Promise<Response> => {
+  const parsedUrl = new URL(url);
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+  const httpClient = Deno.createHttpClient({
+    caCerts: caCert ? [caCert] : undefined,
+    dangerouslyIgnoreCertificateErrors: [parsedUrl.hostname],
+  });
+
+  try {
+    console.warn(`[LOCAL] Falling back to ignored TLS validation for ${parsedUrl.hostname}`);
+    return await fetch(url, {
+      ...options,
+      client: httpClient,
+      signal: abortController.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+    httpClient.close();
+  }
+};
+
 // For local controllers, bypass self-signed certs
 const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const isHttps = url.startsWith('https://');
 
   if (isHttps) {
     const pinnedCaCert = resolvePinnedCaCert(url);
-
     console.log(`[LOCAL] TLS socket request: ${url}${pinnedCaCert ? ' (pinned CA)' : ''}`);
-    return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+
+    try {
+      return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+    } catch (socketError) {
+      const message = socketError instanceof Error ? socketError.message : String(socketError);
+      console.warn(`[LOCAL] TLS socket failed for ${url}: ${message}`);
+      return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
+    }
   }
 
   const ctrl = new AbortController();

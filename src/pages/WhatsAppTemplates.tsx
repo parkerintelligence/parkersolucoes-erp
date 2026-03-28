@@ -32,6 +32,7 @@ const WhatsAppTemplates = () => {
 
   const templateTypes = {
     backup_alert: { name: 'Alerta de Backups', icon: HardDrive, color: 'bg-destructive/10 text-destructive border-destructive/30', variables: ['{{date}}', '{{hours_threshold}}', '{{backup_list}}', '{{total_outdated}}'] },
+    ftp_backup_summary: { name: 'Resumo Backup FTP', icon: HardDrive, color: 'bg-primary/10 text-primary border-primary/30', variables: ['{{date}}', '{{time}}', '{{generated_at}}', '{{ftp_path}}', '{{folders_count}}', '{{folders_total_size_gb}}', '{{folders_summary}}'] },
     schedule_critical: { name: 'Vencimentos Críticos', icon: Calendar, color: 'bg-amber-500/10 text-amber-500 border-amber-500/30', variables: ['{{date}}', '{{schedule_items}}', '{{total_items}}', '{{critical_count}}'] },
     glpi_summary: { name: 'Resumo GLPI', icon: ExternalLink, color: 'bg-primary/10 text-primary border-primary/30', variables: ['{{date}}', '{{open_tickets}}', '{{critical_tickets}}', '{{pending_tickets}}', '{{ticket_list}}', '{{open_tickets_list}}', '{{open_tickets_detailed}}', '{{critical_tickets_list}}', '{{critical_tickets_detailed}}', '{{overdue}}', '{{total_active}}', '{{new_today}}', '{{avg_time_open}}'] },
     custom: { name: 'Personalizado', icon: MessageCircle, color: 'bg-purple-500/10 text-purple-500 border-purple-500/30', variables: ['{{custom_var}}'] }

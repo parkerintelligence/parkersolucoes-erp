@@ -21,9 +21,13 @@ interface ScheduledReportsTableProps {
 
 const templateTypeIcons = {
   backup_alert: HardDrive,
+  ftp_backup_summary: HardDrive,
   schedule_critical: Calendar,
   glpi_summary: ExternalLink,
-  custom: MessageCircle
+  custom: MessageCircle,
+  bacula_daily: HardDrive,
+  bacula_daily_report: HardDrive,
+  mikrotik_dashboard: MessageCircle
 };
 
 export const ScheduledReportsTable = ({ 

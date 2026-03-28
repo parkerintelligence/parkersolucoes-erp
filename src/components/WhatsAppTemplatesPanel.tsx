@@ -23,6 +23,8 @@ import {
 } from '@/hooks/useWhatsAppTemplates';
 import { toast } from '@/hooks/use-toast';
 
+type TemplateType = WhatsAppTemplate['template_type'];
+
 const WhatsAppTemplatesPanel = () => {
   const { data: templates = [], isLoading, refetch } = useWhatsAppTemplates();
   const createTemplate = useCreateWhatsAppTemplate();
@@ -33,7 +35,7 @@ const WhatsAppTemplatesPanel = () => {
   const [editingTemplate, setEditingTemplate] = useState<WhatsAppTemplate | null>(null);
   const [formData, setFormData] = useState<{
     name: string;
-    template_type: 'backup_alert' | 'schedule_critical' | 'glpi_summary';
+    template_type: TemplateType;
     subject: string;
     body: string;
     is_active: boolean;
@@ -49,25 +51,55 @@ const WhatsAppTemplatesPanel = () => {
     backup_alert: { 
       name: 'Alerta de Backups', 
       icon: HardDrive, 
-      color: 'bg-red-600 text-white',
+      color: 'bg-destructive/10 text-destructive border-destructive/30',
       variables: ['{{date}}', '{{hours_threshold}}', '{{backup_list}}', '{{total_outdated}}']
+    },
+    ftp_backup_summary: {
+      name: 'Resumo Backup FTP',
+      icon: HardDrive,
+      color: 'bg-primary/10 text-primary border-primary/30',
+      variables: ['{{date}}', '{{time}}', '{{generated_at}}', '{{ftp_path}}', '{{folders_count}}', '{{folders_total_size_gb}}', '{{folders_summary}}']
     },
     schedule_critical: { 
       name: 'Vencimentos Críticos', 
       icon: Calendar, 
-      color: 'bg-orange-600 text-white',
+      color: 'bg-accent/10 text-accent border-accent/30',
       variables: ['{{date}}', '{{schedule_items}}', '{{total_items}}', '{{critical_count}}']
     },
     glpi_summary: { 
       name: 'Resumo GLPI', 
       icon: ExternalLink, 
-      color: 'bg-blue-600 text-white',
+      color: 'bg-primary/10 text-primary border-primary/30',
       variables: [
         '{{date}}', '{{open_tickets}}', '{{critical_tickets}}', '{{pending_tickets}}', 
         '{{ticket_list}}', '{{open_tickets_list}}', '{{open_tickets_detailed}}', 
         '{{critical_tickets_list}}', '{{critical_tickets_detailed}}', '{{overdue}}', 
         '{{total_active}}', '{{new_today}}', '{{avg_time_open}}'
       ]
+    },
+    bacula_daily: {
+      name: 'Bacula Diário',
+      icon: HardDrive,
+      color: 'bg-primary/10 text-primary border-primary/30',
+      variables: ['{{date}}', '{{time}}']
+    },
+    bacula_daily_report: {
+      name: 'Bacula Relatório Diário',
+      icon: HardDrive,
+      color: 'bg-primary/10 text-primary border-primary/30',
+      variables: ['{{date}}', '{{time}}']
+    },
+    mikrotik_dashboard: {
+      name: 'Mikrotik Dashboard',
+      icon: MessageSquare,
+      color: 'bg-primary/10 text-primary border-primary/30',
+      variables: ['{{date}}', '{{time}}']
+    },
+    custom: {
+      name: 'Personalizado',
+      icon: MessageSquare,
+      color: 'bg-secondary/40 text-foreground border-border',
+      variables: ['{{date}}', '{{time}}']
     }
   };
 
@@ -145,10 +177,10 @@ const WhatsAppTemplatesPanel = () => {
   };
 
   const getTypeBadge = (type: string) => {
-    const templateType = templateTypes[type];
+    const templateType = templateTypes[type as keyof typeof templateTypes] || templateTypes.custom;
     const Icon = templateType.icon;
     return (
-      <Badge className={templateType.color}>
+      <Badge variant="outline" className={templateType.color}>
         <Icon className="h-3 w-3 mr-1" />
         {templateType.name}
       </Badge>
