@@ -141,6 +141,32 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    if (template.template_type === 'ftp_backup_summary') {
+      console.log('📁 [SEND] Tipo FTP Backup Summary detectado - delegando para função especializada');
+
+      const { data: ftpData, error: ftpError } = await supabase.functions.invoke(
+        'send-ftp-backup-summary',
+        {
+          body: { report_id }
+        }
+      );
+
+      if (ftpError) {
+        console.error('❌ [SEND] Erro na função FTP Backup Summary:', ftpError);
+        throw ftpError;
+      }
+
+      console.log('✅ [SEND] Resumo FTP processado com sucesso');
+
+      return new Response(
+        JSON.stringify(ftpData),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
     // For other report types, we need Evolution API integration
     // Criar log inicial
     reportLog = {

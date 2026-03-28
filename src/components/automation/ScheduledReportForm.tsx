@@ -39,6 +39,7 @@ interface ScheduledReportFormProps {
 
 const templateTypeIcons = {
   backup_alert: HardDrive,
+  ftp_backup_summary: HardDrive,
   schedule_critical: Calendar,
   glpi_summary: ExternalLink,
   bacula_daily: HardDrive,

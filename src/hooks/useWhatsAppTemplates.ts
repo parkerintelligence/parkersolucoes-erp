@@ -7,7 +7,15 @@ export interface WhatsAppTemplate {
   id: string;
   user_id: string;
   name: string;
-  template_type: 'backup_alert' | 'schedule_critical' | 'glpi_summary';
+  template_type:
+    | 'backup_alert'
+    | 'schedule_critical'
+    | 'glpi_summary'
+    | 'ftp_backup_summary'
+    | 'custom'
+    | 'bacula_daily'
+    | 'bacula_daily_report'
+    | 'mikrotik_dashboard';
   subject: string;
   body: string;
   variables?: any;
