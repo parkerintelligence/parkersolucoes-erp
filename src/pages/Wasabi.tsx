@@ -188,7 +188,7 @@ const Wasabi = () => {
                             <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
                               <Download className="h-2.5 w-2.5" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDelete(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                            <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
                               <Trash2 className="h-2.5 w-2.5" />
                             </Button>
                           </div>
