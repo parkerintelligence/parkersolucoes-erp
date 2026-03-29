@@ -779,24 +779,19 @@ serve(async (req) => {
       fatal_details: jobsByStatus.errors.map(formatJobDetails)
     };
 
-    const formatJobsList = (jobsList: any[], maxItems = 8) => {
-      if (!jobsList || jobsList.length === 0) return '• Nenhum job encontrado';
+    const formatJobsList = (jobsList: any[], maxItems = 50) => {
+      if (!jobsList || jobsList.length === 0) return '• Nenhum';
 
       const displayed = jobsList.slice(0, maxItems);
       const lines = displayed.map((job, index) => {
-        return `${index + 1}) ${job.jobstatus_emoji} ${job.name}\n` +
-          `   • Cliente: ${job.client}\n` +
-          `   • Início: ${job.starttime}\n` +
-          `   • Fim: ${job.endtime}\n` +
-          `   • Status: ${job.jobstatus_desc}\n` +
-          `   • Dados: ${job.jobbytes} | Arquivos: ${job.jobfiles}`;
+        return `${index + 1}) ${job.jobstatus_emoji} ${job.name} | ${job.client} | ${job.starttime} | ${job.jobbytes} | ${job.jobfiles} arq`;
       });
 
       if (jobsList.length > maxItems) {
-        lines.push(`… +${jobsList.length - maxItems} job(s) adicionais`);
+        lines.push(`… +${jobsList.length - maxItems} job(s)`);
       }
 
-      return lines.join('\n\n');
+      return lines.join('\n');
     };
 
     const successJobsDetails = formatJobsList(templateData.success_details);
