@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { useCreateRecurringSchedule, useUpdateRecurringSchedule } from '@/hooks/useRecurringSchedules';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useScheduleServices } from '@/hooks/useScheduleServices';
 import { toast } from '@/hooks/use-toast';
 import { scheduleColorPalette } from '@/utils/colorUtils';
+import { Clock, CalendarDays, MapPin, Building2, Palette, Save } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 
 type RecurringSchedule = Tables<'recurring_schedules'>;
@@ -22,13 +24,13 @@ interface RecurringScheduleDialogProps {
 }
 
 const DAYS_OF_WEEK = [
-  { value: 0, label: 'Domingo' },
-  { value: 1, label: 'Segunda' },
-  { value: 2, label: 'Terça' },
-  { value: 3, label: 'Quarta' },
-  { value: 4, label: 'Quinta' },
-  { value: 5, label: 'Sexta' },
-  { value: 6, label: 'Sábado' },
+  { value: 1, label: 'Seg', full: 'Segunda' },
+  { value: 2, label: 'Ter', full: 'Terça' },
+  { value: 3, label: 'Qua', full: 'Quarta' },
+  { value: 4, label: 'Qui', full: 'Quinta' },
+  { value: 5, label: 'Sex', full: 'Sexta' },
+  { value: 6, label: 'Sáb', full: 'Sábado' },
+  { value: 0, label: 'Dom', full: 'Domingo' },
 ];
 
 export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule }: RecurringScheduleDialogProps) => {
@@ -61,7 +63,7 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
         time_hour: editingSchedule.time_hour,
         time_minute: editingSchedule.time_minute,
         days_of_week: editingSchedule.days_of_week || [],
-        is_active: editingSchedule.is_active,
+        is_active: editingSchedule.is_active ?? true,
         color: editingSchedule.color || '#3b82f6'
       });
     } else {
@@ -78,13 +80,13 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
         color: '#3b82f6'
       });
     }
-  }, [editingSchedule]);
+  }, [editingSchedule, isOpen]);
 
   const handleSave = () => {
     if (!formData.name || !formData.system_name || formData.days_of_week.length === 0) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios e selecione pelo menos um dia da semana.",
+        description: "Preencha nome, sistema/serviço e selecione pelo menos um dia.",
         variant: "destructive"
       });
       return;
@@ -95,122 +97,148 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
     } else {
       createSchedule.mutate(formData);
     }
-    
     onOpenChange(false);
   };
 
-  const handleDayToggle = (day: number, checked: boolean) => {
-    if (checked) {
-      setFormData(prev => ({
-        ...prev,
-        days_of_week: [...prev.days_of_week, day].sort()
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        days_of_week: prev.days_of_week.filter(d => d !== day)
-      }));
-    }
+  const handleDayToggle = (day: number) => {
+    setFormData(prev => ({
+      ...prev,
+      days_of_week: prev.days_of_week.includes(day)
+        ? prev.days_of_week.filter(d => d !== day)
+        : [...prev.days_of_week, day].sort()
+    }));
   };
 
-  const formatTime = (hour: number, minute: number) => {
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (hour: number, minute: number) =>
+    `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
-  const colorOptions = scheduleColorPalette.map((color, index) => ({
-    value: color,
-    label: `Cor ${index + 1}`
-  }));
+  const selectedDaysText = formData.days_of_week
+    .map(d => DAYS_OF_WEEK.find(day => day.value === d)?.full)
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-gray-700">
-        <DialogHeader>
-          <DialogTitle className="text-white">{editingSchedule ? 'Editar Agendamento' : 'Novo Agendamento Recorrente'}</DialogTitle>
-          <DialogDescription className="text-gray-300">
-            Configure um agendamento que se repete automaticamente nos dias selecionados.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="grid gap-3 py-4">
-          {/* Linha 1 - Nome e Cliente */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1">
-              <Label htmlFor="name" className="text-sm font-medium text-white">Nome do Agendamento *</Label>
-              <Input
-                id="name"
-                placeholder="Ex: Backup diário"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="h-8 bg-gray-800 border-gray-600 text-white"
-              />
-            </div>
+      <DialogContent className="sm:max-w-lg bg-card border-border p-0 gap-0 overflow-hidden">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-3 border-b border-border">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              {editingSchedule ? 'Editar Agendamento' : 'Novo Agendamento Recorrente'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Configure um agendamento que se repete nos dias selecionados.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-            <div className="grid gap-1">
-              <Label htmlFor="client" className="text-sm font-medium text-white">Cliente</Label>
+        {/* Form body */}
+        <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Nome */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">Nome do agendamento *</Label>
+            <Input
+              placeholder="Ex: Backup diário servidor"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="h-8 text-xs bg-muted/50 border-border"
+            />
+          </div>
+
+          {/* Cliente + Sistema */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                <Building2 className="h-3 w-3 text-muted-foreground" />
+                Cliente
+              </Label>
               <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
-                <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white">
-                  <SelectValue placeholder="Selecione o cliente" />
+                <SelectTrigger className="h-8 text-xs bg-muted/50 border-border">
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id} className="text-white hover:bg-gray-700">{company.name}</SelectItem>
+                <SelectContent>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* Linha 2 - Sistema/Serviço e Local */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1">
-              <Label htmlFor="system" className="text-sm font-medium text-white">Sistema/Serviço *</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Sistema/Serviço *</Label>
               <Select value={formData.system_name} onValueChange={(value) => setFormData(prev => ({ ...prev, system_name: value }))}>
-                <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white">
-                  <SelectValue placeholder="Selecione um sistema/serviço" />
+                <SelectTrigger className="h-8 text-xs bg-muted/50 border-border">
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.name} className="text-white hover:bg-gray-700">
-                      <div className="flex items-center gap-2">
-                        <span className="capitalize">{service.category}</span>
-                        <span>-</span>
-                        <span>{service.name}</span>
-                      </div>
+                <SelectContent>
+                  {services.map((s) => (
+                    <SelectItem key={s.id} value={s.name} className="text-xs">
+                      {s.category ? `${s.category} — ${s.name}` : s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {services.length === 0 && (
-                <p className="text-xs text-gray-400">
-                  Nenhum sistema/serviço cadastrado.
-                </p>
+                <p className="text-[10px] text-muted-foreground">Nenhum serviço cadastrado.</p>
               )}
-            </div>
-
-            <div className="grid gap-1">
-              <Label htmlFor="location" className="text-sm font-medium text-white">Local</Label>
-              <Input
-                id="location"
-                placeholder="Ex: Servidor principal"
-                value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                className="h-8 bg-gray-800 border-gray-600 text-white"
-              />
             </div>
           </div>
 
-          {/* Linha 3 - Horário e Cor */}
-          <div className="grid grid-cols-5 gap-3">
-            <div className="grid gap-1">
-              <Label htmlFor="hour" className="text-sm font-medium text-white">Hora</Label>
-              <Select value={formData.time_hour.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, time_hour: parseInt(value) }))}>
-                <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white">
+          {/* Local */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
+              Local
+            </Label>
+            <Input
+              placeholder="Ex: Sede, Filial, Remoto"
+              value={formData.location}
+              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              className="h-8 text-xs bg-muted/50 border-border"
+            />
+          </div>
+
+          {/* Dias da semana */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-foreground">Dias da semana *</Label>
+            <div className="flex gap-1.5">
+              {DAYS_OF_WEEK.map((day) => {
+                const isSelected = formData.days_of_week.includes(day.value);
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => handleDayToggle(day.value)}
+                    title={day.full}
+                    className={cn(
+                      "flex-1 h-9 rounded-md text-xs font-medium transition-all border",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-muted/30 text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                    )}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Horário + Cor + Ativo */}
+          <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-3 items-end">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                Hora
+              </Label>
+              <Select value={formData.time_hour.toString()} onValueChange={(v) => setFormData(prev => ({ ...prev, time_hour: parseInt(v) }))}>
+                <SelectTrigger className="h-8 text-xs bg-muted/50 border-border">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
+                <SelectContent>
                   {Array.from({ length: 24 }, (_, i) => (
-                    <SelectItem key={i} value={i.toString()} className="text-white hover:bg-gray-700">
+                    <SelectItem key={i} value={i.toString()} className="text-xs">
                       {i.toString().padStart(2, '0')}h
                     </SelectItem>
                   ))}
@@ -218,107 +246,109 @@ export const RecurringScheduleDialog = ({ isOpen, onOpenChange, editingSchedule 
               </Select>
             </div>
 
-            <div className="grid gap-1">
-              <Label htmlFor="minute" className="text-sm font-medium text-white">Minutos</Label>
-              <Select value={formData.time_minute.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, time_minute: parseInt(value) }))}>
-                <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">Min</Label>
+              <Select value={formData.time_minute.toString()} onValueChange={(v) => setFormData(prev => ({ ...prev, time_minute: parseInt(v) }))}>
+                <SelectTrigger className="h-8 text-xs bg-muted/50 border-border">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {[0, 15, 30, 45].map(minute => (
-                    <SelectItem key={minute} value={minute.toString()} className="text-white hover:bg-gray-700">
-                      {minute.toString().padStart(2, '0')}min
+                <SelectContent>
+                  {[0, 5, 10, 15, 20, 30, 45].map(m => (
+                    <SelectItem key={m} value={m.toString()} className="text-xs">
+                      {m.toString().padStart(2, '0')}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid gap-1">
-              <Label htmlFor="color" className="text-sm font-medium text-white">Cor</Label>
-              <Select value={formData.color} onValueChange={(value) => setFormData(prev => ({ ...prev, color: value }))}>
-                <SelectTrigger className="h-8 bg-gray-800 border-gray-600 text-white">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: formData.color }}></div>
-                    <SelectValue />
-                  </div>
+            {/* Color picker */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground">
+                <Palette className="h-3 w-3 text-muted-foreground" />
+              </Label>
+              <Select value={formData.color} onValueChange={(v) => setFormData(prev => ({ ...prev, color: v }))}>
+                <SelectTrigger className="h-8 w-14 bg-muted/50 border-border px-2">
+                  <div className="w-5 h-5 rounded-full border border-border" style={{ backgroundColor: formData.color }} />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {colorOptions.map((color) => (
-                    <SelectItem key={color.value} value={color.value} className="text-white hover:bg-gray-700">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.value }}></div>
-                        <span>{color.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                <SelectContent>
+                  <div className="grid grid-cols-5 gap-1 p-1">
+                    {scheduleColorPalette.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, color }))}
+                        className={cn(
+                          "w-7 h-7 rounded-full border-2 transition-transform hover:scale-110",
+                          formData.color === color ? "border-foreground scale-110" : "border-transparent"
+                        )}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="col-span-2 flex items-end">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked as boolean }))}
-                />
-                <Label htmlFor="is_active" className="text-sm text-white">Ativo</Label>
-              </div>
+            {/* Ativo toggle */}
+            <div className="flex flex-col items-center gap-1 pb-0.5">
+              <Label className="text-[10px] text-muted-foreground">Ativo</Label>
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                className="scale-90"
+              />
             </div>
           </div>
 
-          {/* Linha 4 - Dias da Semana */}
-          <div className="grid gap-1">
-            <Label className="text-sm font-medium text-white">Dias da Semana *</Label>
-            <div className="grid grid-cols-4 gap-1">
-              {DAYS_OF_WEEK.map((day) => (
-                <div key={day.value} className="flex items-center space-x-1">
-                  <Checkbox
-                    id={`day-${day.value}`}
-                    checked={formData.days_of_week.includes(day.value)}
-                    onCheckedChange={(checked) => handleDayToggle(day.value, checked as boolean)}
-                  />
-                  <Label htmlFor={`day-${day.value}`} className="text-xs text-white">{day.label}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Linha 5 - Descrição */}
-          <div className="grid gap-1">
-            <Label htmlFor="description" className="text-sm font-medium text-white">Descrição</Label>
+          {/* Descrição */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">Descrição</Label>
             <Textarea
-              id="description"
-              placeholder="Detalhes adicionais"
+              placeholder="Observações adicionais..."
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={2}
-              className="text-sm bg-gray-800 border-gray-600 text-white"
+              className="text-xs bg-muted/50 border-border resize-none"
             />
           </div>
 
           {/* Preview */}
-          {formData.days_of_week.length > 0 && (
-            <div className="p-3 bg-gray-800 border border-gray-600 rounded-lg">
-              <p className="text-sm font-medium mb-1 text-white">Preview:</p>
+          {formData.days_of_week.length > 0 && (formData.name || formData.system_name) && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Prévia</p>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: formData.color }}></div>
-                <p className="text-sm text-gray-300">
-                  {formData.system_name || 'Sistema'} às {formatTime(formData.time_hour, formData.time_minute)} - {' '}
-                  {formData.days_of_week.map(day => DAYS_OF_WEEK.find(d => d.value === day)?.label).join(', ')}
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: formData.color }} />
+                <p className="text-xs text-foreground font-medium">
+                  {formData.name || formData.system_name}
                 </p>
               </div>
+              <p className="text-[11px] text-muted-foreground pl-[18px]">
+                {formData.system_name && <span>{formData.system_name} · </span>}
+                {formatTime(formData.time_hour, formData.time_minute)} · {selectedDaysText}
+              </p>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={createSchedule.isPending || updateSchedule.isPending} className="bg-blue-600 hover:bg-blue-700 text-white">
-            {editingSchedule ? 'Atualizar' : 'Criar'} Agendamento
-          </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-600 text-gray-300 hover:bg-gray-800">
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-border flex justify-end gap-2 bg-muted/20">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="h-8 text-xs"
+          >
             Cancelar
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={createSchedule.isPending || updateSchedule.isPending}
+            className="h-8 text-xs gap-1.5"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {editingSchedule ? 'Atualizar' : 'Criar Agendamento'}
           </Button>
         </div>
       </DialogContent>
