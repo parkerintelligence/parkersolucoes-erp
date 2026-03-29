@@ -135,7 +135,7 @@ export const useWasabi = () => {
       const wasabiService = new WasabiService(activeWasabiIntegration);
       
       for (const file of Array.from(files)) {
-        await wasabiService.uploadFile(file, bucketName);
+        await wasabiService.uploadFile(file, bucketName, currentPath);
       }
 
       return { 

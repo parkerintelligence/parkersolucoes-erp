@@ -215,11 +215,33 @@ export const useToggleScheduledReportActive = () => {
   
   return useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      console.log('Alterando status do relatório:', id, 'para:', !is_active);
+      const newActive = !is_active;
+      console.log('Alterando status do relatório:', id, 'para:', newActive);
+      
+      // Ao reativar, recalcular next_execution para o futuro
+      const updates: any = { is_active: newActive };
+      if (newActive) {
+        // Buscar cron_expression do relatório
+        const { data: report } = await supabase
+          .from('scheduled_reports')
+          .select('cron_expression')
+          .eq('id', id)
+          .single();
+
+        if (report) {
+          const { data: nextExec } = await supabase
+            .rpc('calculate_next_execution', {
+              cron_expr: report.cron_expression,
+              from_time: new Date().toISOString()
+            });
+          updates.next_execution = nextExec;
+          console.log('next_execution recalculado para o futuro:', nextExec);
+        }
+      }
       
       const { data, error } = await supabase
         .from('scheduled_reports')
-        .update({ is_active: !is_active })
+        .update(updates)
         .eq('id', id)
         .select()
         .single();

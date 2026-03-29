@@ -153,99 +153,114 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
               ))}
             </SelectContent>
           </Select>
+          <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <SelectTrigger className="w-40 h-8 text-xs bg-background border-border">
+              <SelectValue placeholder="Empresa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-xs">Todas empresas</SelectItem>
+              {uniqueCompanies.map(company => (
+                <SelectItem key={company} value={company} className="text-xs">{company}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Table */}
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground text-xs h-8 px-3">Título</TableHead>
-                <TableHead className="text-muted-foreground text-xs h-8 px-3">Empresa</TableHead>
-                <TableHead className="text-muted-foreground text-xs h-8 px-3">Tipo</TableHead>
-                <TableHead className="text-muted-foreground text-xs h-8 px-3">Status</TableHead>
-                <TableHead className="text-muted-foreground text-xs h-8 px-3">Vencimento</TableHead>
-                <TableHead className="text-muted-foreground text-xs h-8 px-3 w-28">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.map(item => {
-                const daysUntil = getDaysUntilDue(item.due_date);
-                const statusInfo = getStatusLabel(daysUntil);
-                return (
-                  <Tooltip key={item.id}>
-                    <TooltipTrigger asChild>
-                      <TableRow className="border-border hover:bg-muted/30 cursor-default group">
-                        <TableCell className="py-1.5 px-3">
-                          <span className="text-xs font-medium text-foreground line-clamp-1">{item.title}</span>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <Building className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                            <span className="text-xs text-muted-foreground line-clamp-1">{item.company}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${getTypeBadge(item.type)}`}>
-                            {item.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 gap-1 ${statusInfo.cls}`}>
-                            {getStatusIcon(daysUntil)}
-                            {statusInfo.text}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-medium text-foreground">
-                              {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              ({daysUntil >= 0 ? `${daysUntil}d` : `${Math.abs(daysUntil)}d atrás`})
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1.5 px-3">
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setShowEditDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" title="Editar">
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenGLPITicket(item)} className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-400" title="Criar ticket GLPI">
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setShowWhatsAppDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" title="WhatsApp">
-                              <MessageCircle className="h-3 w-3" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={async () => {
-                              const ok = await confirm({
-                                title: 'Excluir agendamento',
-                                description: `Deseja excluir "${item.title}" (${item.company})? Esta ação não pode ser desfeita.`,
-                                variant: 'destructive',
-                              });
-                              if (ok) onDelete(item.id);
-                            }} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" align="start" className="max-w-sm">
-                      <div className="space-y-1 text-xs">
-                        <p className="font-semibold">{item.title}</p>
-                        <p><span className="text-muted-foreground">Empresa:</span> {item.company}</p>
-                        <p><span className="text-muted-foreground">Tipo:</span> {item.type}</p>
-                        <p><span className="text-muted-foreground">Vencimento:</span> {format(new Date(item.due_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
-                        {item.description && <p><span className="text-muted-foreground">Descrição:</span> {item.description}</p>}
-                        <p><span className="text-muted-foreground">Situação:</span> {statusInfo.text} — {daysUntil >= 0 ? `faltam ${daysUntil} dias` : `vencido há ${Math.abs(daysUntil)} dias`}</p>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </TableBody>
-          </Table>
+        {/* Grouped by Company */}
+        <div className="space-y-4">
+          {sortedCompanyGroups.map(([companyName, companyItems]) => (
+            <div key={companyName}>
+              <div className="flex items-center gap-2 mb-1.5 px-1">
+                <Building className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-bold text-primary">{companyName}</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{companyItems.length}</Badge>
+              </div>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="text-muted-foreground text-xs h-8 px-3">Título</TableHead>
+                      <TableHead className="text-muted-foreground text-xs h-8 px-3">Tipo</TableHead>
+                      <TableHead className="text-muted-foreground text-xs h-8 px-3">Status</TableHead>
+                      <TableHead className="text-muted-foreground text-xs h-8 px-3">Vencimento</TableHead>
+                      <TableHead className="text-muted-foreground text-xs h-8 px-3 w-28">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {companyItems.map(item => {
+                      const daysUntil = getDaysUntilDue(item.due_date);
+                      const statusInfo = getStatusLabel(daysUntil);
+                      return (
+                        <Tooltip key={item.id}>
+                          <TooltipTrigger asChild>
+                            <TableRow className="border-border hover:bg-muted/30 cursor-default group">
+                              <TableCell className="py-1.5 px-3">
+                                <span className="text-xs font-medium text-foreground line-clamp-1">{item.title}</span>
+                              </TableCell>
+                              <TableCell className="py-1.5 px-3">
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${getTypeBadge(item.type)}`}>
+                                  {item.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-1.5 px-3">
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 gap-1 ${statusInfo.cls}`}>
+                                  {getStatusIcon(daysUntil)}
+                                  {statusInfo.text}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-1.5 px-3">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-medium text-foreground">
+                                    {format(new Date(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    ({daysUntil >= 0 ? `${daysUntil}d` : `${Math.abs(daysUntil)}d atrás`})
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-1.5 px-3">
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setShowEditDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" title="Editar">
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleOpenGLPITicket(item)} className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-400" title="Criar ticket GLPI">
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setShowWhatsAppDialog(true); }} className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" title="WhatsApp">
+                                    <MessageCircle className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={async () => {
+                                    const ok = await confirm({
+                                      title: 'Excluir agendamento',
+                                      description: `Deseja excluir "${item.title}" (${item.company})? Esta ação não pode ser desfeita.`,
+                                      variant: 'destructive',
+                                    });
+                                    if (ok) onDelete(item.id);
+                                  }} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" title="Excluir">
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" align="start" className="max-w-sm">
+                            <div className="space-y-1 text-xs">
+                              <p className="font-semibold">{item.title}</p>
+                              <p><span className="text-muted-foreground">Empresa:</span> {item.company}</p>
+                              <p><span className="text-muted-foreground">Tipo:</span> {item.type}</p>
+                              <p><span className="text-muted-foreground">Vencimento:</span> {format(new Date(item.due_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                              {item.description && <p><span className="text-muted-foreground">Descrição:</span> {item.description}</p>}
+                              <p><span className="text-muted-foreground">Situação:</span> {statusInfo.text} — {daysUntil >= 0 ? `faltam ${daysUntil} dias` : `vencido há ${Math.abs(daysUntil)} dias`}</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ))}
 
           {filteredItems.length === 0 && (
             <div className="text-center py-8 text-muted-foreground text-xs">
