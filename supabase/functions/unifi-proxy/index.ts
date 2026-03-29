@@ -324,20 +324,14 @@ const fetchWithIgnoredTls = async (
 };
 
 // For local controllers, bypass self-signed certs
+// ALWAYS use fetchWithIgnoredTls for HTTPS to avoid NotValidForName errors
 const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const isHttps = url.startsWith('https://');
 
   if (isHttps) {
     const pinnedCaCert = resolvePinnedCaCert(url);
-    console.log(`[LOCAL] TLS socket request: ${url}${pinnedCaCert ? ' (pinned CA)' : ''}`);
-
-    try {
-      return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
-    } catch (socketError) {
-      const message = socketError instanceof Error ? socketError.message : String(socketError);
-      console.warn(`[LOCAL] TLS socket failed for ${url}: ${message}`);
-      return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
-    }
+    console.log(`[LOCAL] HTTPS request (ignored TLS): ${url}`);
+    return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
   }
 
   const ctrl = new AbortController();
