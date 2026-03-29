@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityCheckRef = useRef<number>(0);
 
-  const INACTIVITY_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+  const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 
   const fetchUserProfile = async (userId: string) => {
     try {
