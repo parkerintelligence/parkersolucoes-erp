@@ -838,25 +838,14 @@ serve(async (req) => {
     }
 
     const summaryLines = [
-      `• Total de Jobs: ${templateData.total_jobs}`,
-      `• Jobs com Sucesso: ${templateData.success_jobs}`,
-      `• Jobs com Erro: ${templateData.error_jobs}`,
-      `• Jobs Cancelados: ${templateData.cancelled_jobs}`,
-      `• Jobs em Execução: ${templateData.running_jobs}`,
-      `• Jobs Bloqueados: ${templateData.blocked_jobs}`,
-      `• Taxa de Sucesso: ${templateData.success_rate}%`,
-      `• Dados Processados: ${templateData.total_bytes}`,
-      `• Arquivos Processados: ${templateData.total_files}`,
-      `• Duração Média: ${templateData.avg_duration}`,
-      `• Clientes afetados: ${templateData.affected_clients}/${templateData.total_clients}`,
-      `• Fonte dos dados: API Bacula (dados reais)`,
+      `Total: ${templateData.total_jobs} | ✅${templateData.success_jobs} ❌${templateData.error_jobs} 🚫${templateData.cancelled_jobs} 🔄${templateData.running_jobs} ⏸️${templateData.blocked_jobs}`,
+      `Taxa: ${templateData.success_rate}% | Dados: ${templateData.total_bytes} | Arquivos: ${templateData.total_files}`,
+      `Duração média: ${templateData.avg_duration} | Clientes: ${templateData.affected_clients}/${templateData.total_clients}`,
     ].join('\n');
 
     let finalMessage = [
-      `📊 *RELATÓRIO DIÁRIO DE ERROS - BACULA*`,
-      `📅 *Período:* ${templateData.period}`,
-      `🕒 *Gerado em:* ${templateData.current_time}`,
-      ``,
+      `📊 *BACULA - ${templateData.period}*`,
+      `🕒 ${templateData.current_time}`,
       summaryLines,
       ...sections
     ].join('\n\n');
