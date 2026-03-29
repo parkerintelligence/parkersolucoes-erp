@@ -323,15 +323,23 @@ const fetchWithIgnoredTls = async (
   }
 };
 
-// For local controllers, bypass self-signed certs
-// ALWAYS use fetchWithIgnoredTls for HTTPS to avoid NotValidForName errors
+// For local controllers, prefer a raw TLS socket so we can control SNI/hostname
+// and accept common UniFi self-signed certificates (CN/SAN = UniFi).
 const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const isHttps = url.startsWith('https://');
 
   if (isHttps) {
     const pinnedCaCert = resolvePinnedCaCert(url);
-    console.log(`[LOCAL] HTTPS request (ignored TLS): ${url}`);
-    return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
+
+    try {
+      console.log(`[LOCAL] HTTPS request (raw TLS socket): ${url}`);
+      return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+    } catch (socketError) {
+      const message = socketError instanceof Error ? socketError.message : String(socketError);
+      console.warn(`[LOCAL] Raw TLS socket failed, fallback to ignored TLS fetch: ${message}`);
+      console.log(`[LOCAL] HTTPS request (ignored TLS fallback): ${url}`);
+      return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
+    }
   }
 
   const ctrl = new AbortController();
