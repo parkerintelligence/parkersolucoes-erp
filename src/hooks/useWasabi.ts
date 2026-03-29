@@ -125,6 +125,46 @@ export const useWasabi = () => {
     },
   });
 
+  // Criar pasta
+  const createFolderMutation = useMutation({
+    mutationFn: async (folderName: string) => {
+      if (!activeWasabiIntegration || !selectedBucket) {
+        throw new Error('Integração ou bucket não configurado');
+      }
+      const wasabiService = new WasabiService(activeWasabiIntegration);
+      const fullPath = currentPath ? `${currentPath}${folderName}` : folderName;
+      await wasabiService.createFolder(selectedBucket, fullPath);
+      return { folderName };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket, currentPath] });
+      toast({ title: "Pasta criada!", description: `Pasta "${data.folderName}" criada com sucesso.` });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao criar pasta", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Excluir pasta
+  const deleteFolderMutation = useMutation({
+    mutationFn: async (folderPath: string) => {
+      if (!activeWasabiIntegration || !selectedBucket) {
+        throw new Error('Integração ou bucket não configurado');
+      }
+      const wasabiService = new WasabiService(activeWasabiIntegration);
+      const fullPath = currentPath ? `${currentPath}${folderPath}` : folderPath;
+      await wasabiService.deleteFolder(selectedBucket, fullPath);
+      return { folderPath };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['wasabi-files', activeWasabiIntegration?.id, selectedBucket, currentPath] });
+      toast({ title: "Pasta excluída!", description: `Pasta "${data.folderPath}" foi removida.` });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao excluir pasta", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Upload de arquivos
   const uploadFiles = useMutation({
     mutationFn: async ({ files, bucketName }: { files: FileList; bucketName: string }) => {
@@ -258,5 +298,7 @@ export const useWasabi = () => {
     deleteFile,
     deleteObject,
     createBucket,
+    createFolder: createFolderMutation,
+    deleteFolder: deleteFolderMutation,
   };
 };

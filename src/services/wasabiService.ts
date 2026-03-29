@@ -104,6 +104,66 @@ export class WasabiService {
     }
   }
 
+  async createFolder(bucketName: string, folderPath: string): Promise<void> {
+    if (!this.s3Client || !bucketName) {
+      throw new Error('Cliente S3 ou bucket não configurado');
+    }
+
+    try {
+      const key = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+      console.log('Criando pasta:', key, 'no bucket:', bucketName);
+
+      const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+        Body: new Uint8Array(0),
+        ContentType: 'application/x-directory',
+      });
+
+      await this.s3Client.send(command);
+      console.log('Pasta criada com sucesso:', key);
+    } catch (error) {
+      console.error('Erro ao criar pasta:', error);
+      throw new Error(`Erro ao criar pasta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
+  async deleteFolder(bucketName: string, folderPath: string): Promise<void> {
+    if (!this.s3Client || !bucketName) {
+      throw new Error('Cliente S3 ou bucket não configurado');
+    }
+
+    try {
+      const prefix = folderPath.endsWith('/') ? folderPath : `${folderPath}/`;
+      console.log('Listando conteúdo da pasta para exclusão:', prefix);
+
+      // List all objects in the folder
+      const listCommand = new ListObjectsV2Command({
+        Bucket: bucketName,
+        Prefix: prefix,
+      });
+      const listResponse = await this.s3Client.send(listCommand);
+
+      // Delete each object
+      if (listResponse.Contents) {
+        for (const obj of listResponse.Contents) {
+          if (obj.Key) {
+            const deleteCommand = new DeleteObjectCommand({
+              Bucket: bucketName,
+              Key: obj.Key,
+            });
+            await this.s3Client.send(deleteCommand);
+          }
+        }
+      }
+
+      console.log('Pasta excluída com sucesso:', prefix);
+    } catch (error) {
+      console.error('Erro ao excluir pasta:', error);
+      throw new Error(`Erro ao excluir pasta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
   async listFiles(bucketName: string, prefix: string = ''): Promise<WasabiFile[]> {
     if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');

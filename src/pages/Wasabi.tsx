@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, FolderPlus, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Cloud, RefreshCcw, AlertTriangle, CheckCircle, Settings, FileText, Folder, Download, Upload, Trash2, FolderPlus, ArrowLeft, ChevronRight, FolderX } from 'lucide-react';
 import { useWasabi } from '@/hooks/useWasabi';
 import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog';
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
@@ -15,14 +16,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const Wasabi = () => {
   const {
     wasabiIntegration, buckets, objects, currentPath, isLoading, isLoadingBuckets,
-    createBucket, uploadFile, downloadObject, deleteObject, listObjects, listBuckets, navigateToFolder, navigateBack
+    createBucket, uploadFile, downloadObject, deleteObject, listObjects, listBuckets, navigateToFolder, navigateBack,
+    createFolder, deleteFolder
   } = useWasabi();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; fileName: string }>({ open: false, fileName: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; fileName: string; isFolder: boolean }>({ open: false, fileName: '', isFolder: false });
   const [uploadResult, setUploadResult] = useState<{ open: boolean; success: boolean; message: string }>({ open: false, success: true, message: '' });
+  const [createFolderDialog, setCreateFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const isConfigured = !!wasabiIntegration;
 
   const handleRefresh = async () => {
@@ -53,15 +57,27 @@ const Wasabi = () => {
 
   const handleDownload = (fileName: string) => { if (selectedBucket) downloadObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
   
-  const handleDeleteRequest = (fileName: string) => {
-    setDeleteConfirm({ open: true, fileName });
+  const handleDeleteRequest = (fileName: string, isFolder = false) => {
+    setDeleteConfirm({ open: true, fileName, isFolder });
   };
 
   const handleDeleteConfirm = () => {
     if (selectedBucket && deleteConfirm.fileName) {
-      deleteObject(selectedBucket, currentPath ? `${currentPath}${deleteConfirm.fileName}` : deleteConfirm.fileName);
+      if (deleteConfirm.isFolder) {
+        deleteFolder.mutate(deleteConfirm.fileName);
+      } else {
+        deleteObject(selectedBucket, currentPath ? `${currentPath}${deleteConfirm.fileName}` : deleteConfirm.fileName);
+      }
     }
-    setDeleteConfirm({ open: false, fileName: '' });
+    setDeleteConfirm({ open: false, fileName: '', isFolder: false });
+  };
+
+  const handleCreateFolder = () => {
+    if (newFolderName.trim()) {
+      createFolder.mutate(newFolderName.trim());
+      setNewFolderName('');
+      setCreateFolderDialog(false);
+    }
   };
 
   const handleFileClick = (file: any) => { if (file.isFolder) navigateToFolder(file.name); };
@@ -106,6 +122,9 @@ const Wasabi = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCreateBucketDialogOpen(true)} className="h-8 text-xs">
             <FolderPlus className="h-3.5 w-3.5 mr-1" /> Criar Bucket
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCreateFolderDialog(true)} disabled={!selectedBucket} className="h-8 text-xs">
+            <FolderPlus className="h-3.5 w-3.5 mr-1" /> Nova Pasta
           </Button>
           <Button size="sm" onClick={() => setUploadDialogOpen(true)} disabled={!selectedBucket} className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
             <Upload className="h-3.5 w-3.5 mr-1" /> Upload
@@ -183,16 +202,23 @@ const Wasabi = () => {
                             </p>
                           </div>
                         </div>
-                        {!object.isFolder && (
-                          <div className="flex items-center gap-1">
-                            <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
-                              <Download className="h-2.5 w-2.5" />
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          {object.isFolder && (
+                            <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key, true)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                              <FolderX className="h-2.5 w-2.5" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
-                              <Trash2 className="h-2.5 w-2.5" />
-                            </Button>
-                          </div>
-                        )}
+                          )}
+                          {!object.isFolder && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
+                                <Download className="h-2.5 w-2.5" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-2.5 w-2.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )) : (
                       <div className="text-center py-10">
@@ -256,7 +282,7 @@ const Wasabi = () => {
             <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
               <Trash2 className="h-6 w-6 text-destructive" />
             </div>
-            <AlertDialogTitle className="text-center text-foreground">Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogTitle className="text-center text-foreground">{deleteConfirm.isFolder ? 'Excluir pasta?' : 'Excluir arquivo?'}</AlertDialogTitle>
             <AlertDialogDescription className="text-center text-muted-foreground text-sm">
               Tem certeza que deseja excluir <strong className="text-foreground">{deleteConfirm.fileName}</strong>? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -286,6 +312,38 @@ const Wasabi = () => {
             <Button size="sm" onClick={() => setUploadResult(prev => ({ ...prev, open: false }))} className="bg-primary text-primary-foreground hover:bg-primary/90">
               OK
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Criar pasta */}
+      <Dialog open={createFolderDialog} onOpenChange={setCreateFolderDialog}>
+        <DialogContent className="bg-card border-border sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <FolderPlus className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-center text-foreground">Nova Pasta</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground text-sm">
+              Criar pasta em: {getCurrentPathDisplay() || selectedBucket}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Nome da pasta"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              className="bg-secondary border-border"
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setCreateFolderDialog(false); setNewFolderName(''); }}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                {createFolder.isPending ? 'Criando...' : 'Criar'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
