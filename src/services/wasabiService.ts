@@ -164,6 +164,7 @@ export class WasabiService {
     }
   }
 
+  async listFiles(bucketName: string, prefix: string = ''): Promise<WasabiFile[]> {
     if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
