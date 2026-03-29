@@ -1,7 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Copy, X } from 'lucide-react';
@@ -41,68 +40,52 @@ export const ViewAnnotationDialog = ({ open, onOpenChange, annotation }: ViewAnn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[95vh] bg-gray-900 border-gray-700">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
-            <Eye className="h-5 w-5 text-blue-400" />
-            Visualizar Anotação
+      <DialogContent className="sm:max-w-[90vw] lg:max-w-5xl max-h-[95vh] overflow-y-auto bg-card border-border p-4">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="flex items-center gap-2 text-foreground text-sm">
+            <Eye className="h-4 w-4 text-primary" />
+            {annotation.name}
+            {annotation.company && (
+              <Badge variant="outline" className="bg-secondary text-primary border-border text-[10px] ml-2">
+                🏢 {annotation.company}
+              </Badge>
+            )}
+            {annotation.service && (
+              <Badge variant="outline" className="bg-secondary text-accent border-border text-[10px]">
+                ⚙️ {annotation.service}
+              </Badge>
+            )}
           </DialogTitle>
-          <DialogDescription className="text-gray-300">
-            Detalhes completos da anotação
+          <DialogDescription className="text-muted-foreground text-[11px]">
+            {annotation.created_at && <>Criado: {new Date(annotation.created_at).toLocaleString('pt-BR')}</>}
+            {annotation.updated_at && annotation.updated_at !== annotation.created_at && <> · Atualizado: {new Date(annotation.updated_at).toLocaleString('pt-BR')}</>}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          {/* Header compacto */}
-          <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-2">
-            <h2 className="text-base font-semibold text-white truncate">{annotation.name}</h2>
-            <div className="flex gap-1.5 flex-shrink-0">
-              {annotation.company && (
-                <Badge variant="outline" className="bg-gray-800 text-blue-300 border-gray-600 text-[10px]">
-                  🏢 {annotation.company}
-                </Badge>
-              )}
-              {annotation.service && (
-                <Badge variant="outline" className="bg-gray-800 text-purple-300 border-gray-600 text-[10px]">
-                  ⚙️ {annotation.service}
-                </Badge>
-              )}
+        <div className="space-y-2">
+          <div>
+            <Label className="text-[11px] font-medium text-muted-foreground mb-0.5 block">Anotação:</Label>
+            <div className="p-2 bg-secondary/50 rounded-md border border-border">
+              <pre className="whitespace-pre-wrap text-[11px] text-foreground font-mono leading-snug break-words">{annotation.annotation}</pre>
             </div>
           </div>
-
-          {/* Conteúdo principal - flex grow para ocupar espaço */}
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
+          {annotation.notes && (
             <div>
-              <Label className="text-xs font-medium text-gray-400 mb-1 block">Anotação:</Label>
-              <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
-                <pre className="whitespace-pre-wrap text-xs text-white font-mono leading-relaxed">{annotation.annotation}</pre>
+              <Label className="text-[11px] font-medium text-muted-foreground mb-0.5 block">Observações:</Label>
+              <div className="p-2 bg-secondary/50 rounded-md border border-border">
+                <pre className="whitespace-pre-wrap text-[11px] text-muted-foreground font-mono leading-snug break-words">{annotation.notes}</pre>
               </div>
             </div>
-            {annotation.notes && (
-              <div>
-                <Label className="text-xs font-medium text-gray-400 mb-1 block">Observações:</Label>
-                <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
-                  <pre className="whitespace-pre-wrap text-xs text-gray-200 leading-relaxed">{annotation.notes}</pre>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
+        </div>
 
-          {/* Footer compacto */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-            <div className="text-[10px] text-gray-500">
-              {annotation.created_at && <>Criado: {new Date(annotation.created_at).toLocaleString('pt-BR')}</>}
-              {annotation.updated_at && annotation.updated_at !== annotation.created_at && <> · Atualizado: {new Date(annotation.updated_at).toLocaleString('pt-BR')}</>}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleCopy} className="text-blue-300 hover:text-blue-200 border-gray-600 hover:bg-gray-800 bg-gray-900 h-7 text-xs">
-                <Copy className="mr-1.5 h-3 w-3" /> Copiar
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-white border-gray-600 hover:bg-gray-800 bg-gray-900 h-7 text-xs">
-                <X className="mr-1.5 h-3 w-3" /> Fechar
-              </Button>
-            </div>
-          </div>
+        <div className="flex justify-end gap-2 pt-1 border-t border-border">
+          <Button variant="outline" size="sm" onClick={handleCopy} className="h-7 text-xs">
+            <Copy className="mr-1.5 h-3 w-3" /> Copiar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="h-7 text-xs">
+            <X className="mr-1.5 h-3 w-3" /> Fechar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
