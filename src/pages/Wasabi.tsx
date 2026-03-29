@@ -314,6 +314,38 @@ const Wasabi = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Criar pasta */}
+      <Dialog open={createFolderDialog} onOpenChange={setCreateFolderDialog}>
+        <DialogContent className="bg-card border-border sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <FolderPlus className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-center text-foreground">Nova Pasta</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground text-sm">
+              Criar pasta em: {getCurrentPathDisplay() || selectedBucket}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Nome da pasta"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              className="bg-secondary border-border"
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setCreateFolderDialog(false); setNewFolderName(''); }}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolder.isPending} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                {createFolder.isPending ? 'Criando...' : 'Criar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
