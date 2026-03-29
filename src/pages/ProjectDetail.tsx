@@ -8,13 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog } from "@/components/ui/dialog";
 
 import { ProjectKanban } from "@/components/projects/ProjectKanban";
 import { ProjectList } from "@/components/projects/ProjectList";
 import { ProjectGantt } from "@/components/projects/ProjectGantt";
 import { ProjectCalendar } from "@/components/projects/ProjectCalendar";
+import { CardDialog } from "@/components/CardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
 import { isPast, isToday } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
