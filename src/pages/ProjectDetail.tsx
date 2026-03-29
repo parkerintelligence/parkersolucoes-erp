@@ -240,25 +240,43 @@ export default function ProjectDetail() {
         <CardDialog
           columns={boardColumns}
           onSave={async (data) => {
-            const { data: userData } = await supabase.auth.getUser();
-            if (!userData.user) return;
-            const columnId = data.column_id || boardColumns[0]?.id;
-            if (!columnId) return;
-            const insertData = {
-              title: data.title || 'Nova Tarefa',
-              column_id: columnId,
-              user_id: userData.user.id,
-              position: cards.filter(c => c.column_id === columnId).length,
-              ...(data.description && { description: data.description }),
-              ...(data.priority && { priority: data.priority }),
-              ...(data.due_date && { due_date: data.due_date }),
-              ...(data.assigned_to && { assigned_to: data.assigned_to }),
-              ...(data.color && { color: data.color }),
-              ...(data.status && { status: data.status }),
-            };
-            await supabase.from('action_cards').insert(insertData);
-            await fetchData();
-            setShowNewTaskDialog(false);
+            try {
+              const { data: userData } = await supabase.auth.getUser();
+              if (!userData.user) return;
+              
+              let columnId = data.column_id || boardColumns[0]?.id;
+              
+              // Auto-create a default column if none exist
+              if (!columnId && id) {
+                const { data: newCol } = await supabase.from('action_columns').insert({
+                  board_id: id,
+                  name: 'Tarefas',
+                  user_id: userData.user.id,
+                  position: 0,
+                }).select().single();
+                if (newCol) columnId = newCol.id;
+              }
+              
+              if (!columnId) return;
+              
+              const insertData = {
+                title: data.title || 'Nova Tarefa',
+                column_id: columnId,
+                user_id: userData.user.id,
+                position: cards.filter(c => c.column_id === columnId).length,
+                ...(data.description && { description: data.description }),
+                ...(data.priority && { priority: data.priority }),
+                ...(data.due_date && { due_date: data.due_date }),
+                ...(data.assigned_to && { assigned_to: data.assigned_to }),
+                ...(data.color && { color: data.color }),
+                ...(data.status && { status: data.status }),
+              };
+              await supabase.from('action_cards').insert(insertData);
+              await fetchData();
+              setShowNewTaskDialog(false);
+            } catch (err) {
+              console.error('Erro ao criar tarefa:', err);
+            }
           }}
         />
       </Dialog>
