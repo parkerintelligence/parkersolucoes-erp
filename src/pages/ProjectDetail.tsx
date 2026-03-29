@@ -26,6 +26,7 @@ export default function ProjectDetail() {
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
 
   const {
     boards, columns, cards, cardItems, isLoading,
