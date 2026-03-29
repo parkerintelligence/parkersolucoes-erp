@@ -61,15 +61,15 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
       setFormData({
         title: "",
         description: "",
-        color: "#f8fafc",
+        color: "#3b82f6",
         priority: "medium",
         due_date: "",
-        column_id: "",
+        column_id: columns?.[0]?.id || "",
         status: "not_started",
         assigned_to: "",
       });
     }
-  }, [card]);
+  }, [card, columns]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
