@@ -9,6 +9,8 @@ import { WasabiCreateBucketDialog } from '@/components/WasabiCreateBucketDialog'
 import { WasabiUploadDialog } from '@/components/WasabiUploadDialog';
 import { WasabiBucketSelector } from '@/components/WasabiBucketSelector';
 import { toast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const Wasabi = () => {
   const {
@@ -19,6 +21,8 @@ const Wasabi = () => {
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; fileName: string }>({ open: false, fileName: '' });
+  const [uploadResult, setUploadResult] = useState<{ open: boolean; success: boolean; message: string }>({ open: false, success: true, message: '' });
   const isConfigured = !!wasabiIntegration;
 
   const handleRefresh = async () => {
@@ -41,9 +45,25 @@ const Wasabi = () => {
     createBucket.mutate(bucketName, { onSuccess: () => { setCreateBucketDialogOpen(false); listBuckets(); } });
   };
 
-  const handleUpload = (files: FileList, bucketName: string) => { uploadFile(files, bucketName); setUploadDialogOpen(false); };
+  const handleUpload = (files: FileList, bucketName: string) => {
+    uploadFile(files, bucketName);
+    setUploadDialogOpen(false);
+    setUploadResult({ open: true, success: true, message: `${files.length} arquivo(s) enviado(s) com sucesso para ${bucketName}/${currentPath || ''}` });
+  };
+
   const handleDownload = (fileName: string) => { if (selectedBucket) downloadObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
-  const handleDelete = (fileName: string) => { if (selectedBucket) deleteObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
+  
+  const handleDeleteRequest = (fileName: string) => {
+    setDeleteConfirm({ open: true, fileName });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedBucket && deleteConfirm.fileName) {
+      deleteObject(selectedBucket, currentPath ? `${currentPath}${deleteConfirm.fileName}` : deleteConfirm.fileName);
+    }
+    setDeleteConfirm({ open: false, fileName: '' });
+  };
+
   const handleFileClick = (file: any) => { if (file.isFolder) navigateToFolder(file.name); };
   const getFileIcon = (file: any) => file.isFolder ? <Folder className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-primary" />;
   const getCurrentPathDisplay = () => !currentPath ? selectedBucket : `${selectedBucket}/${currentPath.replace(/\/$/, '')}`;
@@ -168,7 +188,7 @@ const Wasabi = () => {
                             <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
                               <Download className="h-2.5 w-2.5" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDelete(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                            <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
                               <Trash2 className="h-2.5 w-2.5" />
                             </Button>
                           </div>
@@ -228,6 +248,47 @@ const Wasabi = () => {
 
       <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />
       <WasabiUploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} selectedBucket={selectedBucket} onUpload={handleUpload} isUploading={false} />
+
+      {/* Confirmação de exclusão */}
+      <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm(prev => ({ ...prev, open }))}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
+              <Trash2 className="h-6 w-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-center text-foreground">Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-muted-foreground text-sm">
+              Tem certeza que deseja excluir <strong className="text-foreground">{deleteConfirm.fileName}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-2">
+            <AlertDialogCancel className="bg-secondary text-foreground border-border hover:bg-secondary/80">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resultado do upload */}
+      <Dialog open={uploadResult.open} onOpenChange={(open) => setUploadResult(prev => ({ ...prev, open }))}>
+        <DialogContent className="bg-card border-border sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <CheckCircle className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-center text-foreground">Upload realizado!</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground text-sm">
+              {uploadResult.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <Button size="sm" onClick={() => setUploadResult(prev => ({ ...prev, open: false }))} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
