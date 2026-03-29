@@ -248,6 +248,47 @@ const Wasabi = () => {
 
       <WasabiCreateBucketDialog open={createBucketDialogOpen} onOpenChange={setCreateBucketDialogOpen} onCreateBucket={handleCreateBucket} isCreating={createBucket.isPending} />
       <WasabiUploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} selectedBucket={selectedBucket} onUpload={handleUpload} isUploading={false} />
+
+      {/* Confirmação de exclusão */}
+      <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm(prev => ({ ...prev, open }))}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
+              <Trash2 className="h-6 w-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-center text-foreground">Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-muted-foreground text-sm">
+              Tem certeza que deseja excluir <strong className="text-foreground">{deleteConfirm.fileName}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-2">
+            <AlertDialogCancel className="bg-secondary text-foreground border-border hover:bg-secondary/80">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resultado do upload */}
+      <Dialog open={uploadResult.open} onOpenChange={(open) => setUploadResult(prev => ({ ...prev, open }))}>
+        <DialogContent className="bg-card border-border sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+              <CheckCircle className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-center text-foreground">Upload realizado!</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground text-sm">
+              {uploadResult.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center">
+            <Button size="sm" onClick={() => setUploadResult(prev => ({ ...prev, open: false }))} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              OK
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
