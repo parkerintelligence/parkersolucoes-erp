@@ -122,6 +122,9 @@ const Wasabi = () => {
           <Button variant="outline" size="sm" onClick={() => setCreateBucketDialogOpen(true)} className="h-8 text-xs">
             <FolderPlus className="h-3.5 w-3.5 mr-1" /> Criar Bucket
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setCreateFolderDialog(true)} disabled={!selectedBucket} className="h-8 text-xs">
+            <FolderPlus className="h-3.5 w-3.5 mr-1" /> Nova Pasta
+          </Button>
           <Button size="sm" onClick={() => setUploadDialogOpen(true)} disabled={!selectedBucket} className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20">
             <Upload className="h-3.5 w-3.5 mr-1" /> Upload
           </Button>
