@@ -298,5 +298,7 @@ export const useWasabi = () => {
     deleteFile,
     deleteObject,
     createBucket,
+    createFolder: createFolderMutation,
+    deleteFolder: deleteFolderMutation,
   };
 };
