@@ -234,6 +234,25 @@ export default function ProjectDetail() {
           <ProjectCalendar cards={filteredCards} columns={boardColumns} />
         )}
       </div>
+
+      {/* New Task Dialog */}
+      <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
+        <CardDialog
+          columns={boardColumns}
+          onSave={async (data) => {
+            const { data: userData } = await supabase.auth.getUser();
+            if (!userData.user) return;
+            await supabase.from('action_cards').insert({
+              ...data,
+              column_id: data.column_id || boardColumns[0]?.id,
+              user_id: userData.user.id,
+              position: cards.filter(c => c.column_id === (data.column_id || boardColumns[0]?.id)).length,
+            });
+            await fetchData();
+            setShowNewTaskDialog(false);
+          }}
+        />
+      </Dialog>
     </div>
   );
 }
