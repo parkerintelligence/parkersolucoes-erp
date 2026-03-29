@@ -41,7 +41,7 @@ export const ViewAnnotationDialog = ({ open, onOpenChange, annotation }: ViewAnn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] bg-gray-900 border-gray-700">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <Eye className="h-5 w-5 text-blue-400" />
@@ -52,90 +52,56 @@ export const ViewAnnotationDialog = ({ open, onOpenChange, annotation }: ViewAnn
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Header com nome e badges */}
-          <div className="border-b border-gray-700 pb-4">
-            <h2 className="text-xl font-semibold text-white mb-2">
-              {annotation.name}
-            </h2>
-            <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-3">
+          {/* Header compacto */}
+          <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-2">
+            <h2 className="text-base font-semibold text-white truncate">{annotation.name}</h2>
+            <div className="flex gap-1.5 flex-shrink-0">
               {annotation.company && (
-                <Badge variant="outline" className="bg-gray-800 text-blue-300 border-gray-600">
+                <Badge variant="outline" className="bg-gray-800 text-blue-300 border-gray-600 text-[10px]">
                   🏢 {annotation.company}
                 </Badge>
               )}
               {annotation.service && (
-                <Badge variant="outline" className="bg-gray-800 text-purple-300 border-gray-600">
+                <Badge variant="outline" className="bg-gray-800 text-purple-300 border-gray-600 text-[10px]">
                   ⚙️ {annotation.service}
                 </Badge>
               )}
             </div>
           </div>
 
-          {/* Conteúdo principal */}
-          <div className="space-y-4">
+          {/* Conteúdo principal - flex grow para ocupar espaço */}
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
             <div>
-              <Label className="text-sm font-medium text-gray-300 mb-2 block">
-                Anotação Principal:
-              </Label>
-              <div className="p-4 bg-gray-800 rounded-lg border border-gray-600">
-                <pre className="whitespace-pre-wrap text-sm text-white font-mono">
-                  {annotation.annotation}
-                </pre>
+              <Label className="text-xs font-medium text-gray-400 mb-1 block">Anotação:</Label>
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
+                <pre className="whitespace-pre-wrap text-xs text-white font-mono leading-relaxed">{annotation.annotation}</pre>
               </div>
             </div>
-
             {annotation.notes && (
               <div>
-                <Label className="text-sm font-medium text-gray-300 mb-2 block">
-                  Observações:
-                </Label>
-                <div className="p-4 bg-gray-800 rounded-lg border border-gray-600">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-200">
-                    {annotation.notes}
-                  </pre>
+                <Label className="text-xs font-medium text-gray-400 mb-1 block">Observações:</Label>
+                <div className="p-3 bg-gray-800 rounded-lg border border-gray-600">
+                  <pre className="whitespace-pre-wrap text-xs text-gray-200 leading-relaxed">{annotation.notes}</pre>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Informações de data */}
-          {(annotation.created_at || annotation.updated_at) && (
-            <div className="pt-4 border-t border-gray-700">
-              <div className="text-xs text-gray-400 space-y-1">
-                {annotation.created_at && (
-                  <p>
-                    <strong>Criado em:</strong> {new Date(annotation.created_at).toLocaleString('pt-BR')}
-                  </p>
-                )}
-                {annotation.updated_at && annotation.updated_at !== annotation.created_at && (
-                  <p>
-                    <strong>Atualizado em:</strong> {new Date(annotation.updated_at).toLocaleString('pt-BR')}
-                  </p>
-                )}
-              </div>
+          {/* Footer compacto */}
+          <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+            <div className="text-[10px] text-gray-500">
+              {annotation.created_at && <>Criado: {new Date(annotation.created_at).toLocaleString('pt-BR')}</>}
+              {annotation.updated_at && annotation.updated_at !== annotation.created_at && <> · Atualizado: {new Date(annotation.updated_at).toLocaleString('pt-BR')}</>}
             </div>
-          )}
-
-          {/* Botões de ação */}
-          <div className="flex justify-between items-center pt-4 border-t border-gray-700">
-            <Button
-              variant="outline"
-              onClick={handleCopy}
-              className="text-blue-300 hover:text-blue-200 border-gray-600 hover:bg-gray-800 bg-gray-900"
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Copiar Texto
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="text-white border-gray-600 hover:bg-gray-800 bg-gray-900"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Fechar
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleCopy} className="text-blue-300 hover:text-blue-200 border-gray-600 hover:bg-gray-800 bg-gray-900 h-7 text-xs">
+                <Copy className="mr-1.5 h-3 w-3" /> Copiar
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-white border-gray-600 hover:bg-gray-800 bg-gray-900 h-7 text-xs">
+                <X className="mr-1.5 h-3 w-3" /> Fechar
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

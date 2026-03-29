@@ -177,26 +177,27 @@ export class WasabiService {
     }
   }
 
-  async uploadFile(file: File, bucketName: string): Promise<void> {
+  async uploadFile(file: File, bucketName: string, prefix: string = ''): Promise<void> {
     if (!this.s3Client || !bucketName) {
       throw new Error('Cliente S3 ou bucket não configurado');
     }
 
     try {
-      console.log('Fazendo upload do arquivo:', file.name, 'para bucket:', bucketName);
+      const key = prefix ? `${prefix}${file.name}` : file.name;
+      console.log('Fazendo upload do arquivo:', key, 'para bucket:', bucketName);
       
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
 
       const command = new PutObjectCommand({
         Bucket: bucketName,
-        Key: file.name,
+        Key: key,
         Body: uint8Array,
         ContentType: file.type || 'application/octet-stream',
       });
 
       await this.s3Client.send(command);
-      console.log('Upload concluído com sucesso:', file.name);
+      console.log('Upload concluído com sucesso:', key);
     } catch (error) {
       console.error('Erro no upload:', error);
       throw new Error(`Erro no upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);

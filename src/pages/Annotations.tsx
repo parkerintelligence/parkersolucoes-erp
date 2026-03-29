@@ -366,102 +366,100 @@ const Annotations = () => {
     setIsViewDialogOpen(true);
   };
 
-  const renderAnnotationTable = (annotationsToShow: Annotation[]) => (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
-            <TableHead className="text-muted-foreground text-xs">Empresa</TableHead>
-            <TableHead className="text-muted-foreground text-xs">Anotação</TableHead>
-            <TableHead className="text-muted-foreground text-xs">Observações</TableHead>
-            <TableHead className="text-muted-foreground text-xs">Serviço</TableHead>
-            <TableHead className="text-muted-foreground text-xs w-32 text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {annotationsToShow.map((item) => {
-            const company = companies.find(c => c.id === item.company_id);
-            return (
-              <TableRow key={item.id} className="border-border/50 hover:bg-muted/20">
-                <TableCell className="text-xs font-medium text-foreground py-1">{item.name}</TableCell>
-                <TableCell className="text-xs text-muted-foreground py-1">{company?.name || 'N/A'}</TableCell>
-                <TableCell className="py-1 max-w-xs">
-                  <div className="truncate text-xs text-foreground" title={item.annotation || ''}>
-                    {item.annotation || 'N/A'}
-                  </div>
-                </TableCell>
-                <TableCell className="py-1 max-w-xs">
-                  <div className="truncate text-xs text-muted-foreground" title={item.notes || ''}>
-                    {item.notes || '-'}
-                  </div>
-                </TableCell>
-                <TableCell className="py-1">
-                  {item.service ? (
-                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${getServiceBg(item.service)}`}>
-                      {getServiceIcon(item.service)}
-                      <span className={`text-xs font-medium ${getServiceColor(item.service)}`}>{item.service}</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="py-1 text-right">
-                  <div className="flex justify-end gap-0.5">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewAnnotation(item)}
-                      className="h-6 w-6 p-0"
-                      title="Ver"
-                    >
-                      <Eye className="h-2.5 w-2.5" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleWhatsAppShare(item)}
-                      className="h-6 w-6 p-0 text-green-500"
-                      title="WhatsApp"
-                    >
-                      <MessageCircle className="h-2.5 w-2.5" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEditAnnotation(item)}
-                      className="h-6 w-6 p-0"
-                      title="Editar"
-                    >
-                      <Edit className="h-2.5 w-2.5" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
-                      onClick={() => setDeleteConfirmDialog({ 
-                        open: true, 
-                        annotationId: item.id, 
-                        annotationName: item.name 
-                      })}
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-2.5 w-2.5" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-      {annotationsToShow.length === 0 && (
-        <div className="text-center py-6 text-muted-foreground text-sm">
-          Nenhuma anotação encontrada nesta categoria.
-        </div>
-      )}
-    </div>
-  );
+  const renderAnnotationTable = (annotationsToShow: Annotation[]) => {
+    // Agrupar por empresa
+    const grouped: Record<string, { companyName: string; items: Annotation[] }> = {};
+    annotationsToShow.forEach(item => {
+      const company = companies.find(c => c.id === item.company_id);
+      const companyName = company?.name || 'Sem empresa';
+      const key = item.company_id || '_none';
+      if (!grouped[key]) grouped[key] = { companyName, items: [] };
+      grouped[key].items.push(item);
+    });
+
+    // Ordenar: empresas com nome primeiro, "Sem empresa" por último
+    const sortedGroups = Object.entries(grouped).sort(([a], [b]) => {
+      if (a === '_none') return 1;
+      if (b === '_none') return -1;
+      return grouped[a].companyName.localeCompare(grouped[b].companyName);
+    });
+
+    return (
+      <div className="space-y-4">
+        {sortedGroups.map(([key, group]) => (
+          <div key={key}>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <Building className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-bold text-primary">{group.companyName}</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{group.items.length}</Badge>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-border/50">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="text-muted-foreground text-xs">Nome</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Anotação</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Observações</TableHead>
+                    <TableHead className="text-muted-foreground text-xs">Serviço</TableHead>
+                    <TableHead className="text-muted-foreground text-xs w-32 text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {group.items.map((item) => (
+                    <TableRow key={item.id} className="border-border/50 hover:bg-muted/20">
+                      <TableCell className="text-xs font-medium text-foreground py-1">{item.name}</TableCell>
+                      <TableCell className="py-1 max-w-xs">
+                        <div className="truncate text-xs text-foreground" title={item.annotation || ''}>
+                          {item.annotation || 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-1 max-w-xs">
+                        <div className="truncate text-xs text-muted-foreground" title={item.notes || ''}>
+                          {item.notes || '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-1">
+                        {item.service ? (
+                          <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${getServiceBg(item.service)}`}>
+                            {getServiceIcon(item.service)}
+                            <span className={`text-xs font-medium ${getServiceColor(item.service)}`}>{item.service}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1 text-right">
+                        <div className="flex justify-end gap-0.5">
+                          <Button variant="outline" size="sm" onClick={() => handleViewAnnotation(item)} className="h-6 w-6 p-0" title="Ver">
+                            <Eye className="h-2.5 w-2.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleWhatsAppShare(item)} className="h-6 w-6 p-0 text-green-500" title="WhatsApp">
+                            <MessageCircle className="h-2.5 w-2.5" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditAnnotation(item)} className="h-6 w-6 p-0" title="Editar">
+                            <Edit className="h-2.5 w-2.5" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteConfirmDialog({ open: true, annotationId: item.id, annotationName: item.name })} title="Excluir">
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ))}
+        {annotationsToShow.length === 0 && (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            Nenhuma anotação encontrada nesta categoria.
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (

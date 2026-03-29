@@ -8,13 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog } from "@/components/ui/dialog";
 
 import { ProjectKanban } from "@/components/projects/ProjectKanban";
 import { ProjectList } from "@/components/projects/ProjectList";
 import { ProjectGantt } from "@/components/projects/ProjectGantt";
 import { ProjectCalendar } from "@/components/projects/ProjectCalendar";
+import { CardDialog } from "@/components/CardDialog";
 import { useActionPlan } from "@/hooks/useActionPlan";
 import { isPast, isToday } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +26,7 @@ export default function ProjectDetail() {
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
 
   const {
     boards, columns, cards, cardItems, isLoading,
@@ -119,6 +123,10 @@ export default function ProjectDetail() {
             </span>
           )}
         </div>
+        <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20" onClick={() => setShowNewTaskDialog(true)}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Nova Tarefa
+        </Button>
       </div>
 
       {/* Stats Bar */}
@@ -226,6 +234,34 @@ export default function ProjectDetail() {
           <ProjectCalendar cards={filteredCards} columns={boardColumns} />
         )}
       </div>
+
+      {/* New Task Dialog */}
+      <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
+        <CardDialog
+          columns={boardColumns}
+          onSave={async (data) => {
+            const { data: userData } = await supabase.auth.getUser();
+            if (!userData.user) return;
+            const columnId = data.column_id || boardColumns[0]?.id;
+            if (!columnId) return;
+            const insertData = {
+              title: data.title || 'Nova Tarefa',
+              column_id: columnId,
+              user_id: userData.user.id,
+              position: cards.filter(c => c.column_id === columnId).length,
+              ...(data.description && { description: data.description }),
+              ...(data.priority && { priority: data.priority }),
+              ...(data.due_date && { due_date: data.due_date }),
+              ...(data.assigned_to && { assigned_to: data.assigned_to }),
+              ...(data.color && { color: data.color }),
+              ...(data.status && { status: data.status }),
+            };
+            await supabase.from('action_cards').insert(insertData);
+            await fetchData();
+            setShowNewTaskDialog(false);
+          }}
+        />
+      </Dialog>
     </div>
   );
 }
