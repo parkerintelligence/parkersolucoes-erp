@@ -281,7 +281,7 @@ const Wasabi = () => {
             <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
               <Trash2 className="h-6 w-6 text-destructive" />
             </div>
-            <AlertDialogTitle className="text-center text-foreground">Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogTitle className="text-center text-foreground">{deleteConfirm.isFolder ? 'Excluir pasta?' : 'Excluir arquivo?'}</AlertDialogTitle>
             <AlertDialogDescription className="text-center text-muted-foreground text-sm">
               Tem certeza que deseja excluir <strong className="text-foreground">{deleteConfirm.fileName}</strong>? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
