@@ -201,16 +201,23 @@ const Wasabi = () => {
                             </p>
                           </div>
                         </div>
-                        {!object.isFolder && (
-                          <div className="flex items-center gap-1">
-                            <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
-                              <Download className="h-2.5 w-2.5" />
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          {object.isFolder && (
+                            <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key, true)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                              <FolderX className="h-2.5 w-2.5" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
-                              <Trash2 className="h-2.5 w-2.5" />
-                            </Button>
-                          </div>
-                        )}
+                          )}
+                          {!object.isFolder && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => handleDownload(object.name || object.Key)} className="h-6 w-6 p-0">
+                                <Download className="h-2.5 w-2.5" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => handleDeleteRequest(object.name || object.Key)} className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-2.5 w-2.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )) : (
                       <div className="text-center py-10">
