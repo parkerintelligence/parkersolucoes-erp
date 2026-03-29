@@ -115,8 +115,7 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
             {/* Day headers */}
-            <div className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-border sticky top-0 bg-card z-10">
-              <div className="p-2" /> {/* time gutter */}
+            <div className="grid grid-cols-7 border-b border-border sticky top-0 bg-card z-10">
               {weekDates.map((date, i) => {
                 const isToday = date.toDateString() === today;
                 const daySchedules = getSchedulesForDay(i);
@@ -124,7 +123,7 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
                   <div
                     key={i}
                     className={cn(
-                      "p-2 text-center border-l border-border",
+                      "p-2.5 text-center border-l border-border first:border-l-0",
                       isToday && "bg-primary/5"
                     )}
                   >
@@ -141,58 +140,72 @@ const WeeklyView = ({ schedules, companies, onEdit }: WeeklyViewProps) => {
               })}
             </div>
 
-            {/* Time grid */}
-            <div className="relative">
-              {hours.map(hour => {
+            {/* Day columns with events */}
+            <div className="grid grid-cols-7 min-h-[400px]">
+              {weekDates.map((date, dayIndex) => {
+                const isToday = date.toDateString() === today;
+                const daySchedules = getSchedulesForDay(dayIndex);
+
                 return (
-                  <div key={hour} className="grid grid-cols-[50px_repeat(7,1fr)] min-h-[44px] border-b border-border/30">
-                    {/* Hour label */}
-                    <div className="py-1 text-right pr-1.5 text-[10px] text-muted-foreground font-mono border-r border-border/50">
-                      {hour.toString().padStart(2, '0')}:00
-                    </div>
-
-                    {/* Day cells */}
-                    {weekDates.map((date, dayIndex) => {
-                      const isToday = date.toDateString() === today;
-                      const daySchedules = getSchedulesForDay(dayIndex)
-                        .filter(s => s.time_hour === hour);
-
-                      return (
-                        <div
-                          key={dayIndex}
-                          className={cn(
-                            "border-l border-border/30 px-0.5 py-0.5",
-                            isToday && "bg-primary/[0.03]"
-                          )}
-                        >
-                          {daySchedules.map(schedule => {
-                            const company = getCompanyName(schedule.client_id);
-                            return (
-                              <div
-                                key={schedule.id}
-                                onClick={() => onEdit(schedule)}
-                                className="rounded px-1.5 py-1 mb-0.5 cursor-pointer transition-all hover:brightness-95 hover:shadow-sm border text-left"
-                                style={{
-                                  backgroundColor: (schedule.color || '#3b82f6') + '18',
-                                  borderColor: (schedule.color || '#3b82f6') + '40',
-                                  borderLeftWidth: '3px',
-                                  borderLeftColor: schedule.color || '#3b82f6',
-                                }}
-                              >
-                                <div className="text-[10px] font-semibold text-foreground truncate leading-tight">
-                                  {schedule.name}
-                                </div>
-                                <div className="text-[9px] text-muted-foreground leading-tight mt-0.5 truncate">
-                                  {formatTime(schedule.time_hour, schedule.time_minute)}
-                                  {company ? ` · ${company}` : ''}
-                                  {schedule.system_name ? ` · ${schedule.system_name}` : ''}
-                                </div>
+                  <div
+                    key={dayIndex}
+                    className={cn(
+                      "border-l border-border first:border-l-0 p-1.5",
+                      isToday && "bg-primary/[0.03]"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      {daySchedules.map(schedule => {
+                        const company = getCompanyName(schedule.client_id);
+                        return (
+                          <div
+                            key={schedule.id}
+                            onClick={() => onEdit(schedule)}
+                            className="rounded-md px-2 py-1.5 cursor-pointer transition-all hover:brightness-95 hover:shadow-sm border text-left"
+                            style={{
+                              backgroundColor: (schedule.color || '#3b82f6') + '18',
+                              borderColor: (schedule.color || '#3b82f6') + '40',
+                              borderLeftWidth: '3px',
+                              borderLeftColor: schedule.color || '#3b82f6',
+                            }}
+                          >
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <Clock className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                {formatTime(schedule.time_hour, schedule.time_minute)}
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-semibold text-foreground leading-tight">
+                              {schedule.name}
+                            </div>
+                            {company && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Building className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+                                <span className="text-[9px] text-muted-foreground truncate">{company}</span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
+                            )}
+                            {schedule.system_name && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Settings className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+                                <span className="text-[9px] text-muted-foreground truncate">{schedule.system_name}</span>
+                              </div>
+                            )}
+                            {schedule.location && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <MapPin className="h-2.5 w-2.5 text-muted-foreground flex-shrink-0" />
+                                <span className="text-[9px] text-muted-foreground truncate">{schedule.location}</span>
+                              </div>
+                            )}
+                            {schedule.description && (
+                              <p className="text-[9px] text-muted-foreground/70 truncate mt-0.5">{schedule.description}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {daySchedules.length === 0 && (
+                        <div className="text-center py-4 text-[10px] text-muted-foreground/30">—</div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
