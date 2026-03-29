@@ -21,6 +21,8 @@ const Wasabi = () => {
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; fileName: string }>({ open: false, fileName: '' });
+  const [uploadResult, setUploadResult] = useState<{ open: boolean; success: boolean; message: string }>({ open: false, success: true, message: '' });
   const isConfigured = !!wasabiIntegration;
 
   const handleRefresh = async () => {
@@ -43,9 +45,25 @@ const Wasabi = () => {
     createBucket.mutate(bucketName, { onSuccess: () => { setCreateBucketDialogOpen(false); listBuckets(); } });
   };
 
-  const handleUpload = (files: FileList, bucketName: string) => { uploadFile(files, bucketName); setUploadDialogOpen(false); };
+  const handleUpload = (files: FileList, bucketName: string) => {
+    uploadFile(files, bucketName);
+    setUploadDialogOpen(false);
+    setUploadResult({ open: true, success: true, message: `${files.length} arquivo(s) enviado(s) com sucesso para ${bucketName}/${currentPath || ''}` });
+  };
+
   const handleDownload = (fileName: string) => { if (selectedBucket) downloadObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
-  const handleDelete = (fileName: string) => { if (selectedBucket) deleteObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
+  
+  const handleDeleteRequest = (fileName: string) => {
+    setDeleteConfirm({ open: true, fileName });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedBucket && deleteConfirm.fileName) {
+      deleteObject(selectedBucket, currentPath ? `${currentPath}${deleteConfirm.fileName}` : deleteConfirm.fileName);
+    }
+    setDeleteConfirm({ open: false, fileName: '' });
+  };
+
   const handleFileClick = (file: any) => { if (file.isFolder) navigateToFolder(file.name); };
   const getFileIcon = (file: any) => file.isFolder ? <Folder className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-primary" />;
   const getCurrentPathDisplay = () => !currentPath ? selectedBucket : `${selectedBucket}/${currentPath.replace(/\/$/, '')}`;
