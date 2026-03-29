@@ -56,15 +56,27 @@ const Wasabi = () => {
 
   const handleDownload = (fileName: string) => { if (selectedBucket) downloadObject(selectedBucket, currentPath ? `${currentPath}${fileName}` : fileName); };
   
-  const handleDeleteRequest = (fileName: string) => {
-    setDeleteConfirm({ open: true, fileName });
+  const handleDeleteRequest = (fileName: string, isFolder = false) => {
+    setDeleteConfirm({ open: true, fileName, isFolder });
   };
 
   const handleDeleteConfirm = () => {
     if (selectedBucket && deleteConfirm.fileName) {
-      deleteObject(selectedBucket, currentPath ? `${currentPath}${deleteConfirm.fileName}` : deleteConfirm.fileName);
+      if (deleteConfirm.isFolder) {
+        deleteFolder.mutate(deleteConfirm.fileName);
+      } else {
+        deleteObject(selectedBucket, currentPath ? `${currentPath}${deleteConfirm.fileName}` : deleteConfirm.fileName);
+      }
     }
-    setDeleteConfirm({ open: false, fileName: '' });
+    setDeleteConfirm({ open: false, fileName: '', isFolder: false });
+  };
+
+  const handleCreateFolder = () => {
+    if (newFolderName.trim()) {
+      createFolder.mutate(newFolderName.trim());
+      setNewFolderName('');
+      setCreateFolderDialog(false);
+    }
   };
 
   const handleFileClick = (file: any) => { if (file.isFolder) navigateToFolder(file.name); };
