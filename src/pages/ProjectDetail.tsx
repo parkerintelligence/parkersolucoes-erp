@@ -123,6 +123,10 @@ export default function ProjectDetail() {
             </span>
           )}
         </div>
+        <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20" onClick={() => setShowNewTaskDialog(true)}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Nova Tarefa
+        </Button>
       </div>
 
       {/* Stats Bar */}
