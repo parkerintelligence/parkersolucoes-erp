@@ -15,14 +15,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const Wasabi = () => {
   const {
     wasabiIntegration, buckets, objects, currentPath, isLoading, isLoadingBuckets,
-    createBucket, uploadFile, downloadObject, deleteObject, listObjects, listBuckets, navigateToFolder, navigateBack
+    createBucket, uploadFile, downloadObject, deleteObject, listObjects, listBuckets, navigateToFolder, navigateBack,
+    createFolder, deleteFolder
   } = useWasabi();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
   const [createBucketDialogOpen, setCreateBucketDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; fileName: string }>({ open: false, fileName: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; fileName: string; isFolder: boolean }>({ open: false, fileName: '', isFolder: false });
   const [uploadResult, setUploadResult] = useState<{ open: boolean; success: boolean; message: string }>({ open: false, success: true, message: '' });
+  const [createFolderDialog, setCreateFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const isConfigured = !!wasabiIntegration;
 
   const handleRefresh = async () => {
