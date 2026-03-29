@@ -41,7 +41,7 @@ export const ViewAnnotationDialog = ({ open, onOpenChange, annotation }: ViewAnn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="sm:max-w-3xl max-h-[95vh] bg-gray-900 border-gray-700">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <Eye className="h-5 w-5 text-blue-400" />
