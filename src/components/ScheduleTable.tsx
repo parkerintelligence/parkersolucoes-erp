@@ -96,14 +96,27 @@ export const ScheduleTable = ({ items, onUpdate, onDelete }: ScheduleTableProps)
     return typeColors[type] || 'border-muted text-muted-foreground bg-muted/30';
   };
 
+  const [companyFilter, setCompanyFilter] = useState('');
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.company.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === '' || statusFilter === 'all' || item.status === statusFilter;
     const matchesType = typeFilter === '' || typeFilter === 'all' || item.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesCompany = companyFilter === '' || companyFilter === 'all' || item.company === companyFilter;
+    return matchesSearch && matchesStatus && matchesType && matchesCompany;
   });
 
   const uniqueTypes = [...new Set(items.map(item => item.type))];
+  const uniqueCompanies = [...new Set(items.map(item => item.company))].sort();
+
+  // Agrupar por empresa
+  const groupedByCompany: Record<string, ScheduleItem[]> = {};
+  filteredItems.forEach(item => {
+    const company = item.company || 'Sem empresa';
+    if (!groupedByCompany[company]) groupedByCompany[company] = [];
+    groupedByCompany[company].push(item);
+  });
+  const sortedCompanyGroups = Object.entries(groupedByCompany).sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <TooltipProvider>
