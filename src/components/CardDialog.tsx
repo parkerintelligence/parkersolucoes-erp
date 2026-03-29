@@ -61,15 +61,15 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
       setFormData({
         title: "",
         description: "",
-        color: "#f8fafc",
+        color: "#3b82f6",
         priority: "medium",
         due_date: "",
-        column_id: "",
+        column_id: columns?.[0]?.id || "",
         status: "not_started",
         assigned_to: "",
       });
     }
-  }, [card]);
+  }, [card, columns]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,14 +81,16 @@ export function CardDialog({ card, columns, onSave }: CardDialogProps) {
   };
 
   const colorOptions = [
-    { value: "#f8fafc", label: "Branco" },
-    { value: "#e0e7ff", label: "Azul Claro" },
-    { value: "#fecaca", label: "Vermelho Claro" },
-    { value: "#bbf7d0", label: "Verde Claro" },
-    { value: "#fef3c7", label: "Amarelo Claro" },
-    { value: "#e9d5ff", label: "Roxo Claro" },
-    { value: "#fed7aa", label: "Laranja Claro" },
-    { value: "#a7f3d0", label: "Esmeralda Claro" },
+    { value: "#3b82f6", label: "Azul" },
+    { value: "#ef4444", label: "Vermelho" },
+    { value: "#22c55e", label: "Verde" },
+    { value: "#f59e0b", label: "Amarelo" },
+    { value: "#8b5cf6", label: "Roxo" },
+    { value: "#f97316", label: "Laranja" },
+    { value: "#06b6d4", label: "Ciano" },
+    { value: "#ec4899", label: "Rosa" },
+    { value: "#10b981", label: "Esmeralda" },
+    { value: "#6366f1", label: "Índigo" },
   ];
 
   return (
