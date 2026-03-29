@@ -242,12 +242,21 @@ export default function ProjectDetail() {
           onSave={async (data) => {
             const { data: userData } = await supabase.auth.getUser();
             if (!userData.user) return;
-            await supabase.from('action_cards').insert({
-              ...data,
-              column_id: data.column_id || boardColumns[0]?.id,
+            const columnId = data.column_id || boardColumns[0]?.id;
+            if (!columnId) return;
+            const insertData = {
+              title: data.title || 'Nova Tarefa',
+              column_id: columnId,
               user_id: userData.user.id,
-              position: cards.filter(c => c.column_id === (data.column_id || boardColumns[0]?.id)).length,
-            });
+              position: cards.filter(c => c.column_id === columnId).length,
+              ...(data.description && { description: data.description }),
+              ...(data.priority && { priority: data.priority }),
+              ...(data.due_date && { due_date: data.due_date }),
+              ...(data.assigned_to && { assigned_to: data.assigned_to }),
+              ...(data.color && { color: data.color }),
+              ...(data.status && { status: data.status }),
+            };
+            await supabase.from('action_cards').insert(insertData);
             await fetchData();
             setShowNewTaskDialog(false);
           }}
