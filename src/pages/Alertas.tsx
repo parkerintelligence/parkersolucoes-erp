@@ -69,10 +69,21 @@ export default function Alertas() {
     };
   };
 
-  const devices: DeviceStatus[] = hosts.map(getDeviceStatus);
+  // Separate active and inactive hosts based on Zabbix status field
+  const activeHosts = hosts.filter(h => h.status === '0'); // 0 = enabled
+  const inactiveHosts = hosts.filter(h => h.status === '1'); // 1 = disabled
+
+  const devices: DeviceStatus[] = activeHosts.map(getDeviceStatus);
+  const inactiveDevices: DeviceStatus[] = inactiveHosts.map(h => ({
+    id: h.hostid,
+    name: h.name || h.host,
+    status: 'offline' as const,
+    lastSeen: undefined,
+  }));
   
   const onlineCount = devices.filter(d => d.status === 'online').length;
   const offlineCount = devices.filter(d => d.status === 'offline').length;
+  const inactiveCount = inactiveHosts.length;
 
   const handleRefresh = () => {
     refetchHosts();
