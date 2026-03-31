@@ -431,11 +431,35 @@ export default function Alertas() {
                       )}>
                         {isOnline ? 'ONLINE' : 'OFFLINE'}
                       </Badge>
-                      {isOnline && perf?.itemsFound?.uptime && (
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          <Clock className="h-3 w-3 inline mr-0.5" />
-                          {formatUptime(perf.uptime)}
-                        </p>
+                      {isOnline && perf && (
+                        <div className="mt-1.5 space-y-0.5 text-[10px]">
+                          {perf.itemsFound?.cpu && (
+                            <div className="flex items-center justify-center gap-1">
+                              <Cpu className="h-3 w-3 text-blue-400" />
+                              <span className={cn(
+                                perf.cpu > 80 ? "text-red-400" : perf.cpu > 50 ? "text-yellow-400" : "text-green-400"
+                              )}>
+                                {perf.cpu.toFixed(0)}%
+                              </span>
+                            </div>
+                          )}
+                          {perf.itemsFound?.memory && (
+                            <div className="flex items-center justify-center gap-1">
+                              <HardDrive className="h-3 w-3 text-purple-400" />
+                              <span className={cn(
+                                perf.memory > 80 ? "text-red-400" : perf.memory > 50 ? "text-yellow-400" : "text-green-400"
+                              )}>
+                                {perf.memory.toFixed(0)}%
+                              </span>
+                            </div>
+                          )}
+                          {perf.itemsFound?.uptime && (
+                            <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatUptime(perf.uptime)}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
