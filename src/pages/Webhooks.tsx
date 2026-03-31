@@ -251,7 +251,7 @@ export default function Webhooks() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map(w => (
+                  {[...filtered].sort((a, b) => a.name.localeCompare(b.name)).map(w => (
                     <Collapsible key={w.id} open={expandedId === w.id} onOpenChange={open => setExpandedId(open ? w.id : null)} asChild>
                       <>
                         <TableRow className="border-border/50 hover:bg-muted/20">
