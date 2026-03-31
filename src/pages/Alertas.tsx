@@ -391,50 +391,87 @@ export default function Alertas() {
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="status">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
-            {devices
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((device) => {
-                const perf = device.status === 'online' ? getPerformanceData(device.id) : null;
-                const isOnline = device.status === 'online';
-                return (
-                  <div 
-                    key={device.id} 
-                    className={cn(
-                      "rounded-lg px-3 py-3 border transition-all text-center",
-                      isOnline 
-                        ? "bg-green-950 border-green-500/30 hover:border-green-500/50" 
-                        : "bg-red-950 border-red-500/30 hover:border-red-500/50"
-                    )}
-                  >
-                    <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                      {isOnline 
-                        ? <Wifi className="h-4 w-4 text-green-400" /> 
-                        : <WifiOff className="h-4 w-4 text-red-400" />
-                      }
-                    </div>
-                    <p className="text-xs font-medium text-foreground truncate leading-tight" title={device.name}>
-                      {device.name}
-                    </p>
-                    <Badge className={cn(
-                      "mt-1.5 text-[10px] px-1.5 py-0",
-                      isOnline 
-                        ? "bg-green-900/50 text-green-400 border-green-500/30 hover:bg-green-900/50" 
-                        : "bg-red-900/50 text-red-400 border-red-500/30 hover:bg-red-900/50"
-                    )}>
-                      {isOnline ? 'ONLINE' : 'OFFLINE'}
-                    </Badge>
-                    {isOnline && perf?.itemsFound?.uptime && (
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        <Clock className="h-3 w-3 inline mr-0.5" />
-                        {formatUptime(perf.uptime)}
+        <TabsContent value="status" className="space-y-6">
+          {/* Ativos */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Wifi className="h-4 w-4 text-green-400" />
+              Ativos ({devices.length})
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
+              {devices
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((device) => {
+                  const perf = device.status === 'online' ? getPerformanceData(device.id) : null;
+                  const isOnline = device.status === 'online';
+                  return (
+                    <div 
+                      key={device.id} 
+                      className={cn(
+                        "rounded-lg px-3 py-3 border transition-all text-center",
+                        isOnline 
+                          ? "bg-green-950 border-green-500/30 hover:border-green-500/50" 
+                          : "bg-red-950 border-red-500/30 hover:border-red-500/50"
+                      )}
+                    >
+                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                        {isOnline 
+                          ? <Wifi className="h-4 w-4 text-green-400" /> 
+                          : <WifiOff className="h-4 w-4 text-red-400" />
+                        }
+                      </div>
+                      <p className="text-xs font-medium text-foreground truncate leading-tight" title={device.name}>
+                        {device.name}
                       </p>
-                    )}
-                  </div>
-                );
-              })}
+                      <Badge className={cn(
+                        "mt-1.5 text-[10px] px-1.5 py-0",
+                        isOnline 
+                          ? "bg-green-900/50 text-green-400 border-green-500/30 hover:bg-green-900/50" 
+                          : "bg-red-900/50 text-red-400 border-red-500/30 hover:bg-red-900/50"
+                      )}>
+                        {isOnline ? 'ONLINE' : 'OFFLINE'}
+                      </Badge>
+                      {isOnline && perf?.itemsFound?.uptime && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          <Clock className="h-3 w-3 inline mr-0.5" />
+                          {formatUptime(perf.uptime)}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
           </div>
+
+          {/* Inativos */}
+          {inactiveDevices.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Server className="h-4 w-4 text-gray-500" />
+                Inativos ({inactiveDevices.length})
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
+                {inactiveDevices
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((device) => (
+                    <div 
+                      key={device.id} 
+                      className="rounded-lg px-3 py-3 border transition-all text-center bg-gray-950 border-gray-500/30 opacity-60"
+                    >
+                      <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                        <Server className="h-4 w-4 text-gray-500" />
+                      </div>
+                      <p className="text-xs font-medium text-muted-foreground truncate leading-tight" title={device.name}>
+                        {device.name}
+                      </p>
+                      <Badge className="mt-1.5 text-[10px] px-1.5 py-0 bg-gray-900/50 text-gray-400 border-gray-500/30 hover:bg-gray-900/50">
+                        INATIVO
+                      </Badge>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="performance">
