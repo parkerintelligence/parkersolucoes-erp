@@ -364,7 +364,13 @@ export default function Alertas() {
               <span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />
               {offlineCount} offline
             </span>
-            <span className="text-muted-foreground/60">/ {devices.length} total</span>
+            {inactiveCount > 0 && (
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-gray-500 inline-block" />
+                {inactiveCount} inativos
+              </span>
+            )}
+            <span className="text-muted-foreground/60">/ {devices.length + inactiveCount} total</span>
           </div>
         </div>
         <Button 
