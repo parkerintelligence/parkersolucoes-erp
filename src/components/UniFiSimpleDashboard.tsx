@@ -173,7 +173,7 @@ const UniFiSimpleDashboard = () => {
           ))}
         </div>
 
-        {/* Site + Search */}
+        {/* Site selector */}
         <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
           <Select value={selectedSiteId} onValueChange={setSelectedSiteId} disabled={sitesLoading || !sites?.data?.length}>
             <SelectTrigger className="w-56 h-8 bg-card border-border text-xs">
@@ -188,11 +188,6 @@ const UniFiSimpleDashboard = () => {
               ))}
             </SelectContent>
           </Select>
-
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
-          </div>
         </div>
 
         {/* Error state */}
