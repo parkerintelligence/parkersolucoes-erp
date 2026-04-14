@@ -69,11 +69,11 @@ const WazuhAdminConfig = () => {
       return;
     }
 
-    if (!formData.username || !formData.password) {
-      console.error('❌ Usuário e senha são obrigatórios');
+    if (!formData.api_token && (!formData.username || !formData.password)) {
+      console.error('❌ Credenciais são obrigatórias');
       toast({
         title: "Erro de validação", 
-        description: "Usuário e senha são obrigatórios para acessar a API do Wazuh.",
+        description: "Informe usuário e senha ou um API token do Wazuh.",
         variant: "destructive",
       });
       return;
@@ -89,6 +89,7 @@ const WazuhAdminConfig = () => {
         base_url: formData.base_url.replace(/\/$/, ''),
         username: formData.username,
         password: formData.password,
+        api_token: formData.api_token || null,
         is_active: formData.is_active,
         is_global: true
       };

@@ -12,10 +12,10 @@ export const WazuhSetupGuide = () => {
         <div className="flex items-center gap-3">
           <Server className="h-6 w-6 text-orange-400" />
           <div>
-            <CardTitle className="text-white">Guia de Configuração do Servidor Wazuh</CardTitle>
-            <CardDescription className="text-slate-400">
-              Configure o Wazuh para aceitar conexões HTTP do Supabase Edge Functions
-            </CardDescription>
+              <CardTitle className="text-white">Guia de Configuração do Servidor Wazuh</CardTitle>
+              <CardDescription className="text-slate-400">
+                Configure o Wazuh com HTTPS válido ou HTTP real na porta 55000 para funcionar com o proxy
+              </CardDescription>
           </div>
         </div>
       </CardHeader>
