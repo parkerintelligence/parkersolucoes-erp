@@ -121,6 +121,7 @@ serve(async (req) => {
 
     const cleanBaseUrls = [...new Set(buildBaseUrlCandidates(base_url))];
     const originalBaseUrl = cleanBaseUrls[0];
+    const targetHostname = new URL(originalBaseUrl).hostname;
 
     console.log(`Connecting to Wazuh API. Candidates: ${cleanBaseUrls.join(' | ')}`);
 
@@ -139,9 +140,19 @@ serve(async (req) => {
     const buildAuthError = (baseUrl: string, message: string, status?: number) => {
       const normalizedMessage = message.toLowerCase();
       const protocol = baseUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
+      const hostname = new URL(baseUrl).hostname;
 
       if (status === 401 || normalizedMessage.includes('invalid credentials') || normalizedMessage.includes('unauthorized')) {
         return `Authentication failed on ${protocol}: invalid username/password or API token`;
+      }
+
+      if (
+        normalizedMessage.includes('certificate not valid for name') ||
+        normalizedMessage.includes('not valid for name') ||
+        normalizedMessage.includes('only valid for dnsname("localhost")') ||
+        normalizedMessage.includes('only valid for dnsname')
+      ) {
+        return `HTTPS certificate hostname mismatch. The certificate presented by the Wazuh server is not valid for ${hostname}; it appears to be issued only for localhost.`;
       }
 
       if (
@@ -235,11 +246,11 @@ serve(async (req) => {
           error: '❌ Wazuh Authentication Failed',
           details: errorMessage,
           suggestions: [
-            '1️⃣ Save the URL with the correct protocol. Your server currently looks HTTPS-first, not plain HTTP.',
-            '2️⃣ If using HTTPS, install a valid SSL certificate. Supabase Edge Functions cannot ignore self-signed certificates.',
-            '3️⃣ If you stay on HTTP, ensure the Wazuh API is really listening in HTTP on port 55000.',
-            '4️⃣ Recheck the username/password or configure a valid API token.',
-            '5️⃣ Test directly on the server: curl -u usuario:senha -k https://SEU_HOST:55000/security/user/authenticate?raw=true'
+            `1️⃣ Corrija o certificado HTTPS do Wazuh para incluir ${targetHostname} no CN/SAN. O certificado atual parece estar válido apenas para localhost.`,
+            '2️⃣ Se quiser usar HTTPS no Supabase Edge Functions, o certificado precisa ser válido e confiável publicamente (por exemplo, Let\'s Encrypt).',
+            '3️⃣ Como alternativa, exponha um HTTP real na porta 55000 e salve a URL com http://, sem redirecionamento para HTTPS.',
+            '4️⃣ Revise usuário/senha ou configure um API token válido após corrigir o certificado/protocolo.',
+            `5️⃣ Teste no servidor: curl -u usuario:senha -k https://${targetHostname}:55000/security/user/authenticate?raw=true`
           ]
         }),
         {
