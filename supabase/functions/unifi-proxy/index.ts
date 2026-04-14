@@ -326,16 +326,41 @@ const fetchLocalTlsSocket = async (
   }
 };
 
-// For local controllers, use ONLY the raw TLS socket approach.
-// Deno.createHttpClient with dangerouslyIgnoreCertificateErrors does NOT work
-// reliably in Supabase Edge Runtime.
-const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
+// For local controllers, try Deno.createHttpClient with pinned CA cert first.
+// Fall back to raw TLS socket only if the HTTP client approach fails.
+const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
   const isHttps = url.startsWith('https://');
 
   if (isHttps) {
     const pinnedCaCert = resolvePinnedCaCert(url);
-    console.log(`[LOCAL] HTTPS request (raw TLS socket): ${url}`);
-    return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+    
+    // Try Deno.createHttpClient with pinned CA cert - handles HTTP protocol properly
+    try {
+      const clientOptions: any = {};
+      if (pinnedCaCert) {
+        clientOptions.caCerts = [pinnedCaCert];
+      }
+      const httpClient = Deno.createHttpClient(clientOptions);
+      
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, { ...options, signal: ctrl.signal, client: httpClient } as any);
+        clearTimeout(tid);
+        return resp;
+      } catch (fetchErr) {
+        clearTimeout(tid);
+        throw fetchErr;
+      }
+    } catch (clientErr) {
+      const errMsg = clientErr instanceof Error ? clientErr.message : String(clientErr);
+      // If it's a cert/hostname error, fall back to raw TLS socket
+      if (errMsg.includes('certificate') || errMsg.includes('hostname') || errMsg.includes('NotValidForName') || errMsg.includes('tls')) {
+        console.log(`[LOCAL] Deno.createHttpClient failed (${errMsg}), falling back to raw TLS socket`);
+        return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
+      }
+      throw clientErr;
+    }
   }
 
   const ctrl = new AbortController();
