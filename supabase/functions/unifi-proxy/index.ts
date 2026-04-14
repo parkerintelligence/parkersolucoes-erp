@@ -79,13 +79,14 @@ const readRawHttpResponse = async (
   connection: Deno.Conn,
   timeoutMs: number,
 ) => {
-  const decoder = new TextDecoder();
-  const buffer = new Uint8Array(4096);
+  const buffer = new Uint8Array(65536); // 64KB buffer for large responses
   const startedAt = Date.now();
-  let rawResponse = '';
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
   let headerEnd = -1;
   let contentLength: number | null = null;
   let isChunked = false;
+  let headerByteLength = 0;
 
   const readWithTimeout = async (remainingMs: number) => {
     let timeoutId: number | undefined;
@@ -107,38 +108,60 @@ const readRawHttpResponse = async (
 
     if (bytesRead === null) break;
 
-    rawResponse += decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
+    const chunk = buffer.slice(0, bytesRead);
+    chunks.push(chunk);
+    totalBytes += bytesRead;
 
+    // Check for header end if not found yet
     if (headerEnd === -1) {
-      headerEnd = rawResponse.indexOf('\r\n\r\n');
+      const decoder = new TextDecoder();
+      const partialStr = decoder.decode(concatUint8Arrays(chunks));
+      headerEnd = partialStr.indexOf('\r\n\r\n');
       if (headerEnd !== -1) {
-        const { headers } = parseRawHeaders(rawResponse.slice(0, headerEnd));
+        const { headers } = parseRawHeaders(partialStr.slice(0, headerEnd));
         const contentLengthHeader = headers.get('content-length');
         contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : null;
         isChunked = headers.get('transfer-encoding')?.toLowerCase().includes('chunked') ?? false;
+        // Calculate header byte length (header text + \r\n\r\n separator)
+        headerByteLength = new TextEncoder().encode(partialStr.slice(0, headerEnd + 4)).length;
       }
     }
 
     if (headerEnd !== -1) {
-      const body = rawResponse.slice(headerEnd + 4);
+      const bodyBytes = totalBytes - headerByteLength;
 
-      if (contentLength !== null && body.length >= contentLength) {
+      if (contentLength !== null && bodyBytes >= contentLength) {
         break;
       }
 
-      if (isChunked && body.includes('\r\n0\r\n\r\n')) {
-        break;
+      if (isChunked) {
+        // Check for chunked terminator in the last few bytes
+        const decoder = new TextDecoder();
+        const tail = decoder.decode(concatUint8Arrays(chunks));
+        if (tail.includes('\r\n0\r\n\r\n')) {
+          break;
+        }
       }
     }
   }
 
-  rawResponse += decoder.decode();
-
-  if (!rawResponse) {
+  if (chunks.length === 0) {
     throw new Error('A controladora local não retornou dados');
   }
 
-  return rawResponse;
+  const decoder = new TextDecoder();
+  return decoder.decode(concatUint8Arrays(chunks));
+};
+
+const concatUint8Arrays = (arrays: Uint8Array[]): Uint8Array => {
+  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
 };
 
 const extractCookies = (headers: Headers) => {
