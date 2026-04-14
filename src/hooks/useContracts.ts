@@ -53,10 +53,11 @@ export const useCreateContract = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      const { companies, ...contractData } = contract as any;
       const { data, error } = await supabase
         .from('contracts')
         .insert([{
-          ...contract,
+          ...contractData,
           user_id: user.id
         }])
         .select()
@@ -92,9 +93,10 @@ export const useUpdateContract = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Contract> }) => {
+      const { companies, ...cleanUpdates } = updates as any;
       const { data, error } = await supabase
         .from('contracts')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();

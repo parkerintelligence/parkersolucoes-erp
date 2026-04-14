@@ -88,10 +88,11 @@ export const useCreateBudget = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      const { companies, ...budgetData } = budget as any;
       const { data, error } = await supabase
         .from('budgets')
         .insert([{
-          ...budget,
+          ...budgetData,
           user_id: user.id
         }])
         .select()
@@ -127,9 +128,10 @@ export const useUpdateBudget = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Budget> }) => {
+      const { companies, ...cleanUpdates } = updates as any;
       const { data, error } = await supabase
         .from('budgets')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -197,9 +199,10 @@ export const useCreateBudgetItem = () => {
 
   return useMutation({
     mutationFn: async (item: Omit<BudgetItem, 'id' | 'created_at'>) => {
+      const { services, ...cleanItem } = item as any;
       const { data, error } = await supabase
         .from('budget_items')
-        .insert([item])
+        .insert([cleanItem])
         .select()
         .single();
 
