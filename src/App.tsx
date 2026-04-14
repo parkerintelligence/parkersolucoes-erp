@@ -37,6 +37,7 @@ import Dashboard from '@/pages/Dashboard';
 import { SafeUniFi } from '@/components/SafeUniFi';
 import { Layout } from '@/components/Layout';
 import Webhooks from '@/pages/Webhooks';
+import Security from '@/pages/Security';
 
 // Create single QueryClient instance
 const queryClient = new QueryClient({
@@ -96,6 +97,7 @@ function App() {
               
               <Route path="/unifi" element={<Layout><SafeUniFi /></Layout>} />
               <Route path="/webhooks" element={<Layout><Webhooks /></Layout>} />
+              <Route path="/wazuh" element={<Layout><Security /></Layout>} />
             </Routes>
           </div>
           <Toaster position="bottom-right" />
