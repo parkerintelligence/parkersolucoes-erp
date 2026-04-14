@@ -92,6 +92,10 @@ const UniFiSimpleDashboard = () => {
   const [clientFilter, setClientFilter] = useState('');
   const [networkFilter, setNetworkFilter] = useState('');
   const [alarmFilter, setAlarmFilter] = useState('');
+  const [deviceSort, setDeviceSort] = useState<SortState>({ key: '', dir: null });
+  const [clientSort, setClientSort] = useState<SortState>({ key: '', dir: null });
+  const [networkSort, setNetworkSort] = useState<SortState>({ key: '', dir: null });
+  const [alarmSort, setAlarmSort] = useState<SortState>({ key: '', dir: null });
 
   const {
     useUniFiSites, useUniFiDevices, useUniFiClients, useUniFiNetworks, useUniFiAlarms, useUniFiHealth,
