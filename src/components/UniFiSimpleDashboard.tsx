@@ -410,20 +410,33 @@ const UniFiSimpleDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Cliente</TableHead>
-                          <TableHead className="text-xs">IP</TableHead>
+                          <SortableHead label="Cliente" sortKey="name" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="IP" sortKey="ip" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">MAC</TableHead>
-                          <TableHead className="text-xs">Rede</TableHead>
-                          <TableHead className="text-xs">Tipo</TableHead>
-                          <TableHead className="text-xs">Sinal</TableHead>
-                          <TableHead className="text-xs">↓ RX / ↑ TX</TableHead>
-                          <TableHead className="text-xs">AP</TableHead>
-                          <TableHead className="text-xs">Uptime</TableHead>
+                          <SortableHead label="Rede" sortKey="network" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Tipo" sortKey="type" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Sinal" sortKey="signal" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="↓ RX / ↑ TX" sortKey="rx" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="AP" sortKey="ap" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Uptime" sortKey="uptime" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter).map((c: any) => {
+                        {sortItems(filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter), clientSort, (c, key) => {
+                          if (key === 'name') return (c.name || c.hostname || c.oui || c.mac || '').toLowerCase();
+                          if (key === 'network') return (c.essid || c.network || c.ssid || '').toLowerCase();
+                          if (key === 'type') return (c.isWired || c.is_wired) ? 1 : 0;
+                          if (key === 'signal') return c.signal || c.rssi || -999;
+                          if (key === 'rx') return (c.rx_bytes || c.rxBytes || 0) + (c.tx_bytes || c.txBytes || 0);
+                          if (key === 'ap') {
+                            const apMac = c.ap_mac || c.accessPointMac;
+                            const ap = apMac ? devicesList.find((d: any) => d.mac === apMac) : null;
+                            return (ap?.name || ap?.model || apMac || '').toLowerCase();
+                          }
+                          if (key === 'uptime') return c.uptime || 0;
+                          return c[key] ?? '';
+                        }).map((c: any) => {
                           const isWired = c.isWired || c.is_wired;
                           const networkName = c.essid || c.network || c.ssid || (isWired ? 'LAN' : '-');
                           const apMac = c.ap_mac || c.accessPointMac;
