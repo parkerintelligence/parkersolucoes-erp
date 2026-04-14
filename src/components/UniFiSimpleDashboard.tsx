@@ -286,20 +286,27 @@ const UniFiSimpleDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Dispositivo</TableHead>
-                          <TableHead className="text-xs">Modelo</TableHead>
-                          <TableHead className="text-xs">IP</TableHead>
+                          <SortableHead label="Dispositivo" sortKey="name" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Modelo" sortKey="model" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="IP" sortKey="ip" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">MAC</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs">Clientes</TableHead>
-                          <TableHead className="text-xs">CPU/Mem</TableHead>
-                          <TableHead className="text-xs">Uptime</TableHead>
-                          <TableHead className="text-xs">Versão</TableHead>
+                          <SortableHead label="Status" sortKey="status" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Clientes" sortKey="num_sta" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="CPU/Mem" sortKey="cpu" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Uptime" sortKey="uptime" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Versão" sortKey="version" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter).map((d: any) => {
+                        {sortItems(filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter), deviceSort, (d, key) => {
+                          if (key === 'name') return (d.displayName || d.name || d.mac || '').toLowerCase();
+                          if (key === 'status') return d.status === 'online' || d.state === 1 ? 1 : 0;
+                          if (key === 'num_sta') return d.num_sta ?? d.connectedClients ?? 0;
+                          if (key === 'cpu') return (d['sys-stats'] || d.sys_stats || {}).cpu || 0;
+                          if (key === 'uptime') return d.uptime || 0;
+                          return d[key] ?? '';
+                        }).map((d: any) => {
                           const isOnline = d.status === 'online' || d.state === 1;
                           const sysStats = d['sys-stats'] || d.sys_stats || {};
                           const rowBg = isOnline
