@@ -256,7 +256,7 @@ const responseFromRawHttp = (rawResponse: string) => {
   responseHeaders.delete('transfer-encoding');
   responseHeaders.delete('content-length');
 
-  return new Response(new Blob([parsedBody]), {
+  return new Response(new TextDecoder().decode(parsedBody), {
     status: Number(statusMatch[1]),
     statusText: statusMatch[2] || '',
     headers: responseHeaders,
