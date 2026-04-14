@@ -39,6 +39,45 @@ const formatBytes = (bytes?: number) => {
   return `${bytes} B`;
 };
 
+type SortDir = 'asc' | 'desc' | null;
+type SortState = { key: string; dir: SortDir };
+
+const SortableHead: React.FC<{ label: string; sortKey: string; sort: SortState; onSort: (key: string) => void; className?: string }> = ({ label, sortKey, sort, onSort, className }) => (
+  <TableHead className={`text-xs cursor-pointer select-none hover:text-foreground transition-colors ${className || ''}`} onClick={() => onSort(sortKey)}>
+    <div className="flex items-center gap-1">
+      {label}
+      {sort.key === sortKey ? (
+        sort.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-30" />
+      )}
+    </div>
+  </TableHead>
+);
+
+const toggleSort = (prev: SortState, key: string): SortState => {
+  if (prev.key !== key) return { key, dir: 'asc' };
+  if (prev.dir === 'asc') return { key, dir: 'desc' };
+  return { key: '', dir: null };
+};
+
+const sortItems = (items: any[], sort: SortState, accessor?: (item: any, key: string) => any) => {
+  if (!sort.key || !sort.dir) return items;
+  const get = accessor || ((item: any, key: string) => {
+    const v = item[key];
+    return v ?? '';
+  });
+  return [...items].sort((a, b) => {
+    let va = get(a, sort.key);
+    let vb = get(b, sort.key);
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sort.dir === 'asc' ? -1 : 1;
+    if (va > vb) return sort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+};
+
 const UniFiSimpleDashboard = () => {
   const { data: integrations } = useIntegrations();
   const { toast } = useToast();
