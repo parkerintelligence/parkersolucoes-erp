@@ -235,7 +235,7 @@ const openLocalTlsConnection = async (
         hostname: tlsHostname,
         caCerts: caCert ? [caCert] : undefined,
         alpnProtocols: ['http/1.1'],
-        unsafelyDisableHostnameVerification: tlsHostname === parsedUrl.hostname,
+        unsafelyDisableHostnameVerification: true,
       });
 
       console.log(`[LOCAL] TLS handshake OK using hostname: ${tlsHostname}`);
