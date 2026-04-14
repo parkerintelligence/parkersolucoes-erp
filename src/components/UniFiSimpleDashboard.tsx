@@ -45,7 +45,7 @@ const UniFiSimpleDashboard = () => {
   
   const [selectedIntegration, setSelectedIntegration] = useState('');
   const [selectedSiteId, setSelectedSiteId] = useState('');
-  const [activeTab, setActiveTab] = useState('devices');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showCreateNetwork, setShowCreateNetwork] = useState(false);
   const [newNetwork, setNewNetwork] = useState({ name: '', security: 'wpapsk', x_passphrase: '', enabled: true, is_guest: false });
   // Per-tab filters
