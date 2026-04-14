@@ -256,7 +256,7 @@ const responseFromRawHttp = (rawResponse: string) => {
   responseHeaders.delete('transfer-encoding');
   responseHeaders.delete('content-length');
 
-  return new Response(parsedBody, {
+  return new Response(new Blob([parsedBody]), {
     status: Number(statusMatch[1]),
     statusText: statusMatch[2] || '',
     headers: responseHeaders,
@@ -289,7 +289,7 @@ const openLocalTlsConnection = async (
   let lastError = '';
 
   for (const tlsHostname of tlsHostnameCandidates) {
-    let tcpConnection: Deno.Conn | null = null;
+    let tcpConnection: Deno.TcpConn | null = null;
 
     try {
       tcpConnection = await Deno.connect({
