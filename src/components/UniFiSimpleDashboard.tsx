@@ -12,13 +12,14 @@ import {
   Wifi, Router, Users, Network, AlertTriangle, RefreshCw, Search, Globe,
   CheckCircle2, XCircle, Signal, Cloud, Server, Power, Ban, Plus, Trash2,
   Edit, Activity, Cpu, HardDrive, Thermometer, Shield, Eye, EyeOff, Copy,
-  Upload, MapPin, MoreHorizontal, Zap
+  Upload, MapPin, MoreHorizontal, Zap, BarChart3
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
+import UniFiOverviewCharts from '@/components/unifi/UniFiOverviewCharts';
 
 const formatUptime = (seconds?: number) => {
   if (!seconds) return '-';
@@ -44,7 +45,7 @@ const UniFiSimpleDashboard = () => {
   
   const [selectedIntegration, setSelectedIntegration] = useState('');
   const [selectedSiteId, setSelectedSiteId] = useState('');
-  const [activeTab, setActiveTab] = useState('devices');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showCreateNetwork, setShowCreateNetwork] = useState(false);
   const [newNetwork, setNewNetwork] = useState({ name: '', security: 'wpapsk', x_passphrase: '', enabled: true, is_guest: false });
   // Per-tab filters
@@ -215,12 +216,18 @@ const UniFiSimpleDashboard = () => {
         {selectedSiteId && !sitesLoading && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-card border border-border">
+              <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Visão Geral</TabsTrigger>
               <TabsTrigger value="devices" className="text-xs gap-1.5"><Router className="h-3.5 w-3.5" />Dispositivos <Badge variant="secondary" className="h-4 px-1 text-[9px]">{devicesList.length}</Badge></TabsTrigger>
               <TabsTrigger value="clients" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" />Clientes <Badge variant="secondary" className="h-4 px-1 text-[9px]">{clientsList.length}</Badge></TabsTrigger>
               <TabsTrigger value="networks" className="text-xs gap-1.5"><Network className="h-3.5 w-3.5" />Redes <Badge variant="secondary" className="h-4 px-1 text-[9px]">{networksList.length}</Badge></TabsTrigger>
               <TabsTrigger value="alarms" className="text-xs gap-1.5"><AlertTriangle className="h-3.5 w-3.5" />Alertas <Badge variant="secondary" className="h-4 px-1 text-[9px]">{alarmsList.length}</Badge></TabsTrigger>
               <TabsTrigger value="health" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" />Saúde</TabsTrigger>
             </TabsList>
+
+            {/* OVERVIEW TAB */}
+            <TabsContent value="overview">
+              <UniFiOverviewCharts devices={devicesList} clients={clientsList} networks={networksList} health={healthList} />
+            </TabsContent>
 
             {/* DEVICES TAB */}
             <TabsContent value="devices">
