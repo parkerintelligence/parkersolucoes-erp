@@ -42,10 +42,14 @@ const UniFiSimpleDashboard = () => {
   
   const [selectedIntegration, setSelectedIntegration] = useState('');
   const [selectedSiteId, setSelectedSiteId] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('devices');
   const [showCreateNetwork, setShowCreateNetwork] = useState(false);
   const [newNetwork, setNewNetwork] = useState({ name: '', security: 'wpapsk', x_passphrase: '', enabled: true, is_guest: false });
+  // Per-tab filters
+  const [deviceFilter, setDeviceFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
+  const [networkFilter, setNetworkFilter] = useState('');
+  const [alarmFilter, setAlarmFilter] = useState('');
 
   const {
     useUniFiSites, useUniFiDevices, useUniFiClients, useUniFiNetworks, useUniFiAlarms, useUniFiHealth,
