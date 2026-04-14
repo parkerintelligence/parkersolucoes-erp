@@ -287,7 +287,16 @@ const UniFiSimpleDashboard = () => {
                                 ) : '-'}
                               </TableCell>
                               <TableCell className="text-xs">{formatUptime(d.uptime)}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{d.version || '-'}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  {d.version || '-'}
+                                  {(d.upgradable || d.upgrade_to_firmware || d.upgradeTo) && (
+                                    <Badge variant="outline" className="text-[9px] h-4 border-amber-500/50 text-amber-400 animate-pulse">
+                                      ↑ {d.upgrade_to_firmware || d.upgradeTo || 'new'}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
