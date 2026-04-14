@@ -299,7 +299,13 @@ const UniFiSimpleDashboard = () => {
                                     <DropdownMenuItem onClick={() => restartDevice.mutate({ integrationId: selectedIntegration, deviceId: d.mac, siteId: selectedSiteId })}>
                                       <Power className="h-3.5 w-3.5 mr-2" /> Reiniciar
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => upgradeDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId })}>
+                                    <DropdownMenuItem onClick={() => {
+                                      if (!d.upgradable && !d.upgrade_to_firmware && !d.upgradeTo) {
+                                        toast({ title: 'Firmware já atualizado', description: `${d.displayName || d.name || d.mac} já está na versão mais recente (${d.version || '?'}).` });
+                                        return;
+                                      }
+                                      upgradeDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId });
+                                    }}>
                                       <Upload className="h-3.5 w-3.5 mr-2" /> Atualizar Firmware
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => provisionDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId })}>
