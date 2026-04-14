@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { useToast } from '@/hooks/use-toast';
+import UniFiOverviewCharts from '@/components/unifi/UniFiOverviewCharts';
 
 const formatUptime = (seconds?: number) => {
   if (!seconds) return '-';
