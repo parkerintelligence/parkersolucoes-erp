@@ -299,6 +299,7 @@ const fetchLocalTlsSocket = async (
 
     if (!headers.has('Host')) headers.set('Host', parsedUrl.host);
     if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+    if (!headers.has('Accept-Encoding')) headers.set('Accept-Encoding', 'identity');
     if (!headers.has('Connection')) headers.set('Connection', 'close');
     if (body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     if (body && !headers.has('Content-Length')) headers.set('Content-Length', String(encoder.encode(body).length));
