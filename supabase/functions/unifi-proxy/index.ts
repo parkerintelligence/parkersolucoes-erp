@@ -37,25 +37,60 @@ const TLS_HOST_ALIASES: Record<string, string[]> = {
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 
-const decodeChunkedBody = (body: string) => {
-  let cursor = 0;
-  let decoded = '';
+const CRLF_BYTES = new Uint8Array([13, 10]);
 
-  while (cursor < body.length) {
-    const sizeLineEnd = body.indexOf('\r\n', cursor);
-    if (sizeLineEnd === -1) return decoded || body;
+const findByteSequence = (source: Uint8Array, target: Uint8Array, start = 0) => {
+  outer: for (let index = start; index <= source.length - target.length; index += 1) {
+    for (let offset = 0; offset < target.length; offset += 1) {
+      if (source[index + offset] !== target[offset]) {
+        continue outer;
+      }
+    }
 
-    const sizeHex = body.slice(cursor, sizeLineEnd).trim();
-    const size = Number.parseInt(sizeHex, 16);
-    if (!Number.isFinite(size)) return decoded || body;
-    if (size === 0) return decoded;
-
-    cursor = sizeLineEnd + 2;
-    decoded += body.slice(cursor, cursor + size);
-    cursor += size + 2;
+    return index;
   }
 
-  return decoded || body;
+  return -1;
+};
+
+const decodeChunkedBody = (body: Uint8Array) => {
+  let cursor = 0;
+  const decodedChunks: Uint8Array[] = [];
+  const decoder = new TextDecoder();
+
+  while (cursor < body.length) {
+    const sizeLineEnd = findByteSequence(body, CRLF_BYTES, cursor);
+    if (sizeLineEnd === -1) {
+      return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+    }
+
+    const sizeLine = decoder.decode(body.slice(cursor, sizeLineEnd)).trim();
+    const sizeHex = sizeLine.split(';', 1)[0];
+    const size = Number.parseInt(sizeHex, 16);
+
+    if (!Number.isFinite(size)) {
+      return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+    }
+
+    cursor = sizeLineEnd + CRLF_BYTES.length;
+
+    if (size === 0) {
+      return concatUint8Arrays(decodedChunks);
+    }
+
+    if (cursor + size > body.length) {
+      return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+    }
+
+    decodedChunks.push(body.slice(cursor, cursor + size));
+    cursor += size;
+
+    if (body[cursor] === 13 && body[cursor + 1] === 10) {
+      cursor += CRLF_BYTES.length;
+    }
+  }
+
+  return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
 };
 
 const parseRawHeaders = (headerText: string) => {
@@ -212,14 +247,19 @@ const responseFromRawHttp = (rawResponse: string) => {
     throw new Error(`Status HTTP inválido da controladora local: ${statusLine}`);
   }
 
-  const parsedBody = headers.get('transfer-encoding')?.toLowerCase().includes('chunked')
-    ? decodeChunkedBody(body)
-    : body;
+  const responseHeaders = new Headers(headers);
+  const bodyBytes = new TextEncoder().encode(body);
+  const parsedBody = responseHeaders.get('transfer-encoding')?.toLowerCase().includes('chunked')
+    ? decodeChunkedBody(bodyBytes)
+    : bodyBytes;
+
+  responseHeaders.delete('transfer-encoding');
+  responseHeaders.delete('content-length');
 
   return new Response(parsedBody, {
     status: Number(statusMatch[1]),
     statusText: statusMatch[2] || '',
-    headers,
+    headers: responseHeaders,
   });
 };
 
