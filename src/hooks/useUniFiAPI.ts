@@ -585,6 +585,65 @@ export const useUniFiAPI = () => {
     },
   });
 
+  // Upgrade device firmware
+  const upgradeDevice = useMutation({
+    mutationFn: async ({ integrationId, deviceMac, siteId }: { integrationId: string, deviceMac: string, siteId?: string }) => {
+      const endpoint = siteId ? `/api/s/${siteId}/cmd/devmgr` : '/api/cmd/devmgr';
+      return makeUniFiRequest(endpoint, 'POST', integrationId, { cmd: 'upgrade', mac: deviceMac });
+    },
+    onSuccess: () => {
+      toast({ title: 'Firmware', description: 'Comando de upgrade enviado com sucesso.' });
+      queryClient.invalidateQueries({ queryKey: ['unifi-devices'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao atualizar firmware', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Force provision device
+  const provisionDevice = useMutation({
+    mutationFn: async ({ integrationId, deviceMac, siteId }: { integrationId: string, deviceMac: string, siteId?: string }) => {
+      const endpoint = siteId ? `/api/s/${siteId}/cmd/devmgr` : '/api/cmd/devmgr';
+      return makeUniFiRequest(endpoint, 'POST', integrationId, { cmd: 'force-provision', mac: deviceMac });
+    },
+    onSuccess: () => {
+      toast({ title: 'Provisionar', description: 'Comando enviado com sucesso.' });
+      queryClient.invalidateQueries({ queryKey: ['unifi-devices'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao provisionar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Locate device (toggle LED)
+  const locateDevice = useMutation({
+    mutationFn: async ({ integrationId, deviceMac, siteId, enabled }: { integrationId: string, deviceMac: string, siteId?: string, enabled: boolean }) => {
+      const endpoint = siteId ? `/api/s/${siteId}/cmd/devmgr` : '/api/cmd/devmgr';
+      return makeUniFiRequest(endpoint, 'POST', integrationId, { cmd: enabled ? 'set-locate' : 'unset-locate', mac: deviceMac });
+    },
+    onSuccess: (_, vars) => {
+      toast({ title: vars.enabled ? 'Localizando...' : 'LED desligado', description: vars.enabled ? 'O LED do dispositivo está piscando.' : 'LED do dispositivo foi desligado.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao localizar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Forget (remove/adopt) device
+  const forgetDevice = useMutation({
+    mutationFn: async ({ integrationId, deviceMac, siteId }: { integrationId: string, deviceMac: string, siteId?: string }) => {
+      const endpoint = siteId ? `/api/s/${siteId}/cmd/sitemgr` : '/api/cmd/sitemgr';
+      return makeUniFiRequest(endpoint, 'POST', integrationId, { cmd: 'delete-device', mac: deviceMac });
+    },
+    onSuccess: () => {
+      toast({ title: 'Dispositivo removido', description: 'Dispositivo esquecido com sucesso.' });
+      queryClient.invalidateQueries({ queryKey: ['unifi-devices'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Block/Unblock client
   const toggleClientBlock = useMutation({
     mutationFn: async ({ integrationId, hostId, clientId, block, siteId }: { integrationId: string, hostId?: string, clientId: string, block: boolean, siteId?: string }) => {
@@ -819,6 +878,10 @@ export const useUniFiAPI = () => {
     useUniFiSiteManagerClients,
     // Mutations
     restartDevice,
+    upgradeDevice,
+    provisionDevice,
+    locateDevice,
+    forgetDevice,
     toggleClientBlock,
     createNetwork,
     updateNetwork,
