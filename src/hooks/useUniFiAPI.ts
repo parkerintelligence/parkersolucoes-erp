@@ -459,10 +459,32 @@ export const useUniFiAPI = () => {
   const useUniFiNetworks = (integrationId: string, hostId?: string, siteId?: string) => {
     return useQuery({
       queryKey: ['unifi-networks', integrationId, hostId, siteId],
-      queryFn: () => {
-        const endpoint = buildUniFiReadEndpoint('networks', siteId, hostId);
-        if (!endpoint) return { data: [] };
-        return makeUniFiRequest(endpoint, 'GET', integrationId);
+      queryFn: async () => {
+        if (!siteId) return { data: [] };
+        
+        const isCloud = isCloudSiteManagerRequest(hostId);
+        
+        if (isCloud) {
+          const endpoint = `/v1/sites/${siteId}/networks`;
+          return makeUniFiRequest(endpoint, 'GET', integrationId);
+        }
+        
+        // Local: fetch both networkconf (VLANs/LANs) and wlanconf (Wi-Fi SSIDs)
+        const [netconfRes, wlanRes] = await Promise.allSettled([
+          makeUniFiRequest(`/api/s/${siteId}/rest/networkconf`, 'GET', integrationId),
+          makeUniFiRequest(`/api/s/${siteId}/rest/wlanconf`, 'GET', integrationId),
+        ]);
+        
+        const netconfs = netconfRes.status === 'fulfilled' ? (netconfRes.value?.data || []) : [];
+        const wlans = wlanRes.status === 'fulfilled' ? (wlanRes.value?.data || []) : [];
+        
+        // Merge: mark WLANs with purpose='wlan' and netconfs with their purpose
+        const allNetworks = [
+          ...netconfs.map((n: any) => ({ ...n, _source: 'networkconf' })),
+          ...wlans.map((w: any) => ({ ...w, purpose: 'wlan', _source: 'wlanconf', networkgroup: w.networkgroup || 'default' })),
+        ];
+        
+        return { data: allNetworks };
       },
       enabled: !!integrationId && !!siteId,
       staleTime: 60000,

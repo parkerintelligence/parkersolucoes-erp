@@ -360,7 +360,6 @@ const UniFiSimpleDashboard = () => {
               </div>
             </TabsContent>
 
-            {/* NETWORKS TAB */}
             <TabsContent value="networks">
               <div className="space-y-3">
                 {isLocal && (
@@ -380,53 +379,67 @@ const UniFiSimpleDashboard = () => {
                           <TableHead className="text-xs">Rede</TableHead>
                           <TableHead className="text-xs">Tipo</TableHead>
                           <TableHead className="text-xs">VLAN</TableHead>
+                          <TableHead className="text-xs">Subnet</TableHead>
+                          <TableHead className="text-xs">DHCP</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
                           {isLocal && <TableHead className="text-xs">Ações</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(networksList, ['name', 'purpose', 'networkgroup']).map((n: any) => (
-                          <TableRow key={n.id || n.name}>
-                            <TableCell className="text-xs font-medium">
-                              <div className="flex items-center gap-2">
-                                <Wifi className="h-3.5 w-3.5 text-primary" />
-                                {n.name}
-                                {n.isGuest && <Badge variant="outline" className="text-[9px] h-4">Guest</Badge>}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{n.networkgroup || n.purpose || '-'}</TableCell>
-                            <TableCell className="text-xs">{n.vlan ?? '-'}</TableCell>
-                            <TableCell>
-                              <Badge variant={n.enabled ? 'default' : 'secondary'} className="text-[10px] h-5">
-                                {n.enabled ? 'Ativa' : 'Inativa'}
-                              </Badge>
-                            </TableCell>
-                            {isLocal && (
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
-                                        onClick={() => toggleNetwork.mutate({ integrationId: selectedIntegration, siteId: selectedSiteId, networkId: n._id || n.id, enabled: !n.enabled })}>
-                                        {n.enabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="text-xs">{n.enabled ? 'Desativar' : 'Ativar'}</TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
-                                        onClick={() => { if (confirm('Remover esta rede?')) deleteNetwork.mutate({ integrationId: selectedIntegration, siteId: selectedSiteId, networkId: n._id || n.id }); }}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="text-xs">Remover rede</TooltipContent>
-                                  </Tooltip>
+                        {filter(networksList, ['name', 'purpose', 'networkgroup']).map((n: any, idx: number) => {
+                          const isWlan = n._source === 'wlanconf' || n.purpose === 'wlan';
+                          const purposeLabel = isWlan ? 'WLAN' : (n.purpose === 'corporate' ? 'LAN' : n.purpose === 'wan' ? 'WAN' : n.purpose || 'LAN');
+                          return (
+                            <TableRow key={`${n._id || n.id || n.name}-${idx}`}>
+                              <TableCell className="text-xs font-medium">
+                                <div className="flex items-center gap-2">
+                                  {isWlan ? <Wifi className="h-3.5 w-3.5 text-primary" /> : <Network className="h-3.5 w-3.5 text-muted-foreground" />}
+                                  {n.name}
+                                  {n.is_guest && <Badge variant="outline" className="text-[9px] h-4">Guest</Badge>}
                                 </div>
                               </TableCell>
-                            )}
-                          </TableRow>
-                        ))}
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] h-5">{purposeLabel}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{n.vlan_enabled ? (n.vlan || n.vlan_id || '-') : '-'}</TableCell>
+                              <TableCell className="text-xs font-mono">{n.ip_subnet || n.ipv4_subnet || '-'}</TableCell>
+                              <TableCell className="text-xs">{n.dhcpd_enabled || n.dhcp_enabled ? 'Sim' : n.purpose === 'wan' ? '-' : 'Não'}</TableCell>
+                              <TableCell>
+                                <Badge variant={n.enabled !== false ? 'default' : 'secondary'} className="text-[10px] h-5">
+                                  {n.enabled !== false ? 'Ativa' : 'Inativa'}
+                                </Badge>
+                              </TableCell>
+                              {isLocal && (
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    {isWlan && (
+                                      <>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                              onClick={() => toggleNetwork.mutate({ integrationId: selectedIntegration, siteId: selectedSiteId, networkId: n._id || n.id, enabled: !n.enabled })}>
+                                              {n.enabled ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="text-xs">{n.enabled ? 'Desativar' : 'Ativar'}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive"
+                                              onClick={() => { if (confirm('Remover esta rede?')) deleteNetwork.mutate({ integrationId: selectedIntegration, siteId: selectedSiteId, networkId: n._id || n.id }); }}>
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="text-xs">Remover rede</TooltipContent>
+                                        </Tooltip>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   ) : (
