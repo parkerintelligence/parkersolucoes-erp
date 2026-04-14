@@ -98,9 +98,9 @@ const UniFiSimpleDashboard = () => {
   const wifiClients = clientsList.filter((c: any) => !c.isWired && !c.is_wired).length;
   const wiredClients = clientsList.filter((c: any) => c.isWired || c.is_wired).length;
 
-  const filter = (items: any[], fields: string[]) => {
-    if (!searchQuery) return items;
-    const q = searchQuery.toLowerCase();
+  const filter = (items: any[], fields: string[], query: string) => {
+    if (!query) return items;
+    const q = query.toLowerCase();
     return items.filter(item => fields.some(f => String(item[f] || '').toLowerCase().includes(q)));
   };
 
