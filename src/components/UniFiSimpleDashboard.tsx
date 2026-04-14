@@ -597,9 +597,19 @@ const UniFiSimpleDashboard = () => {
             {/* ALARMS TAB */}
             <TabsContent value="alarms">
               <div className="space-y-3">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input placeholder="Filtrar alertas..." value={alarmFilter} onChange={e => setAlarmFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                <div className="flex items-center gap-2">
+                  <div className="relative max-w-sm flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input placeholder="Filtrar alertas..." value={alarmFilter} onChange={e => setAlarmFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                  </div>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => setAlarmSort(s => toggleSort(s, 'time'))}>
+                    {alarmSort.key === 'time' ? (alarmSort.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3" />}
+                    Data
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => setAlarmSort(s => toggleSort(s, 'msg'))}>
+                    {alarmSort.key === 'msg' ? (alarmSort.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3" />}
+                    Mensagem
+                  </Button>
                 </div>
                 <div className="rounded-lg border border-border bg-card overflow-hidden">
                   {alarmsLoading ? (
