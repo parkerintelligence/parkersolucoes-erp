@@ -216,12 +216,18 @@ const UniFiSimpleDashboard = () => {
         {selectedSiteId && !sitesLoading && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-card border border-border">
+              <TabsTrigger value="overview" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Visão Geral</TabsTrigger>
               <TabsTrigger value="devices" className="text-xs gap-1.5"><Router className="h-3.5 w-3.5" />Dispositivos <Badge variant="secondary" className="h-4 px-1 text-[9px]">{devicesList.length}</Badge></TabsTrigger>
               <TabsTrigger value="clients" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" />Clientes <Badge variant="secondary" className="h-4 px-1 text-[9px]">{clientsList.length}</Badge></TabsTrigger>
               <TabsTrigger value="networks" className="text-xs gap-1.5"><Network className="h-3.5 w-3.5" />Redes <Badge variant="secondary" className="h-4 px-1 text-[9px]">{networksList.length}</Badge></TabsTrigger>
               <TabsTrigger value="alarms" className="text-xs gap-1.5"><AlertTriangle className="h-3.5 w-3.5" />Alertas <Badge variant="secondary" className="h-4 px-1 text-[9px]">{alarmsList.length}</Badge></TabsTrigger>
               <TabsTrigger value="health" className="text-xs gap-1.5"><Activity className="h-3.5 w-3.5" />Saúde</TabsTrigger>
             </TabsList>
+
+            {/* OVERVIEW TAB */}
+            <TabsContent value="overview">
+              <UniFiOverviewCharts devices={devicesList} clients={clientsList} networks={networksList} health={healthList} />
+            </TabsContent>
 
             {/* DEVICES TAB */}
             <TabsContent value="devices">
