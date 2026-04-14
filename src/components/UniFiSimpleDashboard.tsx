@@ -12,7 +12,7 @@ import {
   Wifi, Router, Users, Network, AlertTriangle, RefreshCw, Search, Globe,
   CheckCircle2, XCircle, Signal, Cloud, Server, Power, Ban, Plus, Trash2,
   Edit, Activity, Cpu, HardDrive, Thermometer, Shield, Eye, EyeOff, Copy,
-  Upload, MapPin, MoreHorizontal, Zap
+  Upload, MapPin, MoreHorizontal, Zap, BarChart3
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
