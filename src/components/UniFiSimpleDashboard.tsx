@@ -322,6 +322,7 @@ const UniFiSimpleDashboard = () => {
                           <TableHead className="text-xs">Tipo</TableHead>
                           <TableHead className="text-xs">Sinal</TableHead>
                           <TableHead className="text-xs">↓ RX / ↑ TX</TableHead>
+                          <TableHead className="text-xs">AP</TableHead>
                           <TableHead className="text-xs">Uptime</TableHead>
                           <TableHead className="text-xs">Ações</TableHead>
                         </TableRow>
@@ -330,8 +331,16 @@ const UniFiSimpleDashboard = () => {
                         {filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter).map((c: any) => {
                           const isWired = c.isWired || c.is_wired;
                           const networkName = c.essid || c.network || c.ssid || (isWired ? 'LAN' : '-');
+                          const apMac = c.ap_mac || c.accessPointMac;
+                          const ap = apMac ? devicesList.find((d: any) => d.mac === apMac) : null;
+                          const apOnline = ap ? (ap.status === 'online' || ap.state === 1) : null;
+                          const rowBg = apOnline === true
+                            ? 'bg-emerald-500/8 hover:bg-emerald-500/15'
+                            : apOnline === false
+                              ? 'bg-red-500/10 hover:bg-red-500/18'
+                              : '';
                           return (
-                            <TableRow key={c._id || c.id || c.mac}>
+                            <TableRow key={c._id || c.id || c.mac} className={rowBg}>
                               <TableCell className="text-xs font-medium">
                                 <div className="flex items-center gap-2">
                                   {isWired ? <Network className="h-3.5 w-3.5 text-primary" /> : <Signal className="h-3.5 w-3.5 text-primary" />}
@@ -345,6 +354,14 @@ const UniFiSimpleDashboard = () => {
                               <TableCell><Badge variant="outline" className="text-[10px] h-5">{isWired ? 'Cabeado' : 'Wi-Fi'}</Badge></TableCell>
                               <TableCell className="text-xs">{!isWired && (c.signal || c.rssi) ? `${c.signal || c.rssi} dBm` : '-'}</TableCell>
                               <TableCell className="text-xs">{formatBytes(c.rx_bytes || c.rxBytes)} / {formatBytes(c.tx_bytes || c.txBytes)}</TableCell>
+                              <TableCell className="text-xs">
+                                {ap ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`h-2 w-2 rounded-full ${apOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    <span className="truncate max-w-[100px]">{ap.name || ap.model || ap.mac}</span>
+                                  </div>
+                                ) : isWired ? <span className="text-muted-foreground">—</span> : <span className="text-muted-foreground">?</span>}
+                              </TableCell>
                               <TableCell className="text-xs">{formatUptime(c.uptime)}</TableCell>
                               <TableCell>
                                 <Tooltip>
