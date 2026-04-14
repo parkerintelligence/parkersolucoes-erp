@@ -606,7 +606,11 @@ const UniFiSimpleDashboard = () => {
                     <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
                   ) : filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter).length > 0 ? (
                     <div className="divide-y divide-border">
-                      {filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter).map((a: any, i: number) => {
+                      {sortItems(filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter), alarmSort, (a, key) => {
+                        if (key === 'time') return a.time || a.datetime || 0;
+                        if (key === 'msg') return (a.msg || a.message || a.key || '').toLowerCase();
+                        return a[key] ?? '';
+                      }).map((a: any, i: number) => {
                         const alarmMsg = a.msg || a.message || a.key || 'Alerta desconhecido';
                         const alarmTime = a.time || a.datetime;
                         return (
