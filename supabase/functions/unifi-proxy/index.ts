@@ -706,7 +706,8 @@ serve(async (req) => {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseErr) {
-        console.error(`[LOCAL] JSON parse error, text length: ${responseText.length}, first 200 chars: ${responseText.substring(0, 200)}`);
+        const bodyPreview = responseText.substring(Math.max(0, responseText.length - 200), responseText.length);
+        console.error(`[LOCAL] JSON parse error, text length: ${responseText.length}, first 200 chars: ${responseText.substring(0, 200)}, last 200 chars: ${bodyPreview}`);
         throw new Error(`Erro ao interpretar resposta da controladora: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
       }
       console.log(`[LOCAL] Response keys: ${Object.keys(responseData ?? {})}, data length: ${Array.isArray(responseData?.data) ? responseData.data.length : 'N/A'}`);
