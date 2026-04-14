@@ -210,7 +210,10 @@ const resolvePinnedCaCert = (url: string) => {
 
 const buildTlsHostnameCandidates = (url: string) => {
   const hostname = new URL(url).hostname;
-  return [hostname, ...(TLS_HOST_ALIASES[hostname] || []), 'UniFi']
+  // Try cert-matching aliases FIRST (e.g. "UniFi" matches the cert SAN),
+  // then fall back to the actual hostname with unsafelyDisableHostnameVerification.
+  const aliases = TLS_HOST_ALIASES[hostname] || [];
+  return ['UniFi', ...aliases, hostname]
     .map((value) => value.trim())
     .filter((value, index, array) => value.length > 0 && array.indexOf(value) === index);
 };
