@@ -11,8 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { 
   Wifi, Router, Users, Network, AlertTriangle, RefreshCw, Search, Globe,
   CheckCircle2, XCircle, Signal, Cloud, Server, Power, Ban, Plus, Trash2,
-  Edit, Activity, Cpu, HardDrive, Thermometer, Shield, Eye, EyeOff, Copy
+  Edit, Activity, Cpu, HardDrive, Thermometer, Shield, Eye, EyeOff, Copy,
+  Upload, MapPin, MoreHorizontal, Zap
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useUniFiAPI } from '@/hooks/useUniFiAPI';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -53,7 +55,8 @@ const UniFiSimpleDashboard = () => {
 
   const {
     useUniFiSites, useUniFiDevices, useUniFiClients, useUniFiNetworks, useUniFiAlarms, useUniFiHealth,
-    restartDevice, toggleClientBlock, createNetwork, deleteNetwork, toggleNetwork, refreshData,
+    restartDevice, upgradeDevice, provisionDevice, locateDevice, forgetDevice,
+    toggleClientBlock, createNetwork, deleteNetwork, toggleNetwork, refreshData,
   } = useUniFiAPI();
 
   const unifiIntegrations = integrations?.filter(int => int.type === 'unifi' && int.is_active) || [];
