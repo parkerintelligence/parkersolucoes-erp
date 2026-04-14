@@ -300,13 +300,14 @@ const fetchWithIgnoredTls = async (
   url: string,
   options: RequestInit = {},
   timeoutMs = 10000,
-  caCert?: string | null,
+  _caCert?: string | null,
 ): Promise<Response> => {
   const parsedUrl = new URL(url);
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+  // Do NOT pass caCerts together with dangerouslyIgnoreCertificateErrors
+  // as they conflict and the hostname check still runs against the CA cert.
   const httpClient = Deno.createHttpClient({
-    caCerts: caCert ? [caCert] : undefined,
     dangerouslyIgnoreCertificateErrors: [parsedUrl.hostname],
   });
 
