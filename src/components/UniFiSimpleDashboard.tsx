@@ -221,157 +221,174 @@ const UniFiSimpleDashboard = () => {
 
             {/* DEVICES TAB */}
             <TabsContent value="devices">
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                {devicesLoading ? (
-                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
-                ) : filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model']).length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Dispositivo</TableHead>
-                        <TableHead className="text-xs">Modelo</TableHead>
-                        <TableHead className="text-xs">IP</TableHead>
-                        <TableHead className="text-xs">MAC</TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                        <TableHead className="text-xs">Clientes</TableHead>
-                        <TableHead className="text-xs">CPU/Mem</TableHead>
-                        <TableHead className="text-xs">Uptime</TableHead>
-                        <TableHead className="text-xs">Versão</TableHead>
-                        <TableHead className="text-xs">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model']).map((d: any) => {
-                        const isOnline = d.status === 'online' || d.state === 1;
-                        const sysStats = d['sys-stats'] || {};
-                        return (
-                          <TableRow key={d.id || d.mac}>
-                            <TableCell className="text-xs font-medium">
-                              <div className="flex items-center gap-2">
-                                {d.type?.includes('uap') ? <Wifi className="h-3.5 w-3.5 text-green-400" /> :
-                                 d.type?.includes('usw') ? <Network className="h-3.5 w-3.5 text-purple-400" /> :
-                                 <Router className="h-3.5 w-3.5 text-blue-400" />}
-                                <span className="truncate max-w-[150px]">{d.displayName || d.name || d.mac}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{d.model || '-'}</TableCell>
-                            <TableCell className="text-xs font-mono">{d.ip || '-'}</TableCell>
-                            <TableCell className="text-xs font-mono text-muted-foreground">{d.mac || '-'}</TableCell>
-                            <TableCell>
-                              <Badge variant={isOnline ? 'default' : 'destructive'} className="text-[10px] h-5">
-                                {isOnline ? 'Online' : 'Offline'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs">{d.connectedClients ?? d.num_sta ?? '-'}</TableCell>
-                            <TableCell className="text-xs">
-                              {sysStats.cpu != null ? (
-                                <span><Cpu className="h-3 w-3 inline mr-0.5" />{Math.round(sysStats.cpu)}% / <HardDrive className="h-3 w-3 inline mr-0.5" />{Math.round(sysStats.mem || 0)}%</span>
-                              ) : '-'}
-                            </TableCell>
-                            <TableCell className="text-xs">{formatUptime(d.uptime)}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{d.version || '-'}</TableCell>
-                            <TableCell>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost" size="sm" className="h-7 w-7 p-0"
-                                    disabled={restartDevice.isPending}
-                                    onClick={() => restartDevice.mutate({ integrationId: selectedIntegration, deviceId: d.mac, siteId: selectedSiteId })}
-                                  >
-                                    <Power className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="text-xs">Reiniciar dispositivo</TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-center text-xs text-muted-foreground py-8">Nenhum dispositivo encontrado</p>
-                )}
+              <div className="space-y-3">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input placeholder="Filtrar dispositivos..." value={deviceFilter} onChange={e => setDeviceFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                </div>
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  {devicesLoading ? (
+                    <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+                  ) : filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter).length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Dispositivo</TableHead>
+                          <TableHead className="text-xs">Modelo</TableHead>
+                          <TableHead className="text-xs">IP</TableHead>
+                          <TableHead className="text-xs">MAC</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs">Clientes</TableHead>
+                          <TableHead className="text-xs">CPU/Mem</TableHead>
+                          <TableHead className="text-xs">Uptime</TableHead>
+                          <TableHead className="text-xs">Versão</TableHead>
+                          <TableHead className="text-xs">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter).map((d: any) => {
+                          const isOnline = d.status === 'online' || d.state === 1;
+                          const sysStats = d['sys-stats'] || d.sys_stats || {};
+                          return (
+                            <TableRow key={d._id || d.id || d.mac}>
+                              <TableCell className="text-xs font-medium">
+                                <div className="flex items-center gap-2">
+                                  {d.type?.includes('uap') ? <Wifi className="h-3.5 w-3.5 text-primary" /> :
+                                   d.type?.includes('usw') ? <Network className="h-3.5 w-3.5 text-muted-foreground" /> :
+                                   <Router className="h-3.5 w-3.5 text-primary" />}
+                                  <span className="truncate max-w-[150px]">{d.displayName || d.name || d.mac}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{d.model || d.model_in_lts || '-'}</TableCell>
+                              <TableCell className="text-xs font-mono">{d.ip || '-'}</TableCell>
+                              <TableCell className="text-xs font-mono text-muted-foreground">{d.mac || '-'}</TableCell>
+                              <TableCell>
+                                <Badge variant={isOnline ? 'default' : 'destructive'} className="text-[10px] h-5">
+                                  {isOnline ? 'Online' : 'Offline'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{d.num_sta ?? d.connectedClients ?? '-'}</TableCell>
+                              <TableCell className="text-xs">
+                                {(sysStats.cpu != null || sysStats['cpu'] != null) ? (
+                                  <span><Cpu className="h-3 w-3 inline mr-0.5" />{Math.round(sysStats.cpu || 0)}% / <HardDrive className="h-3 w-3 inline mr-0.5" />{Math.round(sysStats.mem || 0)}%</span>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="text-xs">{formatUptime(d.uptime)}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{d.version || '-'}</TableCell>
+                              <TableCell>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                      disabled={restartDevice.isPending}
+                                      onClick={() => restartDevice.mutate({ integrationId: selectedIntegration, deviceId: d.mac, siteId: selectedSiteId })}
+                                    >
+                                      <Power className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs">Reiniciar dispositivo</TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground py-8">Nenhum dispositivo encontrado</p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
             {/* CLIENTS TAB */}
             <TabsContent value="clients">
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                {clientsLoading ? (
-                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
-                ) : filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'network']).length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Cliente</TableHead>
-                        <TableHead className="text-xs">IP</TableHead>
-                        <TableHead className="text-xs">MAC</TableHead>
-                        <TableHead className="text-xs">Rede</TableHead>
-                        <TableHead className="text-xs">Tipo</TableHead>
-                        <TableHead className="text-xs">Sinal</TableHead>
-                        <TableHead className="text-xs">↓ RX / ↑ TX</TableHead>
-                        <TableHead className="text-xs">Uptime</TableHead>
-                        <TableHead className="text-xs">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'network']).map((c: any) => {
-                        const isWired = c.isWired || c.is_wired;
-                        return (
-                          <TableRow key={c.id || c.mac}>
-                            <TableCell className="text-xs font-medium">
-                              <div className="flex items-center gap-2">
-                                {isWired ? <Network className="h-3.5 w-3.5 text-green-400" /> : <Signal className="h-3.5 w-3.5 text-blue-400" />}
-                                <span className="truncate max-w-[150px]">{c.name || c.hostname || c.mac}</span>
-                                {c.isGuest && <Badge variant="outline" className="text-[9px] h-4">Guest</Badge>}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs font-mono">{c.ip || '-'}</TableCell>
-                            <TableCell className="text-xs font-mono text-muted-foreground">{c.mac || '-'}</TableCell>
-                            <TableCell className="text-xs">{c.network || c.ssid || '-'}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px] h-5">{isWired ? 'Cabeado' : 'Wi-Fi'}</Badge></TableCell>
-                            <TableCell className="text-xs">{!isWired && c.signal ? `${c.signal} dBm` : '-'}</TableCell>
-                            <TableCell className="text-xs">{formatBytes(c.rxBytes)} / {formatBytes(c.txBytes)}</TableCell>
-                            <TableCell className="text-xs">{formatUptime(c.uptime)}</TableCell>
-                            <TableCell>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost" size="sm" className="h-7 w-7 p-0"
-                                    disabled={toggleClientBlock.isPending}
-                                    onClick={() => toggleClientBlock.mutate({ integrationId: selectedIntegration, clientId: c.mac, block: true, siteId: selectedSiteId })}
-                                  >
-                                    <Ban className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="text-xs">Bloquear cliente</TooltipContent>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-center text-xs text-muted-foreground py-8">Nenhum cliente encontrado</p>
-                )}
+              <div className="space-y-3">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input placeholder="Filtrar clientes..." value={clientFilter} onChange={e => setClientFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                </div>
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  {clientsLoading ? (
+                    <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+                  ) : filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter).length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Cliente</TableHead>
+                          <TableHead className="text-xs">IP</TableHead>
+                          <TableHead className="text-xs">MAC</TableHead>
+                          <TableHead className="text-xs">Rede</TableHead>
+                          <TableHead className="text-xs">Tipo</TableHead>
+                          <TableHead className="text-xs">Sinal</TableHead>
+                          <TableHead className="text-xs">↓ RX / ↑ TX</TableHead>
+                          <TableHead className="text-xs">Uptime</TableHead>
+                          <TableHead className="text-xs">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter).map((c: any) => {
+                          const isWired = c.isWired || c.is_wired;
+                          const networkName = c.essid || c.network || c.ssid || (isWired ? 'LAN' : '-');
+                          return (
+                            <TableRow key={c._id || c.id || c.mac}>
+                              <TableCell className="text-xs font-medium">
+                                <div className="flex items-center gap-2">
+                                  {isWired ? <Network className="h-3.5 w-3.5 text-primary" /> : <Signal className="h-3.5 w-3.5 text-primary" />}
+                                  <span className="truncate max-w-[150px]">{c.name || c.hostname || c.oui || c.mac}</span>
+                                  {(c.isGuest || c.is_guest) && <Badge variant="outline" className="text-[9px] h-4">Guest</Badge>}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-xs font-mono">{c.ip || c.fixed_ip || '-'}</TableCell>
+                              <TableCell className="text-xs font-mono text-muted-foreground">{c.mac || '-'}</TableCell>
+                              <TableCell className="text-xs">{networkName}</TableCell>
+                              <TableCell><Badge variant="outline" className="text-[10px] h-5">{isWired ? 'Cabeado' : 'Wi-Fi'}</Badge></TableCell>
+                              <TableCell className="text-xs">{!isWired && (c.signal || c.rssi) ? `${c.signal || c.rssi} dBm` : '-'}</TableCell>
+                              <TableCell className="text-xs">{formatBytes(c.rx_bytes || c.rxBytes)} / {formatBytes(c.tx_bytes || c.txBytes)}</TableCell>
+                              <TableCell className="text-xs">{formatUptime(c.uptime)}</TableCell>
+                              <TableCell>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost" size="sm" className="h-7 w-7 p-0"
+                                      disabled={toggleClientBlock.isPending}
+                                      onClick={() => toggleClientBlock.mutate({ integrationId: selectedIntegration, clientId: c.mac, block: true, siteId: selectedSiteId })}
+                                    >
+                                      <Ban className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-xs">Bloquear cliente</TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground py-8">Nenhum cliente encontrado</p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
             <TabsContent value="networks">
               <div className="space-y-3">
-                {isLocal && (
-                  <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="relative max-w-sm flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input placeholder="Filtrar redes..." value={networkFilter} onChange={e => setNetworkFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                  </div>
+                  {isLocal && (
                     <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowCreateNetwork(true)}>
                       <Plus className="h-3.5 w-3.5" /> Nova Rede WLAN
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="rounded-lg border border-border bg-card overflow-hidden">
                   {networksLoading ? (
                     <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
-                  ) : filter(networksList, ['name', 'purpose', 'networkgroup']).length > 0 ? (
+                  ) : filter(networksList, ['name', 'purpose', 'networkgroup'], networkFilter).length > 0 ? (
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -385,7 +402,7 @@ const UniFiSimpleDashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(networksList, ['name', 'purpose', 'networkgroup']).map((n: any, idx: number) => {
+                        {filter(networksList, ['name', 'purpose', 'networkgroup'], networkFilter).map((n: any, idx: number) => {
                           const isWlan = n._source === 'wlanconf' || n.purpose === 'wlan';
                           const purposeLabel = isWlan ? 'WLAN' : (n.purpose === 'corporate' ? 'LAN' : n.purpose === 'wan' ? 'WAN' : n.purpose || 'LAN');
                           return (
@@ -450,31 +467,42 @@ const UniFiSimpleDashboard = () => {
 
             {/* ALARMS TAB */}
             <TabsContent value="alarms">
-              <div className="rounded-lg border border-border bg-card overflow-hidden">
-                {alarmsLoading ? (
-                  <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
-                ) : alarmsList.length > 0 ? (
-                  <div className="divide-y divide-border">
-                    {alarmsList.map((a: any, i: number) => (
-                      <div key={a.id || i} className="flex items-center justify-between px-4 py-2.5">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${a.archived ? 'text-muted-foreground' : 'text-destructive'}`} />
-                          <span className="text-xs truncate">{a.message}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-muted-foreground">
-                            {a.datetime && new Date(typeof a.datetime === 'number' && a.datetime < 1e12 ? a.datetime * 1000 : a.datetime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <Badge variant={a.archived ? 'secondary' : 'destructive'} className="text-[10px] h-5">
-                            {a.archived ? 'Arquivado' : 'Ativo'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-xs text-muted-foreground py-8">Nenhum alerta</p>
-                )}
+              <div className="space-y-3">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input placeholder="Filtrar alertas..." value={alarmFilter} onChange={e => setAlarmFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                </div>
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  {alarmsLoading ? (
+                    <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+                  ) : filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter).length > 0 ? (
+                    <div className="divide-y divide-border">
+                      {filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter).map((a: any, i: number) => {
+                        const alarmMsg = a.msg || a.message || a.key || 'Alerta desconhecido';
+                        const alarmTime = a.time || a.datetime;
+                        return (
+                          <div key={a._id || a.id || i} className="flex items-center justify-between px-4 py-2.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${a.archived ? 'text-muted-foreground' : 'text-destructive'}`} />
+                              <span className="text-xs truncate">{alarmMsg}</span>
+                              {a.subsystem && <Badge variant="outline" className="text-[9px] h-4 shrink-0">{a.subsystem}</Badge>}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-muted-foreground">
+                                {alarmTime && new Date(typeof alarmTime === 'number' && alarmTime < 1e12 ? alarmTime * 1000 : alarmTime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <Badge variant={a.archived ? 'secondary' : 'destructive'} className="text-[10px] h-5">
+                                {a.archived ? 'Arquivado' : 'Ativo'}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-center text-xs text-muted-foreground py-8">Nenhum alerta</p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
