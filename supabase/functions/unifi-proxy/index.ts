@@ -590,11 +590,15 @@ serve(async (req) => {
         const apiUrl = `${activeBase}${endpointVariant}`;
         console.log(`[LOCAL] API request: ${method || 'GET'} ${apiUrl}`);
 
+        // Use longer timeout for data-heavy endpoints
+        const isHeavyEndpoint = apiUrl.includes('/stat/sta') || apiUrl.includes('/stat/device') || apiUrl.includes('/rest/networkconf');
+        const apiTimeout = isHeavyEndpoint ? 25000 : 10000;
+        
         const response = await fetchLocal(apiUrl, {
           method: method || 'GET',
           headers: apiHeaders,
           body: apiBody,
-        }, 10000);
+        }, apiTimeout);
 
         if (response.ok) {
           apiResponse = response;
