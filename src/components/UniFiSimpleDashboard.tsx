@@ -279,18 +279,35 @@ const UniFiSimpleDashboard = () => {
                               <TableCell className="text-xs">{formatUptime(d.uptime)}</TableCell>
                               <TableCell className="text-xs text-muted-foreground">{d.version || '-'}</TableCell>
                               <TableCell>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost" size="sm" className="h-7 w-7 p-0"
-                                      disabled={restartDevice.isPending}
-                                      onClick={() => restartDevice.mutate({ integrationId: selectedIntegration, deviceId: d.mac, siteId: selectedSiteId })}
-                                    >
-                                      <Power className="h-3.5 w-3.5" />
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
                                     </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="text-xs">Reiniciar dispositivo</TooltipContent>
-                                </Tooltip>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-44">
+                                    <DropdownMenuItem onClick={() => restartDevice.mutate({ integrationId: selectedIntegration, deviceId: d.mac, siteId: selectedSiteId })}>
+                                      <Power className="h-3.5 w-3.5 mr-2" /> Reiniciar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => upgradeDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId })}>
+                                      <Upload className="h-3.5 w-3.5 mr-2" /> Atualizar Firmware
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => provisionDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId })}>
+                                      <Zap className="h-3.5 w-3.5 mr-2" /> Provisionar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => locateDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId, enabled: true })}>
+                                      <MapPin className="h-3.5 w-3.5 mr-2" /> Localizar (LED)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
+                                      if (confirm(`Tem certeza que deseja remover o dispositivo ${d.displayName || d.name || d.mac}?`)) {
+                                        forgetDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId });
+                                      }
+                                    }}>
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Esquecer Dispositivo
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </TableCell>
                             </TableRow>
                           );
