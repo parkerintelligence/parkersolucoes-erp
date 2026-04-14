@@ -69,150 +69,193 @@ serve(async (req) => {
       throw new Error('Wazuh integration is not active');
     }
 
-    const { base_url, username, password } = integration;
-    
-    if (!base_url || !username || !password) {
-      console.error('Missing integration config:', { base_url: !!base_url, username: !!username, password: !!password });
+    const { base_url, username, password, api_token } = integration;
+
+    if (!base_url) {
+      console.error('Missing integration config:', { base_url: !!base_url, username: !!username, password: !!password, api_token: !!api_token });
       throw new Error('Wazuh integration is not properly configured');
     }
 
-    // Clean up base URL - remove trailing slashes
-    let cleanBaseUrl = base_url.replace(/\/+$/, '');
-    
-    // Ensure we have the protocol and port
-    if (!cleanBaseUrl.match(/^https?:\/\//)) {
-      // Default to HTTPS for Wazuh API
-      cleanBaseUrl = `https://${cleanBaseUrl}`;
-    }
-    
-    // Add default Wazuh API port (55000) if not specified
-    if (!cleanBaseUrl.match(/:\d+$/)) {
-      cleanBaseUrl = cleanBaseUrl + ':55000';
+    if (!api_token && (!username || !password)) {
+      console.error('Missing auth config:', { username: !!username, password: !!password, api_token: !!api_token });
+      throw new Error('Wazuh integration requires either API token or username/password');
     }
 
-    console.log(`Connecting to Wazuh API: ${cleanBaseUrl}${endpoint}`);
-    console.log('Authenticating with Wazuh API...');
+    const normalizeBaseUrl = (rawUrl: string, protocol?: 'http' | 'https') => {
+      const trimmedUrl = rawUrl.trim().replace(/\/+$/, '');
+      const hasProtocol = /^https?:\/\//i.test(trimmedUrl);
+      const urlWithProtocol = hasProtocol
+        ? trimmedUrl
+        : `${protocol ?? 'https'}://${trimmedUrl}`;
 
-    const basicAuth = btoa(`${username}:${password}`);
-    const originalBaseUrl = cleanBaseUrl; // Save original URL for comparison
-    
-    // Simple authentication function using GET with Basic Auth
-    const authenticateWithWazuh = async (baseUrl: string): Promise<{token: string, baseUrl: string}> => {
-      const authUrl = `${baseUrl}/security/user/authenticate`;
-      
-      console.log(`🔐 Authenticating to: ${authUrl} (GET with Basic Auth)`);
-      
-      try {
-        const authResponse = await fetch(authUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Basic ${basicAuth}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      const parsedUrl = new URL(urlWithProtocol);
+      if (!parsedUrl.port) {
+        parsedUrl.port = '55000';
+      }
 
-        if (!authResponse.ok) {
-          const errorText = await authResponse.text();
-          console.error(`❌ Auth failed: ${authResponse.status} - ${errorText}`);
-          throw new Error(`Authentication failed: ${authResponse.status}`);
-        }
+      if (protocol) {
+        parsedUrl.protocol = `${protocol}:`;
+      }
 
-        const authData = await authResponse.json();
-        console.log('✅ Authentication successful');
-        console.log('Token data:', authData.data ? 'Present' : 'Missing');
-        
-        return { token: authData.data?.token, baseUrl };
-      } catch (error) {
-        // If HTTPS fails with certificate error or connection issues, try HTTP
-        if (error.message.includes('certificate') || 
-            error.message.includes('UnknownIssuer') || 
-            error.message.includes('connection closed') ||
-            error.message.includes('SendRequest')) {
-          console.log('⚠️ HTTPS connection error, trying HTTP fallback...');
-          console.log(`Error details: ${error.message}`);
-          const httpUrl = baseUrl.replace('https://', 'http://');
-          const httpAuthUrl = `${httpUrl}/security/user/authenticate`;
-          
-          console.log(`🔄 Trying HTTP: ${httpAuthUrl}`);
-          
-          const httpResponse = await fetch(httpAuthUrl, {
+      return parsedUrl.toString().replace(/\/+$/, '');
+    };
+
+    const buildBaseUrlCandidates = (rawUrl: string) => {
+      const trimmedUrl = rawUrl.trim();
+      if (/^https?:\/\//i.test(trimmedUrl)) {
+        const parsed = new URL(trimmedUrl);
+        const primaryProtocol = parsed.protocol.replace(':', '') as 'http' | 'https';
+        const secondaryProtocol = primaryProtocol === 'https' ? 'http' : 'https';
+
+        return [
+          normalizeBaseUrl(trimmedUrl, primaryProtocol),
+          normalizeBaseUrl(trimmedUrl, secondaryProtocol),
+        ];
+      }
+
+      return [
+        normalizeBaseUrl(trimmedUrl, 'https'),
+        normalizeBaseUrl(trimmedUrl, 'http'),
+      ];
+    };
+
+    const cleanBaseUrls = [...new Set(buildBaseUrlCandidates(base_url))];
+    const originalBaseUrl = cleanBaseUrls[0];
+
+    console.log(`Connecting to Wazuh API. Candidates: ${cleanBaseUrls.join(' | ')}`);
+
+    const parseAuthToken = (rawBody: string) => {
+      const trimmed = rawBody.trim();
+      if (!trimmed) return '';
+
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        const parsed = JSON.parse(trimmed);
+        return parsed?.data?.token || parsed?.token || '';
+      }
+
+      return trimmed;
+    };
+
+    const buildAuthError = (baseUrl: string, message: string, status?: number) => {
+      const normalizedMessage = message.toLowerCase();
+      const protocol = baseUrl.startsWith('https://') ? 'HTTPS' : 'HTTP';
+
+      if (status === 401 || normalizedMessage.includes('invalid credentials') || normalizedMessage.includes('unauthorized')) {
+        return `Authentication failed on ${protocol}: invalid username/password or API token`;
+      }
+
+      if (
+        normalizedMessage.includes('certificate') ||
+        normalizedMessage.includes('unknownissuer') ||
+        normalizedMessage.includes('cert_verify_failed') ||
+        normalizedMessage.includes('self-signed')
+      ) {
+        return `SSL certificate validation failed on HTTPS. Your Wazuh server is reachable but uses a self-signed or invalid certificate.`;
+      }
+
+      if (
+        normalizedMessage.includes('connection closed') ||
+        normalizedMessage.includes('message completed') ||
+        normalizedMessage.includes('sendrequest') ||
+        normalizedMessage.includes('remotedisconnected')
+      ) {
+        return `Connection closed by the Wazuh server on ${protocol}. This usually means the server expects the other protocol.`;
+      }
+
+      return `${protocol} request failed: ${message}`;
+    };
+
+    const authenticateWithWazuh = async (): Promise<{ token: string; baseUrl: string; usedApiToken: boolean }> => {
+      if (api_token) {
+        console.log('🔐 Using configured Wazuh API token');
+        return { token: api_token, baseUrl: cleanBaseUrls[0], usedApiToken: true };
+      }
+
+      const basicAuth = btoa(`${username}:${password}`);
+      const errors: string[] = [];
+
+      for (const candidateBaseUrl of cleanBaseUrls) {
+        const authUrl = `${candidateBaseUrl}/security/user/authenticate?raw=true`;
+        console.log(`🔐 Authenticating to: ${authUrl}`);
+
+        try {
+          const authResponse = await fetch(authUrl, {
             method: 'GET',
             headers: {
               'Authorization': `Basic ${basicAuth}`,
               'Content-Type': 'application/json'
-            }
+            },
+            signal: AbortSignal.timeout(15000),
           });
 
-          if (!httpResponse.ok) {
-            const errorText = await httpResponse.text();
-            throw new Error(`HTTP auth failed: ${httpResponse.status} - ${errorText}`);
+          const responseText = await authResponse.text();
+
+          if (!authResponse.ok) {
+            const errorMessage = buildAuthError(candidateBaseUrl, responseText, authResponse.status);
+            console.error(`❌ Auth failed for ${candidateBaseUrl}: ${authResponse.status} - ${responseText}`);
+            errors.push(errorMessage);
+            continue;
           }
 
-          const httpData = await httpResponse.json();
-          console.log('✅ HTTP authentication successful (fallback)');
-          
-          return { token: httpData.data?.token, baseUrl: httpUrl };
+          const parsedToken = parseAuthToken(responseText);
+          if (!parsedToken) {
+            errors.push(`Authentication response from ${candidateBaseUrl} did not include a token`);
+            continue;
+          }
+
+          console.log(`✅ Authentication successful with ${candidateBaseUrl}`);
+          return { token: parsedToken, baseUrl: candidateBaseUrl, usedApiToken: false };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown authentication error';
+          console.error(`❌ Auth request error for ${candidateBaseUrl}:`, errorMessage);
+          errors.push(buildAuthError(candidateBaseUrl, errorMessage));
         }
-        
-        throw error;
       }
+
+      throw new Error(errors.join(' | '));
     };
-    
-    // Get JWT token
-    console.log('🔄 Getting JWT token...');
-    
+
+    console.log('🔄 Getting Wazuh auth token...');
+
     let jwtToken: string;
-    let finalBaseUrl = cleanBaseUrl; // Track which URL worked
-    
+    let finalBaseUrl = originalBaseUrl;
+    let usedApiToken = false;
+
     try {
-      const result = await authenticateWithWazuh(cleanBaseUrl);
+      const result = await authenticateWithWazuh();
       jwtToken = result.token;
       finalBaseUrl = result.baseUrl;
+      usedApiToken = result.usedApiToken;
     } catch (error) {
-      console.error('❌ Authentication failed:', error.message);
-      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown Wazuh authentication error';
+      console.error('❌ Authentication failed:', errorMessage);
+
       return new Response(
         JSON.stringify({
           error: '❌ Wazuh Authentication Failed',
-          details: error.message,
+          details: errorMessage,
           suggestions: [
-            '🔴 PROBLEM: Cannot authenticate with Wazuh API',
-            '',
-            '⚙️  Check the following:',
-            '',
-            '1️⃣  Verify the Wazuh URL is correct (should be https://your-server:55000)',
-            '',
-            '2️⃣  Verify username and password are correct',
-            '',
-            '3️⃣  Check that the Wazuh API is running:',
-            '   sudo systemctl status wazuh-manager',
-            '',
-            '4️⃣  Check firewall allows port 55000:',
-            '   sudo ufw status',
-            '   sudo ufw allow 55000/tcp',
-            '',
-            '5️⃣  If using HTTPS, ensure you have a valid SSL certificate (not self-signed)',
-            '',
-            '📖 See "Guia de Setup" tab for detailed instructions'
+            '1️⃣ Save the URL with the correct protocol. Your server currently looks HTTPS-first, not plain HTTP.',
+            '2️⃣ If using HTTPS, install a valid SSL certificate. Supabase Edge Functions cannot ignore self-signed certificates.',
+            '3️⃣ If you stay on HTTP, ensure the Wazuh API is really listening in HTTP on port 55000.',
+            '4️⃣ Recheck the username/password or configure a valid API token.',
+            '5️⃣ Test directly on the server: curl -u usuario:senha -k https://SEU_HOST:55000/security/user/authenticate?raw=true'
           ]
         }),
-        { 
+        {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
-    // Make the API request with the JWT token
     const apiUrl = `${finalBaseUrl}${endpoint}`;
     console.log(`📡 Making API request to: ${apiUrl}`);
-    
-    // Warn if using HTTP instead of HTTPS
+
     if (finalBaseUrl.startsWith('http://') && originalBaseUrl.startsWith('https://')) {
-      console.warn('⚠️ Using HTTP fallback due to HTTPS certificate issues');
-      console.warn('⚠️ Consider configuring Wazuh with a valid SSL certificate or using a reverse proxy');
+      console.warn('⚠️ Using HTTP fallback because HTTPS did not work');
     }
-    
+
     const apiResponse = await fetch(apiUrl, {
       method: method || 'GET',
       headers: {
@@ -223,19 +266,23 @@ serve(async (req) => {
     });
 
     console.log(`📊 API response status: ${apiResponse.status}`);
-    
+
+    const responseText = await apiResponse.text();
+
     if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      console.error('❌ API error:', errorText);
-      throw new Error(`API request failed: ${apiResponse.status}`);
+      console.error('❌ API error:', responseText);
+      throw new Error(`API request failed: ${apiResponse.status} - ${responseText}`);
     }
 
-    const responseData = await apiResponse.json();
+    const responseData = responseText ? JSON.parse(responseText) : {};
     console.log('✅ API response received successfully');
 
-    const responseHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
-    
-    // Add warning header if using HTTP fallback
+    const responseHeaders: Record<string, string> = { ...corsHeaders, 'Content-Type': 'application/json' };
+
+    if (usedApiToken) {
+      responseHeaders['X-Wazuh-Auth'] = 'api-token';
+    }
+
     if (finalBaseUrl.startsWith('http://') && originalBaseUrl.startsWith('https://')) {
       responseHeaders['X-Wazuh-Connection'] = 'http-fallback';
     }
