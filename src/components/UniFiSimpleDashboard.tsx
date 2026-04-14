@@ -315,7 +315,7 @@ const UniFiSimpleDashboard = () => {
                                       }
                                       upgradeDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId });
                                     }}>
-                                      <Upload className="h-3.5 w-3.5 mr-2" /> Atualizar Firmware
+                                      <Upload className="h-3.5 w-3.5 mr-2" /> {(d.upgradable || d.upgrade_to_firmware || d.upgradeTo) ? `Atualizar → ${d.upgrade_to_firmware || d.upgradeTo || 'nova versão'}` : 'Atualizar Firmware'}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => provisionDevice.mutate({ integrationId: selectedIntegration, deviceMac: d.mac, siteId: selectedSiteId })}>
                                       <Zap className="h-3.5 w-3.5 mr-2" /> Provisionar
