@@ -210,7 +210,10 @@ const resolvePinnedCaCert = (url: string) => {
 
 const buildTlsHostnameCandidates = (url: string) => {
   const hostname = new URL(url).hostname;
-  return [hostname, ...(TLS_HOST_ALIASES[hostname] || []), 'UniFi']
+  // Try cert-matching aliases FIRST (e.g. "UniFi" matches the cert SAN),
+  // then fall back to the actual hostname with unsafelyDisableHostnameVerification.
+  const aliases = TLS_HOST_ALIASES[hostname] || [];
+  return ['UniFi', ...aliases, hostname]
     .map((value) => value.trim())
     .filter((value, index, array) => value.length > 0 && array.indexOf(value) === index);
 };
@@ -284,8 +287,11 @@ const fetchLocalTlsSocket = async (
     });
     rawRequest += `\r\n${body}`;
 
+    console.log(`[LOCAL-SOCKET] Writing request to ${parsedUrl.host}${path}...`);
     await connection.write(encoder.encode(rawRequest));
+    console.log(`[LOCAL-SOCKET] Write OK, reading response...`);
     const rawResponse = await readRawHttpResponse(connection, timeoutMs);
+    console.log(`[LOCAL-SOCKET] Read OK, response length: ${rawResponse.length}`);
     return responseFromRawHttp(rawResponse);
   } finally {
     try {
@@ -296,50 +302,16 @@ const fetchLocalTlsSocket = async (
   }
 };
 
-const fetchWithIgnoredTls = async (
-  url: string,
-  options: RequestInit = {},
-  timeoutMs = 10000,
-  caCert?: string | null,
-): Promise<Response> => {
-  const parsedUrl = new URL(url);
-  const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
-  const httpClient = Deno.createHttpClient({
-    caCerts: caCert ? [caCert] : undefined,
-    dangerouslyIgnoreCertificateErrors: [parsedUrl.hostname],
-  });
-
-  try {
-    console.warn(`[LOCAL] Falling back to ignored TLS validation for ${parsedUrl.hostname}`);
-    return await fetch(url, {
-      ...options,
-      client: httpClient,
-      signal: abortController.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-    httpClient.close();
-  }
-};
-
-// For local controllers, prefer a raw TLS socket so we can control SNI/hostname
-// and accept common UniFi self-signed certificates (CN/SAN = UniFi).
+// For local controllers, use ONLY the raw TLS socket approach.
+// Deno.createHttpClient with dangerouslyIgnoreCertificateErrors does NOT work
+// reliably in Supabase Edge Runtime.
 const fetchLocal = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
   const isHttps = url.startsWith('https://');
 
   if (isHttps) {
     const pinnedCaCert = resolvePinnedCaCert(url);
-
-    try {
-      console.log(`[LOCAL] HTTPS request (raw TLS socket): ${url}`);
-      return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
-    } catch (socketError) {
-      const message = socketError instanceof Error ? socketError.message : String(socketError);
-      console.warn(`[LOCAL] Raw TLS socket failed, fallback to ignored TLS fetch: ${message}`);
-      console.log(`[LOCAL] HTTPS request (ignored TLS fallback): ${url}`);
-      return await fetchWithIgnoredTls(url, options, timeoutMs, pinnedCaCert);
-    }
+    console.log(`[LOCAL] HTTPS request (raw TLS socket): ${url}`);
+    return await fetchLocalTlsSocket(url, options, timeoutMs, pinnedCaCert);
   }
 
   const ctrl = new AbortController();
