@@ -517,17 +517,21 @@ const UniFiSimpleDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Rede</TableHead>
-                          <TableHead className="text-xs">Tipo</TableHead>
-                          <TableHead className="text-xs">VLAN</TableHead>
+                          <SortableHead label="Rede" sortKey="name" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Tipo" sortKey="purpose" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
+                          <SortableHead label="VLAN" sortKey="vlan" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">Subnet</TableHead>
                           <TableHead className="text-xs">DHCP</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
+                          <SortableHead label="Status" sortKey="enabled" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
                           {isLocal && <TableHead className="text-xs">Ações</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(networksList, ['name', 'purpose', 'networkgroup'], networkFilter).map((n: any, idx: number) => {
+                        {sortItems(filter(networksList, ['name', 'purpose', 'networkgroup'], networkFilter), networkSort, (n, key) => {
+                          if (key === 'vlan') return n.vlan || n.vlan_id || 0;
+                          if (key === 'enabled') return n.enabled !== false ? 1 : 0;
+                          return n[key] ?? '';
+                        }).map((n: any, idx: number) => {
                           const isWlan = n._source === 'wlanconf' || n.purpose === 'wlan';
                           const purposeLabel = isWlan ? 'WLAN' : (n.purpose === 'corporate' ? 'LAN' : n.purpose === 'wan' ? 'WAN' : n.purpose || 'LAN');
                           return (
