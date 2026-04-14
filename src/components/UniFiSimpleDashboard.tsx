@@ -252,8 +252,11 @@ const UniFiSimpleDashboard = () => {
                         {filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter).map((d: any) => {
                           const isOnline = d.status === 'online' || d.state === 1;
                           const sysStats = d['sys-stats'] || d.sys_stats || {};
+                          const rowBg = isOnline
+                            ? 'bg-emerald-500/8 hover:bg-emerald-500/15'
+                            : 'bg-red-500/10 hover:bg-red-500/18';
                           return (
-                            <TableRow key={d._id || d.id || d.mac}>
+                            <TableRow key={d._id || d.id || d.mac} className={rowBg}>
                               <TableCell className="text-xs font-medium">
                                 <div className="flex items-center gap-2">
                                   {d.type?.includes('uap') ? <Wifi className="h-3.5 w-3.5 text-primary" /> :
