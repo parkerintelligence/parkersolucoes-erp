@@ -12,7 +12,7 @@ import {
   Wifi, Router, Users, Network, AlertTriangle, RefreshCw, Search, Globe,
   CheckCircle2, XCircle, Signal, Cloud, Server, Power, Ban, Plus, Trash2,
   Edit, Activity, Cpu, HardDrive, Thermometer, Shield, Eye, EyeOff, Copy,
-  Upload, MapPin, MoreHorizontal, Zap, BarChart3
+  Upload, MapPin, MoreHorizontal, Zap, BarChart3, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
@@ -39,6 +39,45 @@ const formatBytes = (bytes?: number) => {
   return `${bytes} B`;
 };
 
+type SortDir = 'asc' | 'desc' | null;
+type SortState = { key: string; dir: SortDir };
+
+const SortableHead: React.FC<{ label: string; sortKey: string; sort: SortState; onSort: (key: string) => void; className?: string }> = ({ label, sortKey, sort, onSort, className }) => (
+  <TableHead className={`text-xs cursor-pointer select-none hover:text-foreground transition-colors ${className || ''}`} onClick={() => onSort(sortKey)}>
+    <div className="flex items-center gap-1">
+      {label}
+      {sort.key === sortKey ? (
+        sort.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-30" />
+      )}
+    </div>
+  </TableHead>
+);
+
+const toggleSort = (prev: SortState, key: string): SortState => {
+  if (prev.key !== key) return { key, dir: 'asc' };
+  if (prev.dir === 'asc') return { key, dir: 'desc' };
+  return { key: '', dir: null };
+};
+
+const sortItems = (items: any[], sort: SortState, accessor?: (item: any, key: string) => any) => {
+  if (!sort.key || !sort.dir) return items;
+  const get = accessor || ((item: any, key: string) => {
+    const v = item[key];
+    return v ?? '';
+  });
+  return [...items].sort((a, b) => {
+    let va = get(a, sort.key);
+    let vb = get(b, sort.key);
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sort.dir === 'asc' ? -1 : 1;
+    if (va > vb) return sort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+};
+
 const UniFiSimpleDashboard = () => {
   const { data: integrations } = useIntegrations();
   const { toast } = useToast();
@@ -53,6 +92,10 @@ const UniFiSimpleDashboard = () => {
   const [clientFilter, setClientFilter] = useState('');
   const [networkFilter, setNetworkFilter] = useState('');
   const [alarmFilter, setAlarmFilter] = useState('');
+  const [deviceSort, setDeviceSort] = useState<SortState>({ key: '', dir: null });
+  const [clientSort, setClientSort] = useState<SortState>({ key: '', dir: null });
+  const [networkSort, setNetworkSort] = useState<SortState>({ key: '', dir: null });
+  const [alarmSort, setAlarmSort] = useState<SortState>({ key: '', dir: null });
 
   const {
     useUniFiSites, useUniFiDevices, useUniFiClients, useUniFiNetworks, useUniFiAlarms, useUniFiHealth,
@@ -243,20 +286,27 @@ const UniFiSimpleDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Dispositivo</TableHead>
-                          <TableHead className="text-xs">Modelo</TableHead>
-                          <TableHead className="text-xs">IP</TableHead>
+                          <SortableHead label="Dispositivo" sortKey="name" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Modelo" sortKey="model" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="IP" sortKey="ip" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">MAC</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs">Clientes</TableHead>
-                          <TableHead className="text-xs">CPU/Mem</TableHead>
-                          <TableHead className="text-xs">Uptime</TableHead>
-                          <TableHead className="text-xs">Versão</TableHead>
+                          <SortableHead label="Status" sortKey="status" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Clientes" sortKey="num_sta" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="CPU/Mem" sortKey="cpu" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Uptime" sortKey="uptime" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Versão" sortKey="version" sort={deviceSort} onSort={k => setDeviceSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter).map((d: any) => {
+                        {sortItems(filter(devicesList, ['name', 'displayName', 'mac', 'ip', 'model'], deviceFilter), deviceSort, (d, key) => {
+                          if (key === 'name') return (d.displayName || d.name || d.mac || '').toLowerCase();
+                          if (key === 'status') return d.status === 'online' || d.state === 1 ? 1 : 0;
+                          if (key === 'num_sta') return d.num_sta ?? d.connectedClients ?? 0;
+                          if (key === 'cpu') return (d['sys-stats'] || d.sys_stats || {}).cpu || 0;
+                          if (key === 'uptime') return d.uptime || 0;
+                          return d[key] ?? '';
+                        }).map((d: any) => {
                           const isOnline = d.status === 'online' || d.state === 1;
                           const sysStats = d['sys-stats'] || d.sys_stats || {};
                           const rowBg = isOnline
@@ -360,20 +410,33 @@ const UniFiSimpleDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Cliente</TableHead>
-                          <TableHead className="text-xs">IP</TableHead>
+                          <SortableHead label="Cliente" sortKey="name" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="IP" sortKey="ip" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">MAC</TableHead>
-                          <TableHead className="text-xs">Rede</TableHead>
-                          <TableHead className="text-xs">Tipo</TableHead>
-                          <TableHead className="text-xs">Sinal</TableHead>
-                          <TableHead className="text-xs">↓ RX / ↑ TX</TableHead>
-                          <TableHead className="text-xs">AP</TableHead>
-                          <TableHead className="text-xs">Uptime</TableHead>
+                          <SortableHead label="Rede" sortKey="network" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Tipo" sortKey="type" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Sinal" sortKey="signal" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="↓ RX / ↑ TX" sortKey="rx" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="AP" sortKey="ap" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Uptime" sortKey="uptime" sort={clientSort} onSort={k => setClientSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter).map((c: any) => {
+                        {sortItems(filter(clientsList, ['name', 'hostname', 'mac', 'ip', 'essid', 'network'], clientFilter), clientSort, (c, key) => {
+                          if (key === 'name') return (c.name || c.hostname || c.oui || c.mac || '').toLowerCase();
+                          if (key === 'network') return (c.essid || c.network || c.ssid || '').toLowerCase();
+                          if (key === 'type') return (c.isWired || c.is_wired) ? 1 : 0;
+                          if (key === 'signal') return c.signal || c.rssi || -999;
+                          if (key === 'rx') return (c.rx_bytes || c.rxBytes || 0) + (c.tx_bytes || c.txBytes || 0);
+                          if (key === 'ap') {
+                            const apMac = c.ap_mac || c.accessPointMac;
+                            const ap = apMac ? devicesList.find((d: any) => d.mac === apMac) : null;
+                            return (ap?.name || ap?.model || apMac || '').toLowerCase();
+                          }
+                          if (key === 'uptime') return c.uptime || 0;
+                          return c[key] ?? '';
+                        }).map((c: any) => {
                           const isWired = c.isWired || c.is_wired;
                           const networkName = c.essid || c.network || c.ssid || (isWired ? 'LAN' : '-');
                           const apMac = c.ap_mac || c.accessPointMac;
@@ -454,17 +517,21 @@ const UniFiSimpleDashboard = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Rede</TableHead>
-                          <TableHead className="text-xs">Tipo</TableHead>
-                          <TableHead className="text-xs">VLAN</TableHead>
+                          <SortableHead label="Rede" sortKey="name" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
+                          <SortableHead label="Tipo" sortKey="purpose" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
+                          <SortableHead label="VLAN" sortKey="vlan" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
                           <TableHead className="text-xs">Subnet</TableHead>
                           <TableHead className="text-xs">DHCP</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
+                          <SortableHead label="Status" sortKey="enabled" sort={networkSort} onSort={k => setNetworkSort(s => toggleSort(s, k))} />
                           {isLocal && <TableHead className="text-xs">Ações</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filter(networksList, ['name', 'purpose', 'networkgroup'], networkFilter).map((n: any, idx: number) => {
+                        {sortItems(filter(networksList, ['name', 'purpose', 'networkgroup'], networkFilter), networkSort, (n, key) => {
+                          if (key === 'vlan') return n.vlan || n.vlan_id || 0;
+                          if (key === 'enabled') return n.enabled !== false ? 1 : 0;
+                          return n[key] ?? '';
+                        }).map((n: any, idx: number) => {
                           const isWlan = n._source === 'wlanconf' || n.purpose === 'wlan';
                           const purposeLabel = isWlan ? 'WLAN' : (n.purpose === 'corporate' ? 'LAN' : n.purpose === 'wan' ? 'WAN' : n.purpose || 'LAN');
                           return (
@@ -530,16 +597,30 @@ const UniFiSimpleDashboard = () => {
             {/* ALARMS TAB */}
             <TabsContent value="alarms">
               <div className="space-y-3">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input placeholder="Filtrar alertas..." value={alarmFilter} onChange={e => setAlarmFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                <div className="flex items-center gap-2">
+                  <div className="relative max-w-sm flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input placeholder="Filtrar alertas..." value={alarmFilter} onChange={e => setAlarmFilter(e.target.value)} className="pl-8 bg-card border-border h-8 text-xs" />
+                  </div>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => setAlarmSort(s => toggleSort(s, 'time'))}>
+                    {alarmSort.key === 'time' ? (alarmSort.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3" />}
+                    Data
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => setAlarmSort(s => toggleSort(s, 'msg'))}>
+                    {alarmSort.key === 'msg' ? (alarmSort.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3" />}
+                    Mensagem
+                  </Button>
                 </div>
                 <div className="rounded-lg border border-border bg-card overflow-hidden">
                   {alarmsLoading ? (
                     <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
                   ) : filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter).length > 0 ? (
                     <div className="divide-y divide-border">
-                      {filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter).map((a: any, i: number) => {
+                      {sortItems(filter(alarmsList, ['msg', 'message', 'key', 'subsystem'], alarmFilter), alarmSort, (a, key) => {
+                        if (key === 'time') return a.time || a.datetime || 0;
+                        if (key === 'msg') return (a.msg || a.message || a.key || '').toLowerCase();
+                        return a[key] ?? '';
+                      }).map((a: any, i: number) => {
                         const alarmMsg = a.msg || a.message || a.key || 'Alerta desconhecido';
                         const alarmTime = a.time || a.datetime;
                         return (
