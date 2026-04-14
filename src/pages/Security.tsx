@@ -43,17 +43,36 @@ const Security = () => {
   const { data: rules, isLoading: rulesLoading, error: rulesError } = useWazuhRules(wazuhIntegration?.id || '');
 
   const isLoadingData = agentsLoading || alertsLoading || statsLoading || managerInfoLoading || rulesLoading;
+  const statsData = stats ?? {
+    total_agents: 0,
+    agents_connected: 0,
+    agents_disconnected: 0,
+    agents_never_connected: 0,
+    total_alerts_today: 0,
+    critical_alerts: 0,
+    high_alerts: 0,
+    medium_alerts: 0,
+    low_alerts: 0,
+  };
+  const connectionError = agentsError || alertsError || statsError || managerInfoError || rulesError;
+  const connectionErrorMessage = connectionError instanceof Error
+    ? connectionError.message
+    : 'Não foi possível carregar os dados do Wazuh.';
 
   // Use real data if available, otherwise use mock data
   const hasRealData = useMemo(() => {
     if (!wazuhIntegration || isLoadingData) return false;
     
+    const alertsCount = Array.isArray(alerts?.data?.affected_items)
+      ? alerts.data.affected_items.length
+      : alerts?.data?.total_affected_items || 0;
+    
     // Check if we have successful data from any of the queries
-    const hasValidStats = stats && !statsError && 
-      (stats.total_agents > 0 || stats.agents_connected > 0);
+    const hasValidStats = !!stats && !statsError && 
+      (statsData.total_agents > 0 || statsData.agents_connected > 0);
     const hasValidAgents = agents && !agentsError && 
       Array.isArray(agents?.data?.affected_items) && agents.data.affected_items.length > 0;
-    const hasValidAlerts = alerts && !alertsError;
+    const hasValidAlerts = !!alerts && !alertsError && alertsCount > 0;
     
     console.log('Real data check:', { 
       hasValidStats, 
@@ -68,20 +87,20 @@ const Security = () => {
     });
     
     return hasValidStats || hasValidAgents || hasValidAlerts;
-  }, [wazuhIntegration, isLoadingData, stats, statsError, agents, agentsError, alerts, alertsError]);
+  }, [wazuhIntegration, isLoadingData, stats, statsData, statsError, agents, agentsError, alerts, alertsError]);
   const displayData = hasRealData ? {
     agents: {
-      total: stats.total_agents || 0,
-      active: stats.agents_connected || 0,
-      disconnected: stats.agents_disconnected || 0,
-      never_connected: stats.agents_never_connected || 0
+      total: statsData.total_agents || 0,
+      active: statsData.agents_connected || 0,
+      disconnected: statsData.agents_disconnected || 0,
+      never_connected: statsData.agents_never_connected || 0
     },
     alerts: {
-      critical: stats.critical_alerts || 0,
-      high: stats.high_alerts || 0,
-      medium: stats.medium_alerts || 0,
-      low: stats.low_alerts || 0,
-      total: stats.total_alerts_today || 0
+      critical: statsData.critical_alerts || 0,
+      high: statsData.high_alerts || 0,
+      medium: statsData.medium_alerts || 0,
+      low: statsData.low_alerts || 0,
+      total: statsData.total_alerts_today || 0
     },
     managerInfo: managerInfo?.data || {
       name: "Wazuh Manager",
@@ -178,6 +197,15 @@ const Security = () => {
             </Button>
           </div>
         </div>
+
+        {!isLoadingData && connectionError && !hasRealData && (
+          <Alert className="border-red-500 bg-red-500/10">
+            <Bug className="h-4 w-4" />
+            <AlertDescription className="text-white">
+              {connectionErrorMessage}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

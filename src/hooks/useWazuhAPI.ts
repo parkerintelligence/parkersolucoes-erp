@@ -48,6 +48,25 @@ export const useWazuhAPI = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const extractWazuhErrorMessage = async (error: any) => {
+    const response = error?.context;
+
+    if (response && typeof response === 'object' && typeof response.clone === 'function') {
+      try {
+        const payload = await response.clone().json();
+        const message = [payload?.error, payload?.details].filter(Boolean).join(': ');
+
+        if (message) {
+          return message;
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse Wazuh function error payload:', parseError);
+      }
+    }
+
+    return error?.message || 'Wazuh API request failed';
+  };
+
   const makeWazuhRequest = async (endpoint: string, method: string = 'GET', integrationId: string) => {
     console.log('Making Wazuh request:', { endpoint, method, integrationId });
     
@@ -61,7 +80,8 @@ export const useWazuhAPI = () => {
 
     if (error) {
       console.error('Wazuh request error:', error);
-      throw new Error(`Wazuh API error: ${error.message}`);
+      const errorMessage = await extractWazuhErrorMessage(error);
+      throw new Error(errorMessage);
     }
 
     return data;
