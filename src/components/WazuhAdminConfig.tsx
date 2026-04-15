@@ -10,13 +10,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
   Shield, Save, TestTube, CheckCircle, XCircle, 
-  AlertCircle, Key, Globe, Users 
+  AlertCircle, HeartPulse, Loader2
 } from 'lucide-react';
 import { useIntegrations, useCreateIntegration, useUpdateIntegration, useDeleteIntegration } from '@/hooks/useIntegrations';
 import { useWazuhAPI } from '@/hooks/useWazuhAPI';
 import { useToast } from '@/hooks/use-toast';
 import { WazuhSetupGuide } from './WazuhSetupGuide';
 import { WazuhConnectionTroubleshoot } from './WazuhConnectionTroubleshoot';
+import { supabase } from '@/integrations/supabase/client';
+
+interface HealthCheckResult {
+  url: string;
+  protocol: string;
+  reachable: boolean;
+  tlsValid: boolean;
+  authOk: boolean;
+  managerInfo: any | null;
+  error: string | null;
+  errorType: string | null;
+}
+
+interface HealthCheckResponse {
+  success: boolean;
+  results: HealthCheckResult[];
+  summary: string;
+  recommendation: string | null;
+}
 
 const WazuhAdminConfig = () => {
   const { toast } = useToast();
@@ -30,7 +49,9 @@ const WazuhAdminConfig = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null);
+  const [isHealthChecking, setIsHealthChecking] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [healthCheck, setHealthCheck] = useState<HealthCheckResponse | null>(null);
 
   const [formData, setFormData] = useState({
     name: wazuhIntegration?.name || 'Wazuh Principal',
@@ -41,10 +62,8 @@ const WazuhAdminConfig = () => {
     is_active: wazuhIntegration?.is_active ?? true,
   });
 
-  // Atualizar formData quando wazuhIntegration mudar
   React.useEffect(() => {
     if (wazuhIntegration) {
-      console.log('🔄 [WazuhAdminConfig] Atualizando formData com integração existente:', wazuhIntegration);
       setFormData({
         name: wazuhIntegration.name || 'Wazuh Principal',
         base_url: wazuhIntegration.base_url || '',
@@ -56,32 +75,72 @@ const WazuhAdminConfig = () => {
     }
   }, [wazuhIntegration]);
 
-  const handleSave = async () => {
-    console.log('🚀 Iniciando salvamento Wazuh:', formData);
-    
+  const handleHealthCheck = async () => {
     if (!formData.base_url) {
-      console.error('❌ URL é obrigatória');
-      toast({
-        title: "Erro de validação",
-        description: "A URL do Wazuh é obrigatória.",
-        variant: "destructive",
-      });
+      toast({ title: "URL obrigatória", description: "Informe a URL do Wazuh.", variant: "destructive" });
+      return;
+    }
+    if (!formData.api_token && (!formData.username || !formData.password)) {
+      toast({ title: "Credenciais obrigatórias", description: "Informe usuário/senha ou API token.", variant: "destructive" });
       return;
     }
 
+    setIsHealthChecking(true);
+    setHealthCheck(null);
+    setTestResult(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/wazuh-proxy`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            action: 'health-check',
+            base_url: formData.base_url,
+            username: formData.username,
+            password: formData.password,
+            api_token: formData.api_token || undefined,
+          }),
+        }
+      );
+
+      const data: HealthCheckResponse = await resp.json();
+      setHealthCheck(data);
+
+      if (data.success) {
+        toast({ title: "✅ Health-check OK", description: data.summary });
+      } else {
+        toast({ title: "❌ Health-check falhou", description: data.summary.substring(0, 120), variant: "destructive" });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      setHealthCheck({ success: false, results: [], summary: msg, recommendation: null });
+      toast({ title: "Erro no health-check", description: msg, variant: "destructive" });
+    } finally {
+      setIsHealthChecking(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.base_url) {
+      toast({ title: "Erro de validação", description: "A URL do Wazuh é obrigatória.", variant: "destructive" });
+      return;
+    }
     if (!formData.api_token && (!formData.username || !formData.password)) {
-      console.error('❌ Credenciais são obrigatórias');
-      toast({
-        title: "Erro de validação", 
-        description: "Informe usuário e senha ou um API token do Wazuh.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro de validação", description: "Informe usuário e senha ou um API token do Wazuh.", variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
-    console.log('✅ Validação passou, iniciando salvamento...');
-
     try {
       const integrationData = {
         type: 'wazuh',
@@ -94,69 +153,33 @@ const WazuhAdminConfig = () => {
         is_global: true
       };
 
-      console.log('📝 Dados para salvamento:', integrationData);
-      console.log('🔍 Integração existente?', !!wazuhIntegration);
-
       if (wazuhIntegration) {
-        console.log('🔄 Atualizando integração existente...');
-        await updateIntegration.mutateAsync({
-          id: wazuhIntegration.id,
-          updates: integrationData
-        });
-        console.log('✅ Integração atualizada com sucesso');
+        await updateIntegration.mutateAsync({ id: wazuhIntegration.id, updates: integrationData });
       } else {
-        console.log('➕ Criando nova integração...');
-        const result = await createIntegration.mutateAsync(integrationData);
-        console.log('✅ Integração criada com sucesso:', result);
+        await createIntegration.mutateAsync(integrationData);
       }
 
-      toast({
-        title: "Configuração salva!",
-        description: "As configurações do Wazuh foram salvas com sucesso.",
-      });
-
-      console.log('🔄 Fazendo refetch dos dados...');
-      // Data will be automatically refetched by react-query
+      toast({ title: "Configuração salva!", description: "As configurações do Wazuh foram salvas com sucesso." });
     } catch (error) {
-      console.error('💥 Erro ao salvar configuração:', error);
-      console.error('💥 Detalhes do erro:', error.message);
-      console.error('💥 Stack trace:', error.stack);
-      toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar as configurações do Wazuh.",
-        variant: "destructive",
-      });
+      console.error('Erro ao salvar:', error);
+      toast({ title: "Erro ao salvar", description: "Ocorreu um erro ao salvar as configurações do Wazuh.", variant: "destructive" });
     } finally {
       setIsLoading(false);
-      console.log('🏁 Processo de salvamento finalizado');
     }
   };
 
   const handleTestConnection = async () => {
     if (!wazuhIntegration) {
-      toast({
-        title: "Configuração necessária",
-        description: "Salve a configuração antes de testar a conexão",
-        variant: "destructive",
-      });
+      toast({ title: "Configuração necessária", description: "Salve a configuração antes de testar a conexão", variant: "destructive" });
       return;
     }
-
     setIsTesting(true);
     setTestResult(null);
-    
     try {
       await testWazuhConnection.mutateAsync(wazuhIntegration.id);
-      setTestResult({
-        success: true,
-        message: "Conexão com Wazuh estabelecida com sucesso! Todos os endpoints estão funcionando."
-      });
+      setTestResult({ success: true, message: "Conexão com Wazuh estabelecida com sucesso!" });
     } catch (error) {
-      console.error('Erro no teste de conexão:', error);
-      setTestResult({
-        success: false,
-        message: "Falha na conexão. Verifique URL, credenciais e conectividade de rede."
-      });
+      setTestResult({ success: false, message: "Falha na conexão. Verifique URL, credenciais e conectividade." });
     } finally {
       setIsTesting(false);
     }
@@ -164,24 +187,13 @@ const WazuhAdminConfig = () => {
 
   const handleDelete = async () => {
     if (!wazuhIntegration) return;
-
     if (confirm('Tem certeza que deseja excluir esta integração?')) {
       try {
         await deleteIntegration.mutateAsync(wazuhIntegration.id);
-        setFormData({
-          name: 'Wazuh Principal',
-          base_url: '',
-          username: '',
-          password: '',
-          api_token: '',
-          is_active: true,
-        });
-        toast({
-          title: "Integração excluída",
-          description: "A integração Wazuh foi removida com sucesso.",
-        });
+        setFormData({ name: 'Wazuh Principal', base_url: '', username: '', password: '', api_token: '', is_active: true });
+        toast({ title: "Integração excluída", description: "A integração Wazuh foi removida com sucesso." });
       } catch (error) {
-        console.error('Erro ao excluir integração:', error);
+        console.error('Erro ao excluir:', error);
       }
     }
   };
@@ -220,9 +232,9 @@ const WazuhAdminConfig = () => {
               <Alert className="bg-blue-900/20 border-blue-700">
                 <AlertCircle className="h-4 w-4 text-blue-400" />
                 <AlertDescription className="text-blue-300 text-sm">
-                  <strong>Importante:</strong> Devido a limitações de segurança do Supabase Edge Functions, 
-                  certificados SSL auto-assinados não são suportados. 
-                  <strong className="block mt-1">Use HTTP ou instale um certificado SSL válido no servidor Wazuh.</strong>
+                  <strong>Importante:</strong> Certificados SSL auto-assinados não são suportados. 
+                  Use HTTPS com certificado válido (Let's Encrypt), reverse proxy, ou HTTP em rede interna.
+                  <strong className="block mt-1">Use o Health-Check abaixo para validar antes de salvar.</strong>
                 </AlertDescription>
               </Alert>
               
@@ -244,16 +256,16 @@ const WazuhAdminConfig = () => {
                     id="base_url"
                     value={formData.base_url}
                     onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
-                    placeholder="http://wazuh.empresa.com:55000"
+                    placeholder="https://wazuh.empresa.com:55000"
                     className="bg-slate-700 border-slate-600 text-white"
                   />
                   <p className="text-xs text-slate-400">
-                    URL completa incluindo porta (padrão: 55000). Use HTTP devido às limitações de SSL.
+                    Porta padrão: 55000. HTTPS com cert válido ou HTTP em rede interna.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-white">Usuário *</Label>
+                  <Label htmlFor="username" className="text-white">Usuário</Label>
                   <Input
                     id="username"
                     value={formData.username}
@@ -264,7 +276,7 @@ const WazuhAdminConfig = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-white">Senha *</Label>
+                  <Label htmlFor="password" className="text-white">Senha</Label>
                   <Input
                     id="password"
                     type="password"
@@ -273,6 +285,21 @@ const WazuhAdminConfig = () => {
                     placeholder="••••••••"
                     className="bg-slate-700 border-slate-600 text-white"
                   />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="api_token" className="text-white">API Token (alternativo)</Label>
+                  <Input
+                    id="api_token"
+                    type="password"
+                    value={formData.api_token}
+                    onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
+                    placeholder="Token JWT do Wazuh (opcional, substitui usuário/senha)"
+                    className="bg-slate-700 border-slate-600 text-white"
+                  />
+                  <p className="text-xs text-slate-400">
+                    Se informado, será usado no lugar de usuário/senha para autenticação.
+                  </p>
                 </div>
               </div>
 
@@ -289,19 +316,77 @@ const WazuhAdminConfig = () => {
                 </div>
               </div>
 
+              {/* Health-Check Results */}
+              {healthCheck && (
+                <div className="space-y-3">
+                  <Alert className={healthCheck.success ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"}>
+                    {healthCheck.success ? <CheckCircle className="h-4 w-4 text-green-400" /> : <XCircle className="h-4 w-4 text-red-400" />}
+                    <AlertDescription className="text-white text-sm">
+                      {healthCheck.summary}
+                    </AlertDescription>
+                  </Alert>
+
+                  {healthCheck.results.length > 0 && (
+                    <div className="grid gap-2">
+                      {healthCheck.results.map((r, i) => (
+                        <div key={i} className="flex items-center gap-3 p-2 rounded bg-slate-700/50 text-xs text-slate-300">
+                          <Badge variant="outline" className="text-[10px] shrink-0">
+                            {r.protocol}
+                          </Badge>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={r.reachable ? 'text-green-400' : 'text-red-400'}>
+                              {r.reachable ? '✓ Alcançável' : '✗ Inalcançável'}
+                            </span>
+                            {r.protocol === 'HTTPS' && (
+                              <span className={r.tlsValid ? 'text-green-400' : 'text-red-400'}>
+                                {r.tlsValid ? '✓ TLS válido' : '✗ TLS inválido'}
+                              </span>
+                            )}
+                            <span className={r.authOk ? 'text-green-400' : 'text-red-400'}>
+                              {r.authOk ? '✓ Auth OK' : '✗ Auth falhou'}
+                            </span>
+                            {r.managerInfo?.version && (
+                              <span className="text-blue-400">Wazuh {r.managerInfo.version}</span>
+                            )}
+                          </div>
+                          {r.error && <span className="text-red-300 ml-auto truncate max-w-xs" title={r.error}>{r.error}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {healthCheck.recommendation && (
+                    <Alert className="border-amber-500 bg-amber-500/10">
+                      <AlertCircle className="h-4 w-4 text-amber-400" />
+                      <AlertDescription className="text-amber-200 text-sm">
+                        <strong>Recomendação:</strong> {healthCheck.recommendation}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+
               {testResult && (
                 <Alert className={testResult.success ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"}>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-white">
-                    {testResult.message}
-                  </AlertDescription>
+                  <AlertDescription className="text-white">{testResult.message}</AlertDescription>
                 </Alert>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  onClick={handleHealthCheck}
+                  disabled={isHealthChecking}
+                  variant="outline"
+                  className="border-amber-600 text-amber-400 hover:bg-amber-600 hover:text-white"
+                >
+                  {isHealthChecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HeartPulse className="mr-2 h-4 w-4" />}
+                  {isHealthChecking ? "Verificando..." : "Health-Check"}
+                </Button>
+
                 <Button 
                   onClick={handleTestConnection}
-                  disabled={isTesting}
+                  disabled={isTesting || !wazuhIntegration}
                   variant="outline"
                   className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
                 >
@@ -346,7 +431,7 @@ const WazuhAdminConfig = () => {
                    • Porta padrão: 55000<br />
                    • Autenticação JWT via Basic Auth<br />
                    • Endpoints oficiais da API REST<br />
-                   • Acesso HTTPS recomendado<br />
+                   • HTTPS com certificado válido recomendado<br />
                    • Cache de token para performance
                  </AlertDescription>
               </Alert>

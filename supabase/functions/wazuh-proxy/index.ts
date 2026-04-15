@@ -44,10 +44,184 @@ serve(async (req) => {
     console.log(`User authenticated: ${user.id}`);
 
     const requestBody = await req.json();
-    const { method, endpoint, integrationId } = requestBody;
+    const { method, endpoint, integrationId, action } = requestBody;
 
-    console.log('Wazuh proxy request:', { method, endpoint, integrationId, userId: user.id });
+    console.log('Wazuh proxy request:', { method, endpoint, integrationId, action, userId: user.id });
 
+    // ========== HEALTH-CHECK ACTION (pre-save, no DB required) ==========
+    if (action === 'health-check') {
+      const { base_url: hcUrl, username: hcUser, password: hcPass, api_token: hcToken } = requestBody;
+      console.log('🩺 Health-check requested for:', hcUrl);
+
+      if (!hcUrl) {
+        return new Response(JSON.stringify({ success: false, error: 'URL é obrigatória' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (!hcToken && (!hcUser || !hcPass)) {
+        return new Response(JSON.stringify({ success: false, error: 'Informe usuário/senha ou API token' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const normalizeHcUrl = (rawUrl: string, protocol: 'http' | 'https') => {
+        const trimmed = rawUrl.trim().replace(/\/+$/, '');
+        const hasProto = /^https?:\/\//i.test(trimmed);
+        const withProto = hasProto ? trimmed : `${protocol}://${trimmed}`;
+        const parsed = new URL(withProto);
+        if (!parsed.port) parsed.port = '55000';
+        parsed.protocol = `${protocol}:`;
+        return parsed.toString().replace(/\/+$/, '');
+      };
+
+      const buildCandidates = (rawUrl: string) => {
+        const trimmed = rawUrl.trim();
+        if (/^https?:\/\//i.test(trimmed)) {
+          const parsed = new URL(trimmed);
+          const primary = parsed.protocol.replace(':', '') as 'http' | 'https';
+          const secondary = primary === 'https' ? 'http' : 'https';
+          return [normalizeHcUrl(trimmed, primary), normalizeHcUrl(trimmed, secondary)];
+        }
+        return [normalizeHcUrl(trimmed, 'https'), normalizeHcUrl(trimmed, 'http')];
+      };
+
+      const candidates = [...new Set(buildCandidates(hcUrl))];
+      const results: Array<{
+        url: string;
+        protocol: string;
+        reachable: boolean;
+        tlsValid: boolean;
+        authOk: boolean;
+        managerInfo: any | null;
+        error: string | null;
+        errorType: string | null;
+      }> = [];
+
+      for (const candidate of candidates) {
+        const protocol = candidate.startsWith('https') ? 'HTTPS' : 'HTTP';
+        const result = {
+          url: candidate,
+          protocol,
+          reachable: false,
+          tlsValid: protocol === 'HTTP',
+          authOk: false,
+          managerInfo: null as any,
+          error: null as string | null,
+          errorType: null as string | null,
+        };
+
+        try {
+          // Step 1: Auth
+          const authUrl = `${candidate}/security/user/authenticate?raw=true`;
+          let authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+
+          if (hcToken) {
+            authHeaders['Authorization'] = `Bearer ${hcToken}`;
+          } else {
+            authHeaders['Authorization'] = `Basic ${btoa(`${hcUser}:${hcPass}`)}`;
+          }
+
+          const authResp = await fetch(authUrl, {
+            method: 'GET',
+            headers: authHeaders,
+            signal: AbortSignal.timeout(12000),
+          });
+
+          result.reachable = true;
+          result.tlsValid = true;
+
+          const authText = await authResp.text();
+
+          if (!authResp.ok) {
+            result.error = `Auth HTTP ${authResp.status}: ${authText.substring(0, 200)}`;
+            result.errorType = authResp.status === 401 ? 'auth_invalid' : 'auth_error';
+            results.push(result);
+            continue;
+          }
+
+          // Parse token
+          let token = authText.trim();
+          if (token.startsWith('{') || token.startsWith('[')) {
+            const parsed = JSON.parse(token);
+            token = parsed?.data?.token || parsed?.token || '';
+          }
+          if (!token) {
+            result.error = 'Resposta de autenticação não contém token';
+            result.errorType = 'auth_no_token';
+            results.push(result);
+            continue;
+          }
+
+          result.authOk = true;
+
+          // Step 2: Manager info
+          try {
+            const infoResp = await fetch(`${candidate}/manager/info`, {
+              method: 'GET',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              signal: AbortSignal.timeout(10000),
+            });
+            if (infoResp.ok) {
+              const infoData = await infoResp.json();
+              result.managerInfo = infoData?.data?.affected_items?.[0] || infoData?.data || infoData;
+            } else {
+              await infoResp.text();
+            }
+          } catch (_) { /* manager info is optional */ }
+
+          results.push(result);
+          break; // success, no need to try next candidate
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          result.reachable = !msg.includes('ECONNREFUSED') && !msg.includes('timeout');
+          
+          if (msg.includes('certificate') || msg.includes('UnknownIssuer') || msg.includes('self-signed') || msg.includes('NotValidForName')) {
+            result.tlsValid = false;
+            result.reachable = true;
+            result.errorType = 'tls_invalid';
+            result.error = msg.includes('NotValidForName')
+              ? 'Certificado HTTPS não é válido para este hostname (SAN mismatch)'
+              : 'Certificado SSL autoassinado ou emissor desconhecido';
+          } else if (msg.includes('connection closed') || msg.includes('message completed')) {
+            result.reachable = true;
+            result.errorType = 'protocol_mismatch';
+            result.error = `Servidor fechou a conexão ${protocol} — provavelmente espera o outro protocolo`;
+          } else if (msg.includes('timeout') || msg.includes('AbortError')) {
+            result.errorType = 'timeout';
+            result.error = 'Timeout ao conectar (>12s)';
+          } else {
+            result.errorType = 'network';
+            result.error = msg.substring(0, 300);
+          }
+          results.push(result);
+        }
+      }
+
+      const success = results.some(r => r.authOk);
+      const working = results.find(r => r.authOk);
+
+      return new Response(JSON.stringify({
+        success,
+        results,
+        summary: success
+          ? `✅ Conexão OK via ${working!.protocol} em ${working!.url}${working!.managerInfo ? ` — Wazuh ${working!.managerInfo.version || ''}` : ''}`
+          : `❌ Falha em todos os candidatos: ${results.map(r => `${r.protocol}: ${r.error}`).join(' | ')}`,
+        recommendation: !success
+          ? results.some(r => r.errorType === 'tls_invalid')
+            ? 'Instale um certificado SSL válido (Let\'s Encrypt) ou use um reverse proxy Nginx/Caddy com HTTPS válido.'
+            : results.some(r => r.errorType === 'protocol_mismatch')
+            ? 'O servidor espera um protocolo diferente. Tente alternar entre http:// e https:// na URL.'
+            : results.some(r => r.errorType === 'auth_invalid')
+            ? 'Credenciais inválidas. Verifique usuário e senha do Wazuh API.'
+            : 'Verifique se o servidor Wazuh está acessível e a porta está aberta.'
+          : null,
+      }), {
+        status: success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ========== NORMAL PROXY FLOW ==========
     // Get Wazuh integration configuration
     console.log("Fetching Wazuh integration...");
     const { data: integration, error: integrationError } = await supabaseClient
