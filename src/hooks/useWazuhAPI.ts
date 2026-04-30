@@ -226,7 +226,7 @@ export const useWazuhAPI = () => {
       queryFn: () => makeWazuhRequest('/manager/info', 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 300000, // 5 minutes
-      retry: 2,
+      retry: 1,
     });
   };
 
@@ -236,7 +236,7 @@ export const useWazuhAPI = () => {
       queryFn: () => makeWazuhRequest(`/rules?limit=${limit}`, 'GET', integrationId),
       enabled: !!integrationId,
       staleTime: 600000, // 10 minutes
-      retry: 2,
+      retry: 1,
     });
   };
 
