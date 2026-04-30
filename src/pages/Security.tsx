@@ -25,14 +25,13 @@ const Security = () => {
   const { data: integrations } = useIntegrations();
   const wazuhIntegration = integrations?.find(int => int.type === 'wazuh' && int.is_active);
   
-  const { 
-    useWazuhAgents, 
-    useWazuhAlerts, 
+  const {
+    useWazuhAgents,
+    useWazuhAlerts,
     useWazuhStats,
     useWazuhManagerInfo,
     useWazuhRules,
-    testWazuhConnection,
-    refreshData 
+    refreshData
   } = useWazuhAPI();
 
   // Fetch real Wazuh data if integration is available
@@ -58,6 +57,7 @@ const Security = () => {
   const connectionErrorMessage = connectionError instanceof Error
     ? connectionError.message
     : 'Não foi possível carregar os dados do Wazuh.';
+  const hasConnectionFailure = Boolean(connectionError);
 
   // Use real data if available, otherwise use mock data
   const hasRealData = useMemo(() => {
@@ -110,6 +110,28 @@ const Security = () => {
     rulesCount: rules?.data?.total_affected_items || 0,
     agentsList: agents?.data?.affected_items || [],
     alertsList: alerts?.data?.affected_items || []
+  } : hasConnectionFailure ? {
+    agents: {
+      total: 0,
+      active: 0,
+      disconnected: 0,
+      never_connected: 0
+    },
+    alerts: {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      total: 0
+    },
+    managerInfo: {
+      name: "Wazuh indisponível",
+      version: "-",
+      hostname: "-"
+    },
+    rulesCount: 0,
+    agentsList: [],
+    alertsList: []
   } : {
     agents: {
       total: 45,
@@ -183,8 +205,8 @@ const Security = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className={`${hasRealData ? 'text-green-400 border-green-400' : 'text-orange-400 border-orange-400'}`}>
-              {hasRealData ? 'Dados Reais' : 'Dados Mock'}
+            <Badge variant="outline" className={`${hasRealData ? 'text-green-400 border-green-400' : hasConnectionFailure ? 'text-red-400 border-red-400' : 'text-orange-400 border-orange-400'}`}>
+              {hasRealData ? 'Dados Reais' : hasConnectionFailure ? 'Falha de conexão' : 'Dados Mock'}
             </Badge>
             <Button 
               onClick={handleRefresh}
@@ -198,11 +220,16 @@ const Security = () => {
           </div>
         </div>
 
-        {!isLoadingData && connectionError && !hasRealData && (
+        {!isLoadingData && connectionError && (
           <Alert className="border-red-500 bg-red-500/10">
             <Bug className="h-4 w-4" />
             <AlertDescription className="text-white">
-              {connectionErrorMessage}
+              <div className="space-y-2">
+                <p>{connectionErrorMessage}</p>
+                <p className="text-sm text-slate-300">
+                  Corrija o certificado/TLS ou troque para HTTP real no admin do Wazuh antes de usar esta tela.
+                </p>
+              </div>
             </AlertDescription>
           </Alert>
         )}
