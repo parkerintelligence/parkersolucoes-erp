@@ -289,6 +289,7 @@ const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 15
       try {
         const response = await fetch(url, { ...options, signal: ctrl.signal, client: httpClient } as any);
         clearTimeout(tid);
+        console.log(`[WAZUH-HTTPS] ${url} => ${response.status}`);
         return response;
       } catch (fetchError) {
         clearTimeout(tid);
@@ -298,7 +299,9 @@ const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 15
       const errMsg = clientErr instanceof Error ? clientErr.message : String(clientErr);
       if (errMsg.includes('certificate') || errMsg.includes('hostname') || errMsg.includes('NotValidForName') || errMsg.includes('tls')) {
         console.log(`[WAZUH-LOCAL] HTTPS fetch failed (${errMsg}), falling back to raw TLS socket`);
-        return await fetchLocalTlsSocket(url, options, timeoutMs);
+        const response = await fetchLocalTlsSocket(url, options, timeoutMs);
+        console.log(`[WAZUH-LOCAL] ${url} => ${response.status}`);
+        return response;
       }
       throw clientErr;
     }
