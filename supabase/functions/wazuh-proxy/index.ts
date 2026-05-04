@@ -7,6 +7,309 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
+const CRLF_BYTES = new Uint8Array([13, 10]);
+
+const concatUint8Arrays = (arrays: Uint8Array[]): Uint8Array => {
+  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+
+  return result;
+};
+
+const findByteSequence = (source: Uint8Array, target: Uint8Array, start = 0) => {
+  outer: for (let index = start; index <= source.length - target.length; index += 1) {
+    for (let offset = 0; offset < target.length; offset += 1) {
+      if (source[index + offset] !== target[offset]) {
+        continue outer;
+      }
+    }
+
+    return index;
+  }
+
+  return -1;
+};
+
+const decodeChunkedBody = (body: Uint8Array) => {
+  let cursor = 0;
+  const decodedChunks: Uint8Array[] = [];
+  const decoder = new TextDecoder();
+
+  while (cursor < body.length) {
+    const sizeLineEnd = findByteSequence(body, CRLF_BYTES, cursor);
+    if (sizeLineEnd === -1) {
+      return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+    }
+
+    const sizeLine = decoder.decode(body.slice(cursor, sizeLineEnd)).trim();
+    const sizeHex = sizeLine.split(';', 1)[0];
+    const size = Number.parseInt(sizeHex, 16);
+
+    if (!Number.isFinite(size)) {
+      return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+    }
+
+    cursor = sizeLineEnd + CRLF_BYTES.length;
+
+    if (size === 0) {
+      return concatUint8Arrays(decodedChunks);
+    }
+
+    if (cursor + size > body.length) {
+      return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+    }
+
+    decodedChunks.push(body.slice(cursor, cursor + size));
+    cursor += size;
+
+    if (body[cursor] === 13 && body[cursor + 1] === 10) {
+      cursor += CRLF_BYTES.length;
+    }
+  }
+
+  return decodedChunks.length > 0 ? concatUint8Arrays(decodedChunks) : body;
+};
+
+const parseRawHeaders = (headerText: string) => {
+  const lines = headerText.split('\r\n');
+  const [statusLine, ...headerLines] = lines;
+  const headers = new Headers();
+
+  for (const line of headerLines) {
+    const separatorIndex = line.indexOf(':');
+    if (separatorIndex === -1) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    headers.append(key, value);
+  }
+
+  return { statusLine, headers };
+};
+
+const readRawHttpResponse = async (connection: Deno.Conn, timeoutMs: number) => {
+  const buffer = new Uint8Array(65536);
+  const startedAt = Date.now();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  let headerEnd = -1;
+  let contentLength: number | null = null;
+  let isChunked = false;
+  let headerByteLength = 0;
+
+  const readWithTimeout = async (remainingMs: number) => {
+    let timeoutId: number | undefined;
+
+    try {
+      return await Promise.race([
+        connection.read(buffer),
+        new Promise<null>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Tempo esgotado aguardando resposta do Wazuh')), remainingMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const remainingMs = Math.max(1, timeoutMs - (Date.now() - startedAt));
+    const bytesRead = await readWithTimeout(remainingMs);
+
+    if (bytesRead === null) break;
+
+    const chunk = buffer.slice(0, bytesRead);
+    chunks.push(chunk);
+    totalBytes += bytesRead;
+
+    if (headerEnd === -1) {
+      const decoder = new TextDecoder();
+      const partialStr = decoder.decode(concatUint8Arrays(chunks));
+      headerEnd = partialStr.indexOf('\r\n\r\n');
+
+      if (headerEnd !== -1) {
+        const { headers } = parseRawHeaders(partialStr.slice(0, headerEnd));
+        const contentLengthHeader = headers.get('content-length');
+        contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : null;
+        isChunked = headers.get('transfer-encoding')?.toLowerCase().includes('chunked') ?? false;
+        headerByteLength = new TextEncoder().encode(partialStr.slice(0, headerEnd + 4)).length;
+      }
+    }
+
+    if (headerEnd !== -1) {
+      const bodyBytes = totalBytes - headerByteLength;
+
+      if (contentLength !== null && bodyBytes >= contentLength) {
+        break;
+      }
+
+      if (isChunked) {
+        const decoder = new TextDecoder();
+        const tail = decoder.decode(concatUint8Arrays(chunks));
+        if (tail.includes('\r\n0\r\n\r\n')) {
+          break;
+        }
+      }
+    }
+  }
+
+  if (chunks.length === 0) {
+    throw new Error('O servidor Wazuh não retornou dados');
+  }
+
+  return new TextDecoder().decode(concatUint8Arrays(chunks));
+};
+
+const responseFromRawHttp = (rawResponse: string) => {
+  const splitIndex = rawResponse.indexOf('\r\n\r\n');
+  if (splitIndex === -1) {
+    throw new Error('Resposta HTTP inválida do Wazuh');
+  }
+
+  const head = rawResponse.slice(0, splitIndex);
+  const body = rawResponse.slice(splitIndex + 4);
+  const { statusLine, headers } = parseRawHeaders(head);
+  const statusMatch = statusLine.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/i);
+
+  if (!statusMatch) {
+    throw new Error(`Status HTTP inválido do Wazuh: ${statusLine}`);
+  }
+
+  const responseHeaders = new Headers(headers);
+  const bodyBytes = new TextEncoder().encode(body);
+  const parsedBody = responseHeaders.get('transfer-encoding')?.toLowerCase().includes('chunked')
+    ? decodeChunkedBody(bodyBytes)
+    : bodyBytes;
+
+  responseHeaders.delete('transfer-encoding');
+  responseHeaders.delete('content-length');
+
+  return new Response(new TextDecoder().decode(parsedBody), {
+    status: Number(statusMatch[1]),
+    statusText: statusMatch[2] || '',
+    headers: responseHeaders,
+  });
+};
+
+const buildTlsHostnameCandidates = (url: string) => {
+  const hostname = new URL(url).hostname;
+  return [hostname, 'localhost', '127.0.0.1']
+    .map((value) => value.trim())
+    .filter((value, index, array) => value.length > 0 && array.indexOf(value) === index);
+};
+
+const openLocalTlsConnection = async (parsedUrl: URL) => {
+  const tlsHostnameCandidates = buildTlsHostnameCandidates(parsedUrl.toString());
+  let lastError = '';
+
+  for (const tlsHostname of tlsHostnameCandidates) {
+    let tcpConnection: Deno.TcpConn | null = null;
+
+    try {
+      tcpConnection = await Deno.connect({
+        hostname: parsedUrl.hostname,
+        port: Number(parsedUrl.port || '443'),
+      });
+
+      const tlsConnection = await Deno.startTls(tcpConnection, {
+        hostname: tlsHostname,
+        alpnProtocols: ['http/1.1'],
+        unsafelyDisableHostnameVerification: true,
+      });
+
+      console.log(`[WAZUH-LOCAL] TLS handshake OK using hostname: ${tlsHostname}`);
+      return tlsConnection;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      console.warn(`[WAZUH-LOCAL] TLS handshake failed using hostname ${tlsHostname}: ${lastError}`);
+
+      try {
+        tcpConnection?.close();
+      } catch (_) {
+        // no-op
+      }
+    }
+  }
+
+  throw new Error(lastError || `Falha no handshake TLS com ${parsedUrl.hostname}`);
+};
+
+const fetchLocalTlsSocket = async (url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> => {
+  const parsedUrl = new URL(url);
+  const connection = await openLocalTlsConnection(parsedUrl);
+  const encoder = new TextEncoder();
+
+  try {
+    const method = options.method || 'GET';
+    const headers = new Headers(options.headers || {});
+    const body = typeof options.body === 'string' ? options.body : options.body ? String(options.body) : '';
+
+    if (!headers.has('Host')) headers.set('Host', parsedUrl.host);
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+    if (!headers.has('Accept-Encoding')) headers.set('Accept-Encoding', 'identity');
+    if (!headers.has('Connection')) headers.set('Connection', 'close');
+    if (body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    if (body && !headers.has('Content-Length')) headers.set('Content-Length', String(encoder.encode(body).length));
+
+    const path = `${parsedUrl.pathname}${parsedUrl.search}` || '/';
+    let rawRequest = `${method} ${path} HTTP/1.1\r\n`;
+    headers.forEach((value, key) => {
+      rawRequest += `${key}: ${value}\r\n`;
+    });
+    rawRequest += `\r\n${body}`;
+
+    await connection.write(encoder.encode(rawRequest));
+    const rawResponse = await readRawHttpResponse(connection, timeoutMs);
+    return responseFromRawHttp(rawResponse);
+  } finally {
+    try {
+      connection.close();
+    } catch (_) {
+      // no-op
+    }
+  }
+};
+
+const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
+  if (url.startsWith('https://')) {
+    try {
+      const httpClient = Deno.createHttpClient({});
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(url, { ...options, signal: ctrl.signal, client: httpClient } as any);
+        clearTimeout(tid);
+        return response;
+      } catch (fetchError) {
+        clearTimeout(tid);
+        throw fetchError;
+      }
+    } catch (clientErr) {
+      const errMsg = clientErr instanceof Error ? clientErr.message : String(clientErr);
+      if (errMsg.includes('certificate') || errMsg.includes('hostname') || errMsg.includes('NotValidForName') || errMsg.includes('tls')) {
+        console.log(`[WAZUH-LOCAL] HTTPS fetch failed (${errMsg}), falling back to raw TLS socket`);
+        return await fetchLocalTlsSocket(url, options, timeoutMs);
+      }
+      throw clientErr;
+    }
+  }
+
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(tid);
+  }
+};
+
 console.log("Wazuh-proxy function starting...");
 
 serve(async (req) => {
