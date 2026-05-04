@@ -424,11 +424,10 @@ serve(async (req) => {
             authHeaders['Authorization'] = `Basic ${btoa(`${hcUser}:${hcPass}`)}`;
           }
 
-          const authResp = await fetch(authUrl, {
+          const authResp = await fetchWazuh(authUrl, {
             method: 'GET',
             headers: authHeaders,
-            signal: AbortSignal.timeout(12000),
-          });
+          }, 12000);
 
           result.reachable = true;
           result.tlsValid = true;
@@ -459,11 +458,10 @@ serve(async (req) => {
 
           // Step 2: Manager info
           try {
-            const infoResp = await fetch(`${candidate}/manager/info`, {
+            const infoResp = await fetchWazuh(`${candidate}/manager/info`, {
               method: 'GET',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-              signal: AbortSignal.timeout(10000),
-            });
+            }, 10000);
             if (infoResp.ok) {
               const infoData = await infoResp.json();
               result.managerInfo = infoData?.data?.affected_items?.[0] || infoData?.data || infoData;
@@ -667,14 +665,13 @@ serve(async (req) => {
         console.log(`🔐 Authenticating to: ${authUrl}`);
 
         try {
-          const authResponse = await fetch(authUrl, {
+          const authResponse = await fetchWazuh(authUrl, {
             method: 'GET',
             headers: {
               'Authorization': `Basic ${basicAuth}`,
               'Content-Type': 'application/json'
-            },
-            signal: AbortSignal.timeout(15000),
-          });
+            }
+          }, 15000);
 
           const responseText = await authResponse.text();
 
@@ -744,14 +741,13 @@ serve(async (req) => {
       console.warn('⚠️ Using HTTP fallback because HTTPS did not work');
     }
 
-    const apiResponse = await fetch(apiUrl, {
+    const apiResponse = await fetchWazuh(apiUrl, {
       method: method || 'GET',
       headers: {
         'Authorization': `Bearer ${jwtToken}`,
         'Content-Type': 'application/json',
-      },
-      signal: AbortSignal.timeout(30000),
-    });
+      }
+    }, 30000);
 
     console.log(`📊 API response status: ${apiResponse.status}`);
 
