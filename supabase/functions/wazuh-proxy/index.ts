@@ -279,7 +279,10 @@ const fetchLocalTlsSocket = async (url: string, options: RequestInit = {}, timeo
 const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
   if (url.startsWith('https://')) {
     try {
-      const httpClient = Deno.createHttpClient({});
+      const hostname = new URL(url).hostname;
+      const httpClient = Deno.createHttpClient({
+        unsafelyIgnoreCertificateErrors: [hostname],
+      });
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), timeoutMs);
 
