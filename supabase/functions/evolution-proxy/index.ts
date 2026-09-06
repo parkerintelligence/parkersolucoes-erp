@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { listGoInstances, resolveInstanceToken, sendWhatsAppText } from "../_shared/evolutionGo.ts";
+import { listGoInstances, normalizeEvolutionBaseUrl, resolveInstanceToken, sendWhatsAppText } from "../_shared/evolutionGo.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,7 +58,7 @@ serve(async (req) => {
       return json({ error: 'Integration not found' }, 404);
     }
 
-    const baseUrl = (integration.base_url || '').replace(/\/$/, '');
+    const baseUrl = normalizeEvolutionBaseUrl(integration.base_url || '');
     const globalKey = integration.api_token || '';
 
     if (!baseUrl || !globalKey) {
@@ -74,7 +74,16 @@ serve(async (req) => {
         body: payload && httpMethod !== 'GET' && httpMethod !== 'DELETE' ? JSON.stringify(payload) : undefined,
       });
       const raw = await res.text();
+      const contentType = res.headers.get('content-type') || '';
       console.log(`📥 ${res.status} ${raw.substring(0, 500)}`);
+      if (res.ok && contentType.includes('text/html')) {
+        return {
+          status: 502,
+          ok: false,
+          data: { error: 'A URL configurada aponta para o painel web, não para a API do Evolution Go.' },
+          raw,
+        };
+      }
       return { status: res.status, ok: res.ok, data: unwrap(parseJson(raw)), raw };
     };
 

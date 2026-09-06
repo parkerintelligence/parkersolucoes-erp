@@ -73,7 +73,7 @@ export const EvolutionAPIAdminConfig = () => {
     const integrationData = {
       type: 'evolution_api' as const,
       name: formData.name,
-      base_url: formData.base_url.replace(/\/$/, ''),
+      base_url: formData.base_url.trim().replace(/\/+$/, '').replace(/\/manager$/i, ''),
       api_token: formData.api_token,
       instance_name: formData.instance_name.trim(),
       phone_number: formData.phone_number || null,
