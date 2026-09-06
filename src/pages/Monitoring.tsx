@@ -19,21 +19,21 @@ const Monitoring = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
               <Activity className="h-6 w-6 text-blue-400" />
               Monitoramento - Grafana
             </h1>
-            <p className="text-gray-400">Painel de controle e métricas do sistema Bacula</p>
+            <p className="text-muted-foreground">Painel de controle e métricas do sistema Bacula</p>
           </div>
           <div className="flex gap-2">
             <Button
               onClick={handleRefresh}
               variant="outline"
-              className="border-gray-600 text-gray-200 hover:bg-gray-800"
+              className="border-border text-foreground hover:bg-card"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Atualizar
@@ -41,7 +41,7 @@ const Monitoring = () => {
             <Button
               onClick={toggleFullscreen}
               variant="outline"
-              className="border-gray-600 text-gray-200 hover:bg-gray-800"
+              className="border-border text-foreground hover:bg-card"
             >
               <Maximize2 className="h-4 w-4 mr-2" />
               {isFullscreen ? 'Minimizar' : 'Tela Cheia'}
@@ -49,12 +49,12 @@ const Monitoring = () => {
           </div>
         </div>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Dashboard Bacula Parker</CardTitle>
+            <CardTitle className="text-foreground">Dashboard Bacula Parker</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className={`bg-gray-800 rounded-lg border border-gray-600 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
+            <div className={`bg-card rounded-lg border border-border ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
               <iframe
                 key={key}
                 src={grafanaUrl}

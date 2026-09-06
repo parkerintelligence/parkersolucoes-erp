@@ -138,7 +138,7 @@ export const FtpFileExplorer = ({
     return (
       <div className="p-8 text-center">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Folder className="h-8 w-8 text-gray-400" />
+          <Folder className="h-8 w-8 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">Pasta vazia</h3>
         <p className="text-gray-600 mb-4">Nenhum arquivo encontrado neste diretório.</p>
@@ -236,7 +236,7 @@ export const FtpFileExplorer = ({
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div className="text-sm">
                     <div className="text-gray-900">
                       {format(file.lastModified, 'dd/MM/yyyy', { locale: ptBR })}

@@ -101,13 +101,13 @@ export const GLPIInventory = () => {
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 1:
-        return <Badge className="bg-green-600 text-white">Ativo</Badge>;
+        return <Badge className="bg-green-600 text-foreground">Ativo</Badge>;
       case 2:
-        return <Badge className="bg-yellow-600 text-white">Em Uso</Badge>;
+        return <Badge className="bg-yellow-600 text-foreground">Em Uso</Badge>;
       case 3:
-        return <Badge className="bg-red-600 text-white">Inativo</Badge>;
+        return <Badge className="bg-red-600 text-foreground">Inativo</Badge>;
       default:
-        return <Badge className="bg-slate-600 text-white">Status {status}</Badge>;
+        return <Badge className="bg-muted text-foreground">Status {status}</Badge>;
     }
   };
 
@@ -127,16 +127,16 @@ export const GLPIInventory = () => {
         totalItems={allInventoryItems.length}
       />
 
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Monitor className="h-6 w-6" />
             Inventário de Ativos GLPI
           </CardTitle>
         </CardHeader>
         <CardContent>
           {allInventoryItems.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-muted-foreground">
               <Monitor className="h-12 w-12 mx-auto mb-4 text-gray-500" />
               <p className="text-lg font-medium mb-2">Nenhum item encontrado</p>
               <p>Não há itens de inventário disponíveis no momento.</p>
@@ -145,46 +145,46 @@ export const GLPIInventory = () => {
             <div className="space-y-6">
               {itemsByEntity.map(({ entity, items }) => (
                 <div key={entity.id} className="space-y-2">
-                  <div className="flex items-center gap-2 px-2 py-1 bg-gray-700/50 rounded-md">
+                  <div className="flex items-center gap-2 px-2 py-1 bg-secondary/50 rounded-md">
                     <Building2 className="h-4 w-4 text-orange-400" />
                     <h3 className="text-sm font-semibold text-orange-400">{entity.name}</h3>
-                    <Badge variant="outline" className="ml-auto text-xs bg-gray-700 text-gray-300 border-gray-600">
+                    <Badge variant="outline" className="ml-auto text-xs bg-secondary text-muted-foreground border-border">
                       {items.length} {items.length === 1 ? 'item' : 'itens'}
                     </Badge>
                   </div>
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-gray-700">
-                        <TableHead className="text-gray-300">ID</TableHead>
-                        <TableHead className="text-gray-300">Nome</TableHead>
-                        <TableHead className="text-gray-300">Tipo</TableHead>
-                        <TableHead className="text-gray-300">Serial</TableHead>
-                        <TableHead className="text-gray-300">Comentários</TableHead>
-                        <TableHead className="text-gray-300">Status</TableHead>
-                        <TableHead className="text-gray-300">Ações</TableHead>
+                      <TableRow className="border-border">
+                        <TableHead className="text-muted-foreground">ID</TableHead>
+                        <TableHead className="text-muted-foreground">Nome</TableHead>
+                        <TableHead className="text-muted-foreground">Tipo</TableHead>
+                        <TableHead className="text-muted-foreground">Serial</TableHead>
+                        <TableHead className="text-muted-foreground">Comentários</TableHead>
+                        <TableHead className="text-muted-foreground">Status</TableHead>
+                        <TableHead className="text-muted-foreground">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {items.map((item) => (
-                        <TableRow key={`${item.type}-${item.id}`} className="border-gray-700">
-                          <TableCell className="text-gray-300 font-mono">
+                        <TableRow key={`${item.type}-${item.id}`} className="border-border">
+                          <TableCell className="text-muted-foreground font-mono">
                             #{item.id}
                           </TableCell>
-                          <TableCell className="text-white">
+                          <TableCell className="text-foreground">
                             <div className="flex items-center gap-2">
                               {getTypeIcon(item.type)}
                               {item.name || 'Sem nome'}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-gray-700 text-gray-200 border-gray-600">
+                            <Badge variant="outline" className="bg-secondary text-foreground border-border">
                               {getTypeName(item.type)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-gray-400 text-xs font-mono">
+                          <TableCell className="text-muted-foreground text-xs font-mono">
                             {item.serial || item.otherserial || '-'}
                           </TableCell>
-                          <TableCell className="text-gray-400 text-xs max-w-[200px] truncate" title={item.comment || ''}>
+                          <TableCell className="text-muted-foreground text-xs max-w-[200px] truncate" title={item.comment || ''}>
                             {item.comment || '-'}
                           </TableCell>
                           <TableCell>{getStatusBadge(item.states_id || 1)}</TableCell>
@@ -196,13 +196,13 @@ export const GLPIInventory = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setSelectedItem(item)}
-                                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                                    className="border-border text-muted-foreground hover:bg-secondary"
                                     title="Ver Detalhes"
                                   >
                                     <Eye className="h-4 w-4" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-gray-800 border-gray-700 text-white">
+                                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-card border-border text-foreground">
 ...
                                 </DialogContent>
                               </Dialog>
@@ -214,7 +214,7 @@ export const GLPIInventory = () => {
                                   setSelectedItemForRemote(item);
                                   setRemoteAccessDialogOpen(true);
                                 }}
-                                className="border-gray-600 text-blue-400 hover:bg-blue-900/20"
+                                className="border-border text-blue-400 hover:bg-blue-900/20"
                                 title="Acesso Remoto"
                               >
                                 <Monitor className="h-4 w-4" />

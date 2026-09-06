@@ -135,9 +135,9 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Settings className="h-5 w-5 text-blue-400" />
             Configuração do Zabbix
           </CardTitle>
@@ -146,17 +146,17 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
           
           {/* URL do Webhook */}
           <div className="space-y-3">
-            <h3 className="text-white font-semibold flex items-center gap-2">
+            <h3 className="text-foreground font-semibold flex items-center gap-2">
               <ExternalLink className="h-4 w-4" />
               URL do Webhook
             </h3>
-            <div className="bg-slate-900 p-3 rounded border border-slate-600">
+            <div className="bg-background p-3 rounded border border-border">
               <code className="text-green-400 text-sm break-all">{webhookUrl}</code>
               <Button
                 onClick={() => copyToClipboard(webhookUrl, 'URL do webhook')}
                 size="sm"
                 variant="outline"
-                className="ml-2 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                className="ml-2 bg-secondary border-border text-foreground hover:bg-muted"
               >
                 <Copy className="h-3 w-3" />
               </Button>
@@ -165,16 +165,16 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
 
           {/* Instruções passo a passo */}
           <div className="space-y-3">
-            <h3 className="text-white font-semibold">📋 Configuração Passo a Passo</h3>
-            <div className="bg-slate-900 p-4 rounded border border-slate-600 space-y-3">
-              <div className="space-y-2 text-sm text-slate-300">
+            <h3 className="text-foreground font-semibold">📋 Configuração Passo a Passo</h3>
+            <div className="bg-background p-4 rounded border border-border space-y-3">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">1</Badge>
                    Acesse <strong>Administration → Media types</strong></p>
                 <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">2</Badge>
                    Clique em <strong>Create media type</strong></p>
                 <p><Badge className="bg-blue-900/20 text-blue-400 border-blue-600 mr-2">3</Badge>
                    Configure os dados:</p>
-                <ul className="ml-8 space-y-1 text-slate-400">
+                <ul className="ml-8 space-y-1 text-muted-foreground">
                   <li>• <strong>Name:</strong> Supabase Webhook</li>
                   <li>• <strong>Type:</strong> Webhook</li>
                   <li>• <strong>Script:</strong> Use o código JavaScript abaixo</li>
@@ -188,11 +188,11 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
 
           {/* Código JavaScript */}
           <div className="space-y-3">
-            <h3 className="text-white font-semibold flex items-center gap-2">
+            <h3 className="text-foreground font-semibold flex items-center gap-2">
               <Code className="h-4 w-4" />
               Código JavaScript para Media Type
             </h3>
-            <div className="bg-slate-900 p-4 rounded border border-slate-600">
+            <div className="bg-background p-4 rounded border border-border">
               <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
                 <code>{javascriptCode}</code>
               </pre>
@@ -200,7 +200,7 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
                 onClick={() => copyToClipboard(javascriptCode, 'Código JavaScript')}
                 size="sm"
                 variant="outline"
-                className="mt-3 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                className="mt-3 bg-secondary border-border text-foreground hover:bg-muted"
               >
                 <Copy className="h-3 w-3 mr-2" />
                 Copiar Código
@@ -210,17 +210,17 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
 
           {/* Download do arquivo */}
           <div className="space-y-3">
-            <h3 className="text-white font-semibold flex items-center gap-2">
+            <h3 className="text-foreground font-semibold flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Arquivo de Configuração
             </h3>
-            <div className="bg-slate-900 p-4 rounded border border-slate-600">
-              <p className="text-slate-300 text-sm mb-3">
+            <div className="bg-background p-4 rounded border border-border">
+              <p className="text-muted-foreground text-sm mb-3">
                 Baixe o arquivo XML com a configuração completa para importar diretamente no Zabbix:
               </p>
               <Button
                 onClick={downloadConfig}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-foreground"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Baixar supabase-webhook-mediatype.xml
@@ -230,7 +230,7 @@ Horário: {EVENT.RECOVERY.TIME} {EVENT.RECOVERY.DATE}</message>
 
           {/* Importação */}
           <div className="space-y-3">
-            <h3 className="text-white font-semibold">📥 Como Importar</h3>
+            <h3 className="text-foreground font-semibold">📥 Como Importar</h3>
             <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4">
               <div className="space-y-2 text-sm text-blue-300">
                 <p><strong>Para importar o arquivo:</strong></p>

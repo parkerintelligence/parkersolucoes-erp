@@ -149,12 +149,12 @@ const SystemSettingsPanel = () => {
               Nova Configuração
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700 text-white">
+          <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-white">
+              <DialogTitle className="text-foreground">
                 {editingSetting ? 'Editar Configuração' : 'Nova Configuração'}
               </DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-muted-foreground">
                 {editingSetting ? 'Atualize a configuração existente' : 'Adicione uma nova configuração ao sistema'}
               </DialogDescription>
             </DialogHeader>

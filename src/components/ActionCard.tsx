@@ -91,14 +91,14 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
   };
 
   return (
-    <Card className="w-full border-l-4 bg-slate-700/90 border-slate-500" style={{ borderLeftColor: card.color }}>
+    <Card className="w-full border-l-4 bg-secondary/90 border-border" style={{ borderLeftColor: card.color }}>
       <CardHeader className="pb-1 pt-2 px-3">
         <div className="flex items-start justify-between">
-          <h4 className="font-medium text-sm leading-tight text-white">{card.title}</h4>
+          <h4 className="font-medium text-sm leading-tight text-foreground">{card.title}</h4>
           <div className="flex gap-1">
             <Dialog open={isEditCardOpen} onOpenChange={setIsEditCardOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-300 hover:text-white hover:bg-slate-600">
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted">
                   <Edit className="h-3 w-3" />
                 </Button>
               </DialogTrigger>
@@ -116,7 +116,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
         </div>
         
         {card.description && (
-          <p className="text-xs text-slate-300 mt-1">{card.description}</p>
+          <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
         )}
       </CardHeader>
       
@@ -125,20 +125,20 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <Badge 
             variant="secondary" 
-            className={`text-xs ${getPriorityColor(card.priority)} text-white`}
+            className={`text-xs ${getPriorityColor(card.priority)} text-foreground`}
           >
             {getPriorityLabel(card.priority)}
           </Badge>
           
           {card.due_date && (
-            <Badge variant="outline" className="text-xs text-slate-300 border-slate-500">
+            <Badge variant="outline" className="text-xs text-muted-foreground border-border">
               <Calendar className="h-3 w-3 mr-1" />
               {format(new Date(card.due_date), "dd/MM", { locale: ptBR })}
             </Badge>
           )}
           
           {totalItems > 0 && (
-            <Badge variant="outline" className="text-xs text-slate-300 border-slate-500">
+            <Badge variant="outline" className="text-xs text-muted-foreground border-border">
               {completedItems}/{totalItems}
             </Badge>
           )}
@@ -152,13 +152,13 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
                 <Checkbox
                   checked={item.is_completed}
                   onCheckedChange={() => handleToggleItem(item)}
-                  className="h-3 w-3 border-slate-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                  className="h-3 w-3 border-border data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                 />
                 <span 
                   className={`text-xs flex-1 ${
                     item.is_completed 
-                      ? 'line-through text-slate-400' 
-                      : 'text-slate-200'
+                      ? 'line-through text-muted-foreground' 
+                      : 'text-foreground'
                   }`}
                 >
                   {item.text}
@@ -183,7 +183,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
               value={newItemText}
               onChange={(e) => setNewItemText(e.target.value)}
               placeholder="Digite o item..."
-              className="h-6 text-xs bg-slate-600 border-slate-500 text-white placeholder:text-slate-400"
+              className="h-6 text-xs bg-muted border-border text-foreground placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddItem();
                 if (e.key === 'Escape') {
@@ -201,7 +201,7 @@ export function ActionCardComponent({ card, items }: ActionCardProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="w-full h-6 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-600"
+            className="w-full h-6 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
             onClick={() => setIsAddingItem(true)}
           >
             <Plus className="h-3 w-3 mr-1" />

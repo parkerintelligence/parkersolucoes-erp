@@ -92,30 +92,30 @@ export const ZabbixWebhookTester = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Webhook className="h-5 w-5" />
             Configuração do Webhook Zabbix
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Configure o Zabbix para enviar webhooks para este endpoint
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-gray-200">URL do Webhook</Label>
+            <Label className="text-foreground">URL do Webhook</Label>
             <div className="flex gap-2">
               <Input
                 value={webhookUrl}
                 readOnly
-                className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                className="bg-secondary border-border text-foreground font-mono text-sm"
               />
               <Button
                 onClick={copyWebhookUrl}
                 variant="outline"
                 size="sm"
-                className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <Copy className="h-4 w-4" />
               </Button>
@@ -139,48 +139,48 @@ export const ZabbixWebhookTester = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <TestTube className="h-5 w-5" />
             Testar Webhook
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Simule um webhook do Zabbix para testar a integração
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-200">Nome do Problema</Label>
+              <Label className="text-foreground">Nome do Problema</Label>
               <Input
                 value={testData.problem_name}
                 onChange={(e) => setTestData(prev => ({ ...prev, problem_name: e.target.value }))}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
             <div>
-              <Label className="text-gray-200">Nome do Host</Label>
+              <Label className="text-foreground">Nome do Host</Label>
               <Input
                 value={testData.host_name}
                 onChange={(e) => setTestData(prev => ({ ...prev, host_name: e.target.value }))}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
             <div>
-              <Label className="text-gray-200">Severidade</Label>
+              <Label className="text-foreground">Severidade</Label>
               <Input
                 value={testData.severity}
                 onChange={(e) => setTestData(prev => ({ ...prev, severity: e.target.value }))}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
             <div>
-              <Label className="text-gray-200">Status (0=Resolvido, 1=Problema)</Label>
+              <Label className="text-foreground">Status (0=Resolvido, 1=Problema)</Label>
               <Input
                 value={testData.status}
                 onChange={(e) => setTestData(prev => ({ ...prev, status: e.target.value }))}
-                className="bg-gray-700 border-gray-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
           </div>
@@ -188,7 +188,7 @@ export const ZabbixWebhookTester = () => {
           <Button
             onClick={handleTestWebhook}
             disabled={isTestingWebhook}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-foreground"
           >
             {isTestingWebhook ? (
               <>
@@ -228,7 +228,7 @@ export const ZabbixWebhookTester = () => {
               <Textarea
                 value={JSON.stringify(testResult.data || testResult, null, 2)}
                 readOnly
-                className="bg-gray-900 border-gray-600 text-white font-mono text-xs"
+                className="bg-background border-border text-foreground font-mono text-xs"
                 rows={8}
               />
             </div>

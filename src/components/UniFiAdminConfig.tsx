@@ -253,13 +253,13 @@ const UniFiAdminConfig = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center gap-3">
             <Wifi className="h-8 w-8 text-blue-400" />
             <div>
-              <CardTitle className="text-white">Integração UniFi</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-foreground">Integração UniFi</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Configure via Site Manager API (token) ou controladora local (URL + usuário/senha).
               </CardDescription>
             </div>
@@ -267,9 +267,9 @@ const UniFiAdminConfig = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="list" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-slate-700">
-              <TabsTrigger value="list" className="text-white">Integrações Ativas</TabsTrigger>
-              <TabsTrigger value="new" className="text-white" onClick={() => setIsCreating(true)}>
+            <TabsList className="grid w-full grid-cols-2 bg-secondary">
+              <TabsTrigger value="list" className="text-foreground">Integrações Ativas</TabsTrigger>
+              <TabsTrigger value="new" className="text-foreground" onClick={() => setIsCreating(true)}>
                 {isCreating ? (editingIntegration ? 'Editar' : 'Nova') : 'Nova'} Integração
               </TabsTrigger>
             </TabsList>
@@ -278,7 +278,7 @@ const UniFiAdminConfig = () => {
               {unifiIntegrations.length === 0 ? (
                 <Alert className="border-blue-500 bg-blue-500/10">
                   <Wifi className="h-4 w-4" />
-                  <AlertDescription className="text-white">
+                  <AlertDescription className="text-foreground">
                     Nenhuma integração UniFi configurada. Crie uma nova integração para começar.
                   </AlertDescription>
                 </Alert>
@@ -288,14 +288,14 @@ const UniFiAdminConfig = () => {
                     const isLocalController = !!(integration.base_url && integration.username && integration.password);
 
                     return (
-                      <Card key={integration.id} className="bg-slate-700 border-slate-600">
+                      <Card key={integration.id} className="bg-secondary border-border">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Server className="h-5 w-5 text-blue-400" />
                               <div>
-                                <h3 className="text-white font-medium">{integration.name}</h3>
-                                <p className="text-slate-400 text-sm">
+                                <h3 className="text-foreground font-medium">{integration.name}</h3>
+                                <p className="text-muted-foreground text-sm">
                                   {isLocalController ? 'Controladora Local' : 'Site Manager API'}
                                 </p>
                               </div>
@@ -309,7 +309,7 @@ const UniFiAdminConfig = () => {
                                 variant="outline"
                                 onClick={() => testConnection(integration)}
                                 disabled={isTesting === integration.id}
-                                className="border-slate-600 text-white hover:bg-slate-600"
+                                className="border-border text-foreground hover:bg-muted"
                               >
                                 {isTesting === integration.id ? (
                                   <Activity className="h-4 w-4 animate-spin" />
@@ -321,7 +321,7 @@ const UniFiAdminConfig = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEdit(integration)}
-                                className="border-slate-600 text-white hover:bg-slate-600"
+                                className="border-border text-foreground hover:bg-muted"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -346,19 +346,19 @@ const UniFiAdminConfig = () => {
               {isCreating && (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
-                    <Label htmlFor="name" className="text-white">Nome da Integração</Label>
+                    <Label htmlFor="name" className="text-foreground">Nome da Integração</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Ex: UniFi Principal"
                       required
-                      className="bg-slate-700 border-slate-600 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-white">Tipo de conexão</Label>
+                    <Label className="text-foreground">Tipo de conexão</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
@@ -380,7 +380,7 @@ const UniFiAdminConfig = () => {
                   {isSiteManager ? (
                     <>
                       <div>
-                        <Label htmlFor="api_token" className="text-white">API Token *</Label>
+                        <Label htmlFor="api_token" className="text-foreground">API Token *</Label>
                         <Input
                           id="api_token"
                           type="password"
@@ -388,13 +388,13 @@ const UniFiAdminConfig = () => {
                           onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
                           placeholder="Cole aqui seu token da UniFi Site Manager API"
                           required
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
                       </div>
 
                       <Alert className="border-blue-500 bg-blue-500/10">
                         <Wifi className="h-4 w-4" />
-                        <AlertDescription className="text-white">
+                        <AlertDescription className="text-foreground">
                           Gere o token em <a href="https://unifi.ui.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">unifi.ui.com</a> em <strong>Settings → API</strong>.
                         </AlertDescription>
                       </Alert>
@@ -402,19 +402,19 @@ const UniFiAdminConfig = () => {
                   ) : (
                     <>
                       <div>
-                        <Label htmlFor="base_url" className="text-white">URL da Controladora *</Label>
+                        <Label htmlFor="base_url" className="text-foreground">URL da Controladora *</Label>
                         <Input
                           id="base_url"
                           value={formData.base_url}
                           onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
                           placeholder="https://unifi.parkersolucoes.com.br:8445"
                           required
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="port" className="text-white">Porta da API *</Label>
+                        <Label htmlFor="port" className="text-foreground">Porta da API *</Label>
                         <Input
                           id="port"
                           type="number"
@@ -422,24 +422,24 @@ const UniFiAdminConfig = () => {
                           onChange={(e) => setFormData({ ...formData, port: e.target.value })}
                           placeholder="8445"
                           required
-                          className="bg-slate-700 border-slate-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="username" className="text-white">Usuário *</Label>
+                          <Label htmlFor="username" className="text-foreground">Usuário *</Label>
                           <Input
                             id="username"
                             value={formData.username}
                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                             placeholder="admin"
                             required
-                            className="bg-slate-700 border-slate-600 text-white"
+                            className="bg-secondary border-border text-foreground"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="password" className="text-white">Senha *</Label>
+                          <Label htmlFor="password" className="text-foreground">Senha *</Label>
                           <Input
                             id="password"
                             type="password"
@@ -447,15 +447,15 @@ const UniFiAdminConfig = () => {
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             placeholder="••••••••"
                             required
-                            className="bg-slate-700 border-slate-600 text-white"
+                            className="bg-secondary border-border text-foreground"
                           />
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <Label className="text-white">Usar SSL/HTTPS</Label>
-                          <p className="text-sm text-slate-400">Ative se sua URL usa HTTPS</p>
+                          <Label className="text-foreground">Usar SSL/HTTPS</Label>
+                          <p className="text-sm text-muted-foreground">Ative se sua URL usa HTTPS</p>
                         </div>
                         <Switch
                           checked={formData.use_ssl}
@@ -467,8 +467,8 @@ const UniFiAdminConfig = () => {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-white">Integração Ativa</Label>
-                      <p className="text-sm text-slate-400">Ativar esta integração</p>
+                      <Label className="text-foreground">Integração Ativa</Label>
+                      <p className="text-sm text-muted-foreground">Ativar esta integração</p>
                     </div>
                     <Switch
                       checked={formData.is_active}
@@ -488,7 +488,7 @@ const UniFiAdminConfig = () => {
                       type="button"
                       variant="outline"
                       onClick={resetForm}
-                      className="border-slate-600 text-white hover:bg-slate-700"
+                      className="border-border text-foreground hover:bg-secondary"
                     >
                       Cancelar
                     </Button>

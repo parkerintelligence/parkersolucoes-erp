@@ -37,16 +37,16 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-slate-800 border-slate-700">
+      <AlertDialogContent className="bg-card border-border">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-white flex items-center gap-2">
+          <AlertDialogTitle className="text-foreground flex items-center gap-2">
             <Trash2 className="h-5 w-5 text-red-500" />
             {title || "Confirmar Exclusão"}
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-slate-300">
+          <AlertDialogDescription className="text-muted-foreground">
             {description || (
               <>
-                Tem certeza que deseja excluir {itemType} <span className="font-semibold text-white">"{itemName}"</span>?
+                Tem certeza que deseja excluir {itemType} <span className="font-semibold text-foreground">"{itemName}"</span>?
                 <br />
                 <span className="text-red-400 mt-2 block">Esta ação não pode ser desfeita.</span>
               </>
@@ -54,12 +54,12 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="bg-slate-700 text-slate-300 hover:bg-slate-600 border-slate-600">
+          <AlertDialogCancel className="bg-secondary text-muted-foreground hover:bg-muted border-border">
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm}
-            className="bg-red-600 text-white hover:bg-red-700"
+            className="bg-red-600 text-foreground hover:bg-red-700"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Excluir

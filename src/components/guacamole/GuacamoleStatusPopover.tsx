@@ -192,7 +192,7 @@ export const GuacamoleStatusPopover = ({
         <Button 
           variant="outline" 
           size="sm"
-          className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+          className="bg-card border-border text-foreground hover:bg-secondary"
         >
           <Shield className="h-4 w-4 mr-2" />
           {getStatusText()}
@@ -203,7 +203,7 @@ export const GuacamoleStatusPopover = ({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 bg-slate-800 border-slate-700 text-white" align="end">
+      <PopoverContent className="w-80 bg-card border-border text-foreground" align="end">
         <div className="space-y-4">
           {/* Status do Token */}
           <div className="space-y-3">
@@ -217,7 +217,7 @@ export const GuacamoleStatusPopover = ({
                 size="sm"
                 onClick={refreshToken}
                 disabled={isRefreshing}
-                className="h-7 px-2 bg-slate-700 border-slate-600 hover:bg-slate-600"
+                className="h-7 px-2 bg-secondary border-border hover:bg-muted"
               >
                 <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
@@ -231,7 +231,7 @@ export const GuacamoleStatusPopover = ({
               </Badge>
               
               {tokenStatus?.isValid && tokenStatus.timeLeft && (
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   {Math.round(tokenStatus.timeLeft)} min restantes
                 </span>
               )}
@@ -240,7 +240,7 @@ export const GuacamoleStatusPopover = ({
             {tokenStatus?.isValid && tokenStatus.timeLeft && (
               <div className="space-y-1">
                 <Progress value={getProgressValue()} className="h-1" />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Expira às {tokenStatus.expiresAt?.toLocaleTimeString('pt-BR')}
                 </p>
               </div>
@@ -255,50 +255,50 @@ export const GuacamoleStatusPopover = ({
 
           {/* Cards de Resumo Mini */}
           <div className="grid grid-cols-2 gap-2">
-            <Card className="bg-slate-700 border-slate-600">
+            <Card className="bg-secondary border-border">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Monitor className="h-4 w-4 text-blue-400" />
-                    <span className="text-xs text-slate-300">Conexões</span>
+                    <span className="text-xs text-muted-foreground">Conexões</span>
                   </div>
-                  <span className="text-sm font-semibold text-white">{connections.length}</span>
+                  <span className="text-sm font-semibold text-foreground">{connections.length}</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-700 border-slate-600">
+            <Card className="bg-secondary border-border">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-purple-400" />
-                    <span className="text-xs text-slate-300">Usuários</span>
+                    <span className="text-xs text-muted-foreground">Usuários</span>
                   </div>
-                  <span className="text-sm font-semibold text-white">{users.length}</span>
+                  <span className="text-sm font-semibold text-foreground">{users.length}</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-700 border-slate-600">
+            <Card className="bg-secondary border-border">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-green-400" />
-                    <span className="text-xs text-slate-300">Sessões</span>
+                    <span className="text-xs text-muted-foreground">Sessões</span>
                   </div>
-                  <span className="text-sm font-semibold text-white">{activeSessions.length}</span>
+                  <span className="text-sm font-semibold text-foreground">{activeSessions.length}</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-700 border-slate-600">
+            <Card className="bg-secondary border-border">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <FolderOpen className="h-4 w-4 text-yellow-400" />
-                    <span className="text-xs text-slate-300">Grupos</span>
+                    <span className="text-xs text-muted-foreground">Grupos</span>
                   </div>
-                  <span className="text-sm font-semibold text-white">{connectionGroups.length}</span>
+                  <span className="text-sm font-semibold text-foreground">{connectionGroups.length}</span>
                 </div>
               </CardContent>
             </Card>

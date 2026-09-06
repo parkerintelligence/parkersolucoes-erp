@@ -7,13 +7,13 @@ import { AlertCircle, Terminal, FileText, CheckCircle, Server } from 'lucide-rea
 
 export const WazuhSetupGuide = () => {
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center gap-3">
           <Server className="h-6 w-6 text-orange-400" />
           <div>
-              <CardTitle className="text-white">Guia de Configuração do Servidor Wazuh</CardTitle>
-              <CardDescription className="text-slate-400">
+              <CardTitle className="text-foreground">Guia de Configuração do Servidor Wazuh</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Configure o Wazuh com HTTPS válido ou HTTP real na porta 55000 para funcionar com o proxy
               </CardDescription>
           </div>
@@ -29,19 +29,19 @@ export const WazuhSetupGuide = () => {
         </Alert>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <Terminal className="h-5 w-5 text-blue-400" />
             Passos para Configurar HTTP no Wazuh
           </h3>
 
           <div className="space-y-4">
             {/* Passo 1 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">1</Badge>
+                <Badge className="bg-blue-600 text-foreground">1</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Conecte ao servidor Wazuh via SSH</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                  <p className="font-semibold text-foreground">Conecte ao servidor Wazuh via SSH</p>
+                  <div className="bg-background p-3 rounded border border-border">
                     <code className="text-green-400 text-sm">
                       ssh usuario@security.parkersolucoes.com.br
                     </code>
@@ -51,12 +51,12 @@ export const WazuhSetupGuide = () => {
             </div>
 
             {/* Passo 2 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">2</Badge>
+                <Badge className="bg-blue-600 text-foreground">2</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Edite o arquivo de configuração da API</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                  <p className="font-semibold text-foreground">Edite o arquivo de configuração da API</p>
+                  <div className="bg-background p-3 rounded border border-border">
                     <code className="text-green-400 text-sm">
                       sudo nano /var/ossec/api/configuration/api.yaml
                     </code>
@@ -66,19 +66,19 @@ export const WazuhSetupGuide = () => {
             </div>
 
             {/* Passo 3 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">3</Badge>
+                <Badge className="bg-blue-600 text-foreground">3</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Modifique a configuração HTTPS</p>
-                  <p className="text-sm text-slate-300">Procure a seção <code className="text-orange-400">https:</code> e altere:</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600 space-y-1">
+                  <p className="font-semibold text-foreground">Modifique a configuração HTTPS</p>
+                  <p className="text-sm text-muted-foreground">Procure a seção <code className="text-orange-400">https:</code> e altere:</p>
+                  <div className="bg-background p-3 rounded border border-border space-y-1">
                     <p className="text-slate-500 text-sm"># Antes (HTTPS):</p>
                     <code className="text-red-400 text-sm block">https:</code>
                     <code className="text-red-400 text-sm block">  enabled: yes</code>
                     <code className="text-red-400 text-sm block">  key: "api/configuration/ssl/server.key"</code>
                     <code className="text-red-400 text-sm block">  cert: "api/configuration/ssl/server.crt"</code>
-                    <Separator className="my-2 bg-slate-600" />
+                    <Separator className="my-2 bg-muted" />
                     <p className="text-slate-500 text-sm"># Depois (HTTP):</p>
                     <code className="text-green-400 text-sm block">https:</code>
                     <code className="text-green-400 text-sm block">  enabled: no</code>
@@ -88,13 +88,13 @@ export const WazuhSetupGuide = () => {
             </div>
 
             {/* Passo 4 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">4</Badge>
+                <Badge className="bg-blue-600 text-foreground">4</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Configure o host e porta (se necessário)</p>
-                  <p className="text-sm text-slate-300">Certifique-se que a API está ouvindo em todas as interfaces:</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                  <p className="font-semibold text-foreground">Configure o host e porta (se necessário)</p>
+                  <p className="text-sm text-muted-foreground">Certifique-se que a API está ouvindo em todas as interfaces:</p>
+                  <div className="bg-background p-3 rounded border border-border">
                     <code className="text-green-400 text-sm block">host: 0.0.0.0</code>
                     <code className="text-green-400 text-sm block">port: 55000</code>
                   </div>
@@ -103,23 +103,23 @@ export const WazuhSetupGuide = () => {
             </div>
 
             {/* Passo 5 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">5</Badge>
+                <Badge className="bg-blue-600 text-foreground">5</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Salve o arquivo</p>
-                  <p className="text-sm text-slate-300">No nano: <code className="text-orange-400">Ctrl+X</code>, depois <code className="text-orange-400">Y</code>, depois <code className="text-orange-400">Enter</code></p>
+                  <p className="font-semibold text-foreground">Salve o arquivo</p>
+                  <p className="text-sm text-muted-foreground">No nano: <code className="text-orange-400">Ctrl+X</code>, depois <code className="text-orange-400">Y</code>, depois <code className="text-orange-400">Enter</code></p>
                 </div>
               </div>
             </div>
 
             {/* Passo 6 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">6</Badge>
+                <Badge className="bg-blue-600 text-foreground">6</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Reinicie o Wazuh Manager</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                  <p className="font-semibold text-foreground">Reinicie o Wazuh Manager</p>
+                  <div className="bg-background p-3 rounded border border-border">
                     <code className="text-green-400 text-sm">
                       sudo systemctl restart wazuh-manager
                     </code>
@@ -129,44 +129,44 @@ export const WazuhSetupGuide = () => {
             </div>
 
             {/* Passo 7 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-blue-600 text-white">7</Badge>
+                <Badge className="bg-blue-600 text-foreground">7</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Verifique o status do serviço</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600 space-y-1">
+                  <p className="font-semibold text-foreground">Verifique o status do serviço</p>
+                  <div className="bg-background p-3 rounded border border-border space-y-1">
                     <code className="text-green-400 text-sm block">sudo systemctl status wazuh-manager</code>
-                    <p className="text-slate-400 text-xs mt-2">Deve mostrar "active (running)"</p>
+                    <p className="text-muted-foreground text-xs mt-2">Deve mostrar "active (running)"</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Passo 8 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-green-600 text-white">8</Badge>
+                <Badge className="bg-green-600 text-foreground">8</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Teste a conexão HTTP localmente</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                  <p className="font-semibold text-foreground">Teste a conexão HTTP localmente</p>
+                  <div className="bg-background p-3 rounded border border-border">
                     <code className="text-green-400 text-sm">
                       curl http://localhost:55000/
                     </code>
                   </div>
-                  <p className="text-sm text-slate-400">Deve retornar informações da API do Wazuh</p>
+                  <p className="text-sm text-muted-foreground">Deve retornar informações da API do Wazuh</p>
                 </div>
               </div>
             </div>
 
             {/* Passo 9 */}
-            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+            <div className="bg-secondary/50 p-4 rounded-lg border border-border">
               <div className="flex items-start gap-3">
-                <Badge className="bg-green-600 text-white">9</Badge>
+                <Badge className="bg-green-600 text-foreground">9</Badge>
                 <div className="flex-1 space-y-2">
-                  <p className="font-semibold text-white">Configure o Firewall (se necessário)</p>
-                  <div className="bg-slate-900 p-3 rounded border border-slate-600 space-y-1">
+                  <p className="font-semibold text-foreground">Configure o Firewall (se necessário)</p>
+                  <div className="bg-background p-3 rounded border border-border space-y-1">
                     <code className="text-green-400 text-sm block">sudo ufw allow 55000/tcp</code>
-                    <p className="text-slate-400 text-xs mt-2">Permite conexões externas na porta 55000</p>
+                    <p className="text-muted-foreground text-xs mt-2">Permite conexões externas na porta 55000</p>
                   </div>
                 </div>
               </div>
@@ -174,14 +174,14 @@ export const WazuhSetupGuide = () => {
           </div>
         </div>
 
-        <Separator className="bg-slate-600" />
+        <Separator className="bg-muted" />
 
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <FileText className="h-5 w-5 text-purple-400" />
             Exemplo de Configuração Completa
           </h3>
-          <div className="bg-slate-900 p-4 rounded border border-slate-600">
+          <div className="bg-background p-4 rounded border border-border">
             <pre className="text-green-400 text-sm overflow-x-auto">
 {`# /var/ossec/api/configuration/api.yaml
 

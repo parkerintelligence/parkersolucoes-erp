@@ -94,10 +94,10 @@ export const ServiceDialog = ({ isOpen, onOpenChange, onSave, editingService, on
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-[425px] bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white">{editingService ? 'Editar Serviço' : 'Adicionar Novo Serviço'}</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-foreground">{editingService ? 'Editar Serviço' : 'Adicionar Novo Serviço'}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {editingService ? 'Atualize as informações do serviço.' : 'Configure um novo tipo de serviço para organizar suas senhas.'}
           </DialogDescription>
         </DialogHeader>

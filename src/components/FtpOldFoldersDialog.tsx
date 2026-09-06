@@ -80,31 +80,31 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({
   };
   return <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-yellow-600 text-yellow-400 bg-slate-900 hover:bg-gray-800">
+        <Button variant="outline" className="border-yellow-600 text-yellow-400 bg-background hover:bg-card">
           <Clock className="mr-2 h-4 w-4" />
           Pastas Antigas ({oldFolders.length})
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-gray-800 border-gray-700 max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-400" />
             Pastas com +48h sem Modificação
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             Pastas que não foram modificadas há mais de 48 horas
           </DialogDescription>
         </DialogHeader>
         
         <div className="max-h-96 overflow-y-auto space-y-3">
-          {oldFolders.length === 0 ? <Card className="bg-gray-700 border-gray-600">
+          {oldFolders.length === 0 ? <Card className="bg-secondary border-border">
               <CardContent className="p-6 text-center">
                 <Folder className="h-12 w-12 mx-auto mb-4 text-green-400" />
-                <p className="text-gray-300">Todas as pastas foram modificadas recentemente!</p>
+                <p className="text-muted-foreground">Todas as pastas foram modificadas recentemente!</p>
               </CardContent>
-            </Card> : oldFolders.map(folder => <Card key={folder.name} className="bg-gray-700 border-gray-600">
+            </Card> : oldFolders.map(folder => <Card key={folder.name} className="bg-secondary border-border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white flex items-center justify-between">
+                  <CardTitle className="text-foreground flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Folder className="h-4 w-4 text-blue-400" />
                       <span className="text-sm">{folder.name}</span>
@@ -113,7 +113,7 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({
                       <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">
                         {getTimeAgo(new Date(folder.lastModified))}
                       </Badge>
-                      <Button size="sm" onClick={() => handleCreateGLPITicket(folder)} disabled={createTicket.isPending} className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 h-8" title="Criar chamado urgente">
+                      <Button size="sm" onClick={() => handleCreateGLPITicket(folder)} disabled={createTicket.isPending} className="bg-red-600 hover:bg-red-700 text-foreground px-2 py-1 h-8" title="Criar chamado urgente">
                         <ExternalLink className="h-3 w-3" />
                       </Button>
                     </div>
@@ -122,12 +122,12 @@ const FtpOldFoldersDialog: React.FC<FtpOldFoldersDialogProps> = ({
                 <CardContent className="pt-0">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-400">Última modificação:</span>
-                      <p className="text-gray-200">{new Date(folder.lastModified).toLocaleString('pt-BR')}</p>
+                      <span className="text-muted-foreground">Última modificação:</span>
+                      <p className="text-foreground">{new Date(folder.lastModified).toLocaleString('pt-BR')}</p>
                     </div>
                     <div>
-                      <span className="text-gray-400">Permissões:</span>
-                      <p className="text-gray-200">{folder.permissions || 'N/A'}</p>
+                      <span className="text-muted-foreground">Permissões:</span>
+                      <p className="text-foreground">{folder.permissions || 'N/A'}</p>
                     </div>
                   </div>
                 </CardContent>

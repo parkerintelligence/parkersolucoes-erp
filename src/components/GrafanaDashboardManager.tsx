@@ -104,10 +104,10 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
   const selectedDashboardData = dashboards.find(d => d.uid === selectedDashboard);
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white">Painéis de Controle</CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardTitle className="text-foreground">Painéis de Controle</CardTitle>
+        <CardDescription className="text-muted-foreground">
           Selecione um painel para visualizar ({dashboards.length} disponíveis)
         </CardDescription>
       </CardHeader>
@@ -115,14 +115,14 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
         <div className="space-y-4">
           <div className="flex gap-4 items-end">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="dashboard-select" className="text-gray-200">Painel de Controle</Label>
+              <Label htmlFor="dashboard-select" className="text-foreground">Painel de Controle</Label>
               <Select value={selectedDashboard} onValueChange={setSelectedDashboard}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger className="bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Selecione um painel..." />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectContent className="bg-secondary border-border">
                   {dashboards.map((dashboard) => (
-                    <SelectItem key={dashboard.uid} value={dashboard.uid} className="text-white hover:bg-gray-600">
+                    <SelectItem key={dashboard.uid} value={dashboard.uid} className="text-foreground hover:bg-muted">
                       {dashboard.title}
                     </SelectItem>
                   ))}
@@ -133,22 +133,22 @@ export const GrafanaDashboardManager = ({ grafanaIntegration, credentials }: Gra
               variant="outline" 
               onClick={fetchDashboards}
               disabled={loadingDashboards}
-              className="border-gray-600 text-gray-200 hover:bg-gray-800"
+              className="border-border text-foreground hover:bg-card"
             >
               {loadingDashboards ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
           
           {selectedDashboardData && (
-            <div className="p-4 bg-gray-700 rounded-lg">
-              <h3 className="text-white font-semibold mb-2">{selectedDashboardData.title}</h3>
+            <div className="p-4 bg-secondary rounded-lg">
+              <h3 className="text-foreground font-semibold mb-2">{selectedDashboardData.title}</h3>
               {selectedDashboardData.tags.length > 0 && (
-                <p className="text-gray-300 text-sm mb-4">
+                <p className="text-muted-foreground text-sm mb-4">
                   Tags: {selectedDashboardData.tags.join(', ')}
                 </p>
               )}
               
-              <div className="bg-gray-800 rounded-lg p-1 min-h-[600px] border border-gray-600">
+              <div className="bg-card rounded-lg p-1 min-h-[600px] border border-border">
                 <iframe
                   src={`${grafanaIntegration.base_url}/d/${selectedDashboardData.uid}?orgId=1&refresh=10s&from=now-1h&to=now&kiosk=1&theme=dark`}
                   width="100%"

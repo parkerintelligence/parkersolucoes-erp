@@ -52,10 +52,10 @@ export const ScheduleDialog = ({ open, onOpenChange, editingItem, onUpdate }: Sc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700">
+      <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">{editingItem ? 'Editar Agenda' : 'Nova Agenda'}</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-foreground">{editingItem ? 'Editar Agenda' : 'Nova Agenda'}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {editingItem ? 'Edite o agendamento.' : 'Crie um novo agendamento para controle de vencimentos.'}
           </DialogDescription>
         </DialogHeader>

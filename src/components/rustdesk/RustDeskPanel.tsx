@@ -248,7 +248,7 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
           <Button
             size="sm"
             onClick={() => { setForm(EMPTY_FORM); setEditingId(null); setShowForm(!showForm); }}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-orange-600 hover:bg-orange-700 text-foreground"
           >
             <Plus className="h-4 w-4 mr-1" />
             Nova Conexão
@@ -406,7 +406,7 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                 size="sm"
                 onClick={handleSave}
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-orange-600 hover:bg-orange-700 text-foreground"
               >
                 <Save className="h-4 w-4 mr-1" />
                 {editingId ? 'Atualizar' : 'Salvar'}
@@ -507,7 +507,7 @@ export const RustDeskPanel = ({ onSessionLog }: RustDeskPanelProps = {}) => {
                               <Button
                                 size="sm"
                                 onClick={() => handleConnect(conn)}
-                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-white text-xs"
+                                className="h-6 px-2 bg-orange-600 hover:bg-orange-700 text-foreground text-xs"
                               >
                                 <ExternalLink className="h-3 w-3 mr-0.5" />
                                 Conectar

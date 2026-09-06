@@ -122,15 +122,15 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
       case 'open':
         return <Badge className="bg-red-900/20 text-red-400 border-red-600">Aberta</Badge>;
       default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600">{security}</Badge>;
+        return <Badge className="bg-background/20 text-muted-foreground border-border">{security}</Badge>;
     }
   };
 
   if (loading) {
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Wifi className="h-5 w-5" />
             Gerenciamento de Redes Wi-Fi
           </CardTitle>
@@ -138,7 +138,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <RefreshCw className="h-6 w-6 animate-spin text-blue-400" />
-            <span className="ml-2 text-gray-400">Carregando redes...</span>
+            <span className="ml-2 text-muted-foreground">Carregando redes...</span>
           </div>
         </CardContent>
       </Card>
@@ -146,9 +146,9 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
   }
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Wifi className="h-5 w-5" />
           Gerenciamento de Redes Wi-Fi ({networks.length})
         </CardTitle>
@@ -159,7 +159,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
               Nova Rede
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-800 border-gray-700 text-white">
+          <DialogContent className="bg-card border-border text-foreground">
             <DialogHeader>
               <DialogTitle>Criar Nova Rede Wi-Fi</DialogTitle>
             </DialogHeader>
@@ -170,7 +170,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                   id="network-name"
                   value={newNetwork.name}
                   onChange={(e) => setNewNetwork({...newNetwork, name: e.target.value})}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-secondary border-border text-foreground"
                   placeholder="Nome da rede Wi-Fi"
                 />
               </div>
@@ -182,7 +182,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                   type="password"
                   value={newNetwork.x_password}
                   onChange={(e) => setNewNetwork({...newNetwork, x_password: e.target.value})}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-secondary border-border text-foreground"
                   placeholder="Senha da rede"
                 />
               </div>
@@ -190,10 +190,10 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
               <div>
                 <Label htmlFor="network-security">Tipo de Segurança</Label>
                 <Select value={newNetwork.security} onValueChange={(value) => setNewNetwork({...newNetwork, security: value})}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
+                  <SelectContent className="bg-secondary border-border">
                     <SelectItem value="wpapsk">WPA2-PSK</SelectItem>
                     <SelectItem value="wpa3">WPA3</SelectItem>
                     <SelectItem value="open">Aberta</SelectItem>
@@ -227,7 +227,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                     type="number"
                     value={newNetwork.vlan}
                     onChange={(e) => setNewNetwork({...newNetwork, vlan: parseInt(e.target.value)})}
-                    className="bg-gray-700 border-gray-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
                 </div>
               )}
@@ -246,7 +246,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
       </CardHeader>
       <CardContent>
         {networks.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-muted-foreground">
             <Wifi className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhuma rede Wi-Fi encontrada</p>
             <p className="text-sm">Crie uma nova rede para começar</p>
@@ -255,21 +255,21 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300">Nome (SSID)</TableHead>
-                  <TableHead className="text-gray-300">Senha</TableHead>
-                  <TableHead className="text-gray-300">Segurança</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300">Tipo</TableHead>
-                  <TableHead className="text-gray-300">VLAN</TableHead>
-                  <TableHead className="text-gray-300">Ações</TableHead>
+                <TableRow className="border-border hover:bg-card/50">
+                  <TableHead className="text-muted-foreground">Nome (SSID)</TableHead>
+                  <TableHead className="text-muted-foreground">Senha</TableHead>
+                  <TableHead className="text-muted-foreground">Segurança</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Tipo</TableHead>
+                  <TableHead className="text-muted-foreground">VLAN</TableHead>
+                  <TableHead className="text-muted-foreground">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {networks.map((network) => (
-                  <TableRow key={network._id} className="border-gray-700 hover:bg-gray-800/30">
-                    <TableCell className="font-medium text-gray-200">{network.name}</TableCell>
-                    <TableCell className="text-gray-300">
+                  <TableRow key={network._id} className="border-border hover:bg-card/30">
+                    <TableCell className="font-medium text-foreground">{network.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm">
                           {showPasswords[network._id] ? network.x_password || 'N/A' : '••••••••'}
@@ -306,7 +306,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                         {network.is_guest ? 'Convidados' : 'Principal'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-gray-300">
+                    <TableCell className="text-muted-foreground">
                       {network.vlan_enabled ? `VLAN ${network.vlan}` : 'N/A'}
                     </TableCell>
                     <TableCell>
@@ -315,7 +315,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onToggleNetwork(network._id, !network.enabled)}
-                          className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                          className="border-border text-foreground hover:bg-secondary"
                         >
                           {network.enabled ? 
                             <PowerOff className="h-3 w-3" /> : 
@@ -326,7 +326,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditNetwork(network)}
-                          className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                          className="border-border text-foreground hover:bg-secondary"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -334,7 +334,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onDeleteNetwork(network._id)}
-                          className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                          className="border-border text-foreground hover:bg-secondary"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -350,7 +350,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
       
       {/* Edit Network Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Editar Rede Wi-Fi</DialogTitle>
           </DialogHeader>
@@ -362,7 +362,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                   id="edit-network-name"
                   value={editingNetwork.name}
                   onChange={(e) => setEditingNetwork({...editingNetwork, name: e.target.value})}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
@@ -373,7 +373,7 @@ export const UniFiNetworkManager: React.FC<UniFiNetworkManagerProps> = ({
                   type="password"
                   value={editingNetwork.x_password || ''}
                   onChange={(e) => setEditingNetwork({...editingNetwork, x_password: e.target.value})}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               

@@ -294,43 +294,43 @@ const Guacamole = () => {
       case 'telnet':
         return 'bg-orange-400/20 text-orange-300 border-orange-400/30';
       default:
-        return 'bg-slate-600/20 text-slate-400 border-slate-600/30';
+        return 'bg-muted/20 text-muted-foreground border-border/30';
     }
   };
   if (!isConfigured) {
-    return <div className="min-h-screen bg-slate-900 text-white p-6">
+    return <div className="min-h-screen bg-background text-foreground p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-3">
             <div className="bg-blue-500/10 p-2 rounded-lg">
               <Monitor className="h-6 w-6 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Conexão Remota</h1>
-              <p className="text-slate-400">
+              <h1 className="text-2xl font-bold text-foreground">Conexão Remota</h1>
+              <p className="text-muted-foreground">
                 Gerencie conexões remotas via Remoto PK e Servidores RDP
               </p>
             </div>
           </div>
 
           <Tabs defaultValue="rustdesk" className="space-y-4">
-            <TabsList className="bg-slate-800 border-slate-700">
-              <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
+            <TabsList className="bg-card border-border">
+              <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-foreground text-muted-foreground">
                 🖥️ Remoto PK
               </TabsTrigger>
-              <TabsTrigger value="guacamole" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+              <TabsTrigger value="guacamole" className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-muted-foreground">
                 Servidores RDP
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="guacamole" className="mt-6">
-              <Card className="bg-slate-800 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardContent className="p-6 text-center">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-400" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Guacamole não configurado</h3>
-                  <p className="text-slate-400 mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Guacamole não configurado</h3>
+                  <p className="text-muted-foreground mb-4">
                     Para usar o gerenciamento do Apache Guacamole, configure a integração no painel de administração.
                   </p>
-                  <Button variant="outline" asChild className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                  <Button variant="outline" asChild className="border-border text-muted-foreground hover:bg-secondary">
                     <Link to="/admin">
                       <Settings className="mr-2 h-4 w-4" />
                       Configurar Guacamole
@@ -347,7 +347,7 @@ const Guacamole = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen bg-slate-900 text-white p-6">
+  return <div className="min-h-screen bg-background text-foreground p-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -355,15 +355,15 @@ const Guacamole = () => {
               <Monitor className="h-6 w-6 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Conexão Remota</h1>
-              <p className="text-slate-400">
+              <h1 className="text-2xl font-bold text-foreground">Conexão Remota</h1>
+              <p className="text-muted-foreground">
                 Gerencie conexões remotas via Remoto PK e Servidores RDP
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <GuacamoleStatusPopover connections={connections} users={users} activeSessions={activeSessions} connectionGroups={connectionGroups} />
-            <Button onClick={handleRefreshAll} disabled={refreshing} variant="outline" className="border-slate-600 text-slate-50 bg-slate-900 hover:bg-slate-800">
+            <Button onClick={handleRefreshAll} disabled={refreshing} variant="outline" className="border-border text-slate-50 bg-background hover:bg-card">
               <RefreshCcw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
@@ -399,17 +399,17 @@ const Guacamole = () => {
 
 
         <Tabs defaultValue="rustdesk" className="space-y-4">
-          <TabsList className="bg-slate-800 border-slate-700">
-            <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400">
+          <TabsList className="bg-card border-border">
+            <TabsTrigger value="rustdesk" className="data-[state=active]:bg-orange-600 data-[state=active]:text-foreground text-muted-foreground">
               🖥️ Remoto PK
             </TabsTrigger>
-            <TabsTrigger value="connections" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <TabsTrigger value="connections" className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-muted-foreground">
               Servidores RDP ({connections?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <TabsTrigger value="sessions" className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-muted-foreground">
               Sessões Ativas ({activeSessions?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white text-slate-400">
+            <TabsTrigger value="history" className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-muted-foreground">
               Histórico
             </TabsTrigger>
           </TabsList>

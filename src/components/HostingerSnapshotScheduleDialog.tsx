@@ -111,67 +111,67 @@ export const HostingerSnapshotScheduleDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <Clock className="h-5 w-5 text-blue-400" />
             {schedule ? 'Editar Agendamento' : 'Agendar Snapshot'}
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             Configure o agendamento automático de snapshots para {vpsName}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-300">Nome do Agendamento</Label>
+            <Label htmlFor="name" className="text-muted-foreground">Nome do Agendamento</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Backup Diário"
-              className="bg-slate-900 border-slate-700 text-white"
+              className="bg-background border-border text-foreground"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-slate-300">Descrição (opcional)</Label>
+            <Label htmlFor="description" className="text-muted-foreground">Descrição (opcional)</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva o propósito deste agendamento"
-              className="bg-slate-900 border-slate-700 text-white resize-none"
+              className="bg-background border-border text-foreground resize-none"
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300 flex items-center gap-2">
+            <Label className="text-muted-foreground flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Horário do Snapshot
             </Label>
             <div className="flex gap-2 items-center">
               <Select value={hour} onValueChange={setHour}>
-                <SelectTrigger className="bg-slate-900 border-slate-700 text-white w-24">
+                <SelectTrigger className="bg-background border-border text-foreground w-24">
                   <SelectValue placeholder="Hora" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   {Array.from({ length: 24 }, (_, i) => (
-                    <SelectItem key={i} value={i.toString()} className="text-white">
+                    <SelectItem key={i} value={i.toString()} className="text-foreground">
                       {i.toString().padStart(2, '0')}h
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <span className="text-slate-400">:</span>
+              <span className="text-muted-foreground">:</span>
               <Select value={minute} onValueChange={setMinute}>
-                <SelectTrigger className="bg-slate-900 border-slate-700 text-white w-24">
+                <SelectTrigger className="bg-background border-border text-foreground w-24">
                   <SelectValue placeholder="Min" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-card border-border">
                   {['00', '15', '30', '45'].map((m) => (
-                    <SelectItem key={m} value={m} className="text-white">
+                    <SelectItem key={m} value={m} className="text-foreground">
                       {m}min
                     </SelectItem>
                   ))}
@@ -181,7 +181,7 @@ export const HostingerSnapshotScheduleDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-300 flex items-center gap-2">
+            <Label className="text-muted-foreground flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Dias da Semana
             </Label>
@@ -189,15 +189,15 @@ export const HostingerSnapshotScheduleDialog = ({
               {WEEKDAYS.map((day) => (
                 <div
                   key={day.value}
-                  className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded px-3 py-2 cursor-pointer hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-2 bg-background border border-border rounded px-3 py-2 cursor-pointer hover:bg-card transition-colors"
                   onClick={() => toggleDay(day.value)}
                 >
                   <Checkbox
                     checked={selectedDays.includes(day.value)}
                     onCheckedChange={() => toggleDay(day.value)}
-                    className="border-slate-600"
+                    className="border-border"
                   />
-                  <span className="text-sm text-white">{day.label}</span>
+                  <span className="text-sm text-foreground">{day.label}</span>
                 </div>
               ))}
             </div>
@@ -207,7 +207,7 @@ export const HostingerSnapshotScheduleDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="retention" className="text-slate-300">Retenção (dias)</Label>
+            <Label htmlFor="retention" className="text-muted-foreground">Retenção (dias)</Label>
             <Input
               id="retention"
               type="number"
@@ -215,7 +215,7 @@ export const HostingerSnapshotScheduleDialog = ({
               max="90"
               value={retentionDays}
               onChange={(e) => setRetentionDays(e.target.value)}
-              className="bg-slate-900 border-slate-700 text-white"
+              className="bg-background border-border text-foreground"
             />
             <p className="text-xs text-slate-500">Snapshots mais antigos que este período serão removidos automaticamente</p>
           </div>
@@ -228,7 +228,7 @@ export const HostingerSnapshotScheduleDialog = ({
               onOpenChange(false);
               resetForm();
             }}
-            className="border-slate-700 text-slate-300"
+            className="border-border text-muted-foreground"
           >
             Cancelar
           </Button>

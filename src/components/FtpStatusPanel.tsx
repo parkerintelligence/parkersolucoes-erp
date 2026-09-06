@@ -35,7 +35,7 @@ export const FtpStatusPanel = ({
     <div className="space-y-4">
       {/* Connection Status */}
       <Card className="shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-lg pb-3">
+        <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-foreground rounded-t-lg pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Wifi className="h-5 w-5" />
             Status da Conexão
@@ -84,7 +84,7 @@ export const FtpStatusPanel = ({
 
       {/* Statistics */}
       <Card className="shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-t-lg pb-3">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-foreground rounded-t-lg pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <HardDrive className="h-5 w-5" />
             Estatísticas
@@ -138,7 +138,7 @@ export const FtpStatusPanel = ({
 
       {/* Quick Actions */}
       <Card className="shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg pb-3">
+        <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-foreground rounded-t-lg pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Settings className="h-5 w-5" />
             Ações Rápidas

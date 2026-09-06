@@ -219,16 +219,16 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
       case 'ADMIN':
         return <Badge className="bg-purple-900/20 text-purple-400 border-purple-600 text-xs">Admin</Badge>;
       default:
-        return <Badge className="bg-gray-900/20 text-gray-400 border-gray-600 text-xs">{type || 'N/A'}</Badge>;
+        return <Badge className="bg-background/20 text-muted-foreground border-border text-xs">{type || 'N/A'}</Badge>;
     }
   };
 
   if (configuredJobsLoading || executedJobsLoading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6 text-center">
-          <RefreshCw className="h-8 w-8 mx-auto mb-4 text-slate-400 animate-spin" />
-          <p className="text-slate-400">Carregando jobs configurados...</p>
+          <RefreshCw className="h-8 w-8 mx-auto mb-4 text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Carregando jobs configurados...</p>
         </CardContent>
       </Card>
     );
@@ -239,36 +239,36 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
       {/* Header com filtros */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-white mb-1">Jobs Cadastrados</h2>
-          <p className="text-sm text-slate-400">Configurações de jobs definidas no Bacula Director</p>
+          <h2 className="text-lg font-semibold text-foreground mb-1">Jobs Cadastrados</h2>
+          <p className="text-sm text-muted-foreground">Configurações de jobs definidas no Bacula Director</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
           {/* Filtros */}
           <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-slate-400" />
+            <Search className="h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar jobs..." 
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)} 
-              className="w-40 h-8 bg-slate-700 border-slate-600 text-white placeholder-slate-400" 
+              className="w-40 h-8 bg-secondary border-border text-foreground placeholder-slate-400" 
             />
           </div>
           
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-32 h-8 bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="w-32 h-8 bg-secondary border-border text-foreground">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              <SelectItem value="all" className="text-white">Todos</SelectItem>
-              <SelectItem value="B" className="text-white">Backup</SelectItem>
-              <SelectItem value="R" className="text-white">Restore</SelectItem>
-              <SelectItem value="V" className="text-white">Verify</SelectItem>
-              <SelectItem value="A" className="text-white">Admin</SelectItem>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="all" className="text-foreground">Todos</SelectItem>
+              <SelectItem value="B" className="text-foreground">Backup</SelectItem>
+              <SelectItem value="R" className="text-foreground">Restore</SelectItem>
+              <SelectItem value="V" className="text-foreground">Verify</SelectItem>
+              <SelectItem value="A" className="text-foreground">Admin</SelectItem>
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Filter className="h-4 w-4" />
             <span>{filteredJobs.length} jobs</span>
           </div>
@@ -277,7 +277,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
             onClick={() => refetchConfigured()} 
             size="sm" 
             variant="outline" 
-            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+            className="bg-secondary border-border text-foreground hover:bg-muted"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -286,31 +286,31 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
       </div>
 
       {/* Tabela de Jobs Configurados */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
                <TableHeader>
-                 <TableRow className="border-slate-700 bg-slate-800/50 h-10">
-                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm">
+                 <TableRow className="border-border bg-card/50 h-10">
+                   <TableHead className="text-foreground font-semibold py-1 px-3 h-10 text-sm">
                      <div className="flex items-center gap-2">
                        <Database className="h-3 w-3" />
                        Job Name
                      </div>
                    </TableHead>
-                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm w-[100px]">
+                   <TableHead className="text-foreground font-semibold py-1 px-3 h-10 text-sm w-[100px]">
                      <div className="flex items-center gap-2">
                        <Filter className="h-3 w-3" />
                        Type
                      </div>
                    </TableHead>
-                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm w-[180px]">
+                   <TableHead className="text-foreground font-semibold py-1 px-3 h-10 text-sm w-[180px]">
                      <div className="flex items-center gap-2">
                        <Calendar className="h-3 w-3" />
                        Last Success
                      </div>
                    </TableHead>
-                   <TableHead className="text-slate-200 font-semibold py-1 px-3 h-10 text-sm w-[180px]">
+                   <TableHead className="text-foreground font-semibold py-1 px-3 h-10 text-sm w-[180px]">
                      <div className="flex items-center gap-2">
                        <Clock className="h-3 w-3" />
                        Last Failure
@@ -328,16 +328,16 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                     return (
                         <TableRow 
                           key={index} 
-                          className="border-slate-700 hover:bg-slate-700/30 transition-colors h-10"
+                          className="border-border hover:bg-secondary/30 transition-colors h-10"
                         >
-                             <TableCell className="font-medium text-white py-2 px-3">
+                             <TableCell className="font-medium text-foreground py-2 px-3">
                                <div className="flex items-center justify-between">
                                  <div className="flex flex-col min-w-0 flex-1">
-                                   <span className="text-sm font-semibold text-white leading-tight truncate">
+                                   <span className="text-sm font-semibold text-foreground leading-tight truncate">
                                      {getFieldValue(job, ['name', 'jobname', 'Job', 'JobName'])}
                                    </span>
                                    {getFieldValue(job, ['description', 'Description'], '') !== '' && (
-                                     <span className="text-xs text-slate-400 leading-tight truncate">
+                                     <span className="text-xs text-muted-foreground leading-tight truncate">
                                        {getFieldValue(job, ['description', 'Description'])}
                                      </span>
                                    )}
@@ -355,7 +355,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                                  <Badge variant="outline" className="bg-emerald-500/20 border-emerald-500/40 text-emerald-300 text-xs font-medium px-1.5 py-0.5">
                                    ✓
                                  </Badge>
-                                 <span className="text-xs text-slate-400">
+                                 <span className="text-xs text-muted-foreground">
                                    {formatDateTime(lastSuccessful.starttime || lastSuccessful.schedtime)}
                                  </span>
                                  {lastSuccessful.jobbytes && (
@@ -365,7 +365,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                                  )}
                                </div>
                              ) : (
-                               <Badge variant="outline" className="bg-slate-500/20 border-slate-500/40 text-slate-400 text-xs px-1.5 py-0.5">
+                               <Badge variant="outline" className="bg-slate-500/20 border-border/40 text-muted-foreground text-xs px-1.5 py-0.5">
                                  — Sem registro
                                </Badge>
                              )}
@@ -376,7 +376,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                                   <Badge variant="outline" className="bg-red-500/20 border-red-500/40 text-red-300 text-xs font-medium px-1.5 py-0.5">
                                     ✗
                                   </Badge>
-                                 <span className="text-xs text-slate-400">
+                                 <span className="text-xs text-muted-foreground">
                                    {formatDateTime(lastFailed.starttime || lastFailed.schedtime)}
                                  </span>
                                  {lastFailed.joberrors && (
@@ -386,7 +386,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                                  )}
                                </div>
                              ) : (
-                               <Badge variant="outline" className="bg-slate-500/20 border-slate-500/40 text-slate-400 text-xs px-1.5 py-0.5">
+                               <Badge variant="outline" className="bg-slate-500/20 border-border/40 text-muted-foreground text-xs px-1.5 py-0.5">
                                  — Sem falhas
                                </Badge>
                              )}
@@ -396,7 +396,7 @@ export const BaculaConfiguredJobsTable: React.FC<ConfiguredJobsTableProps> = () 
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       Nenhum job configurado encontrado
                     </TableCell>
                   </TableRow>

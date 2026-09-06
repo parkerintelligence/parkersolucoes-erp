@@ -64,18 +64,18 @@ export const GLPIRemoteAccessDialog = ({
 
   const getProtocolColor = (protocol: string) => {
     switch (protocol?.toLowerCase()) {
-      case 'rdp': return 'bg-blue-600 text-white';
-      case 'vnc': return 'bg-purple-600 text-white';
-      case 'ssh': return 'bg-green-600 text-white';
+      case 'rdp': return 'bg-blue-600 text-foreground';
+      case 'vnc': return 'bg-purple-600 text-foreground';
+      case 'ssh': return 'bg-green-600 text-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getConnectionStatus = (connection: any) => {
     if (connection.activeConnections > 0) {
-      return { label: 'Ativo', color: 'bg-green-600 text-white' };
+      return { label: 'Ativo', color: 'bg-green-600 text-foreground' };
     }
-    return { label: 'Disponível', color: 'bg-blue-600 text-white' };
+    return { label: 'Disponível', color: 'bg-blue-600 text-foreground' };
   };
 
   const handleConnect = async (connection: any) => {
@@ -270,7 +270,7 @@ export const GLPIRemoteAccessDialog = ({
                               <Button
                                 onClick={() => handleRustDeskConnect(conn)}
                                 size="sm"
-                                className="h-7 text-[11px] bg-orange-600 hover:bg-orange-700 text-white px-2.5"
+                                className="h-7 text-[11px] bg-orange-600 hover:bg-orange-700 text-foreground px-2.5"
                               >
                                 <ExternalLink className="h-3 w-3 mr-1" />
                                 Conectar
@@ -353,7 +353,7 @@ export const GLPIRemoteAccessDialog = ({
                               <Button
                                 onClick={() => handleConnect(connection)}
                                 size="sm"
-                                className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700 text-white px-2.5"
+                                className="h-7 text-[11px] bg-blue-600 hover:bg-blue-700 text-foreground px-2.5"
                               >
                                 <ExternalLink className="h-3 w-3 mr-1" />
                                 Conectar

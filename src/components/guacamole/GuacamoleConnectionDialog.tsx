@@ -180,79 +180,79 @@ export const GuacamoleConnectionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="max-w-md bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle className="text-foreground">
             {connection ? 'Editar Conexão' : 'Nova Conexão'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="name" className="text-white">Nome da Conexão *</Label>
+            <Label htmlFor="name" className="text-foreground">Nome da Conexão *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Nome descritivo para a conexão"
-              className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+              className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           <div>
-            <Label htmlFor="protocol" className="text-white">Protocolo *</Label>
+            <Label htmlFor="protocol" className="text-foreground">Protocolo *</Label>
             <Select
               value={formData.protocol}
               onValueChange={(value) => setFormData({ ...formData, protocol: value })}
             >
-              <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+              <SelectTrigger className="bg-secondary border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
-                <SelectItem value="rdp" className="text-white hover:bg-slate-600">RDP (Remote Desktop)</SelectItem>
-                <SelectItem value="vnc" className="text-white hover:bg-slate-600">VNC (Virtual Network Computing)</SelectItem>
-                <SelectItem value="ssh" className="text-white hover:bg-slate-600">SSH (Secure Shell)</SelectItem>
-                <SelectItem value="telnet" className="text-white hover:bg-slate-600">Telnet</SelectItem>
+              <SelectContent className="bg-secondary border-border">
+                <SelectItem value="rdp" className="text-foreground hover:bg-muted">RDP (Remote Desktop)</SelectItem>
+                <SelectItem value="vnc" className="text-foreground hover:bg-muted">VNC (Virtual Network Computing)</SelectItem>
+                <SelectItem value="ssh" className="text-foreground hover:bg-muted">SSH (Secure Shell)</SelectItem>
+                <SelectItem value="telnet" className="text-foreground hover:bg-muted">Telnet</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="hostname" className="text-white">Hostname/IP *</Label>
+              <Label htmlFor="hostname" className="text-foreground">Hostname/IP *</Label>
               <Input
                 id="hostname"
                 value={formData.hostname}
                 onChange={(e) => setFormData({ ...formData, hostname: e.target.value })}
                 placeholder="192.168.1.100"
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div>
-              <Label htmlFor="port" className="text-white">Porta</Label>
+              <Label htmlFor="port" className="text-foreground">Porta</Label>
               <Input
                 id="port"
                 value={formData.port}
                 onChange={(e) => setFormData({ ...formData, port: e.target.value })}
                 placeholder={getPortPlaceholder()}
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="username" className="text-white">Usuário</Label>
+              <Label htmlFor="username" className="text-foreground">Usuário</Label>
               <Input
                 id="username"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 placeholder="usuario"
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div>
-              <Label htmlFor="password" className="text-white">Senha</Label>
+              <Label htmlFor="password" className="text-foreground">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -260,12 +260,12 @@ export const GuacamoleConnectionDialog = ({
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••"
-                  className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 pr-10"
+                  className="bg-secondary border-border text-foreground placeholder:text-muted-foreground pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -275,13 +275,13 @@ export const GuacamoleConnectionDialog = ({
 
           {formData.protocol === 'rdp' && (
             <div>
-              <Label htmlFor="domain" className="text-white">Domínio</Label>
+              <Label htmlFor="domain" className="text-foreground">Domínio</Label>
               <Input
                 id="domain"
                 value={formData.domain}
                 onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
                 placeholder="DOMAIN"
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                className="bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -290,7 +290,7 @@ export const GuacamoleConnectionDialog = ({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-slate-600 text-white hover:bg-slate-700"
+              className="border-border text-foreground hover:bg-secondary"
             >
               Cancelar
             </Button>

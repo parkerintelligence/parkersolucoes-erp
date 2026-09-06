@@ -32,20 +32,20 @@ export const GLPITicketConfirmDialog: React.FC<GLPITicketConfirmDialogProps> = (
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-slate-800 border-slate-700">
+      <AlertDialogContent className="bg-card border-border">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-white">{title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-slate-300">
+          <AlertDialogTitle className="text-foreground">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-muted-foreground">
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="bg-slate-700 text-slate-300 hover:bg-slate-600 border-slate-600">
+          <AlertDialogCancel className="bg-secondary text-muted-foreground hover:bg-muted border-border">
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm}
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="bg-blue-600 text-foreground hover:bg-blue-700"
           >
             Confirmar
           </AlertDialogAction>

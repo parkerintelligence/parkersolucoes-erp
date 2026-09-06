@@ -67,13 +67,13 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] bg-slate-800 border-slate-700">
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <AlertTriangle className="h-5 w-5 text-red-500" />
             Erro no Envio via WhatsApp
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             Ocorreu um erro ao tentar enviar a mensagem via Evolution API
           </DialogDescription>
         </DialogHeader>
@@ -82,10 +82,10 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
           {/* Erro principal */}
           <Alert className="bg-red-900/20 border-red-700">
             <AlertTriangle className="h-4 w-4 text-red-500" />
-            <AlertDescription className="text-white">
+            <AlertDescription className="text-foreground">
               <strong>{error.message}</strong>
               {error.details && (
-                <div className="mt-2 text-sm text-slate-300">
+                <div className="mt-2 text-sm text-muted-foreground">
                   {error.details}
                 </div>
               )}
@@ -94,14 +94,14 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
 
           {/* Informações técnicas */}
           {(error.endpoint || error.statusCode) && (
-            <div className="bg-slate-700 p-3 rounded-lg">
-              <h4 className="text-sm font-medium text-white mb-2">Informações Técnicas:</h4>
-              <div className="text-xs space-y-1 text-slate-300">
+            <div className="bg-secondary p-3 rounded-lg">
+              <h4 className="text-sm font-medium text-foreground mb-2">Informações Técnicas:</h4>
+              <div className="text-xs space-y-1 text-muted-foreground">
                 {error.endpoint && (
-                  <div><span className="text-slate-400">Endpoint:</span> {error.endpoint}</div>
+                  <div><span className="text-muted-foreground">Endpoint:</span> {error.endpoint}</div>
                 )}
                 {error.statusCode && (
-                  <div><span className="text-slate-400">Status HTTP:</span> {error.statusCode}</div>
+                  <div><span className="text-muted-foreground">Status HTTP:</span> {error.statusCode}</div>
                 )}
               </div>
             </div>
@@ -109,8 +109,8 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
 
           {/* Sugestões de solução */}
           <div className="bg-blue-900/20 border border-blue-700 p-3 rounded-lg">
-            <h4 className="text-sm font-medium text-white mb-2">💡 Sugestões para resolver:</h4>
-            <ul className="text-xs text-slate-300 space-y-1">
+            <h4 className="text-sm font-medium text-foreground mb-2">💡 Sugestões para resolver:</h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
               {getErrorSuggestions().map((suggestion, index) => (
                 <li key={index}>{suggestion}</li>
               ))}
@@ -120,9 +120,9 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
           {/* Logs detalhados */}
           {error.logs && error.logs.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-white mb-2">Logs Detalhados:</h4>
-              <ScrollArea className="h-32 bg-slate-900 p-3 rounded-lg">
-                <div className="text-xs font-mono text-slate-300 space-y-1">
+              <h4 className="text-sm font-medium text-foreground mb-2">Logs Detalhados:</h4>
+              <ScrollArea className="h-32 bg-background p-3 rounded-lg">
+                <div className="text-xs font-mono text-muted-foreground space-y-1">
                   {error.logs.map((log, index) => (
                     <div key={index}>{log}</div>
                   ))}
@@ -138,7 +138,7 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
                 variant="outline"
                 size="sm"
                 onClick={copyErrorDetails}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <Copy className="h-4 w-4 mr-1" />
                 Copiar Detalhes
@@ -147,7 +147,7 @@ ${error.logs?.join('\n') || 'Nenhum log disponível'}
                 variant="outline"
                 size="sm"
                 onClick={() => window.open('/admin', '_blank')}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 <Settings className="h-4 w-4 mr-1" />
                 Configurações

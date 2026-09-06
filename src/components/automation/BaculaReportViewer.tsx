@@ -304,7 +304,7 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
                 {jobIndex < jobs.length - 1 && (
                   <TableRow>
                     <TableCell colSpan={2} className="p-0">
-                      <div className="my-4 border-t-2 border-dashed border-gray-300 dark:border-gray-600"></div>
+                      <div className="my-4 border-t-2 border-dashed border-gray-300 dark:border-border"></div>
                     </TableCell>
                   </TableRow>
                 )}
@@ -382,7 +382,7 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
               </div>
             </div>
             
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-border">
               <div className="h-0.5 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
             </div>
           </div>
@@ -395,8 +395,8 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
 
   if (!data) {
     return (
-      <div className="bg-gray-700 p-3 rounded-lg">
-        <p className="text-sm text-gray-300 whitespace-pre-wrap">
+      <div className="bg-secondary p-3 rounded-lg">
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
           {messageContent}
         </p>
       </div>
@@ -411,9 +411,9 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Database className="h-5 w-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-white">Relatório Diário Bacula - {data.date}</h3>
+          <h3 className="text-lg font-semibold text-foreground">Relatório Diário Bacula - {data.date}</h3>
           {data.fallbackData && (
-            <Badge variant="outline" className="bg-orange-600 text-white border-orange-500">
+            <Badge variant="outline" className="bg-orange-600 text-foreground border-orange-500">
               <AlertTriangle className="h-3 w-3 mr-1" />
               Dados Fallback
             </Badge>
@@ -421,7 +421,7 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
         </div>
         
         {/* View Mode Toggle */}
-        <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
+        <div className="flex items-center gap-2 bg-card rounded-lg p-1">
           <Button
             variant={viewMode === 'cards' ? 'default' : 'ghost'}
             size="sm"
@@ -444,12 +444,12 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
       </div>
 
       {/* Executive Summary */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader 
           className="cursor-pointer" 
           onClick={() => toggleSection('summary')}
         >
-          <CardTitle className="flex items-center justify-between text-white">
+          <CardTitle className="flex items-center justify-between text-foreground">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-blue-400" />
               Resumo Executivo
@@ -463,34 +463,34 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
         {expandedSections.has('summary') && (
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-700 p-4 rounded-lg">
+              <div className="bg-secondary p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-blue-400" />
-                  <span className="text-sm text-gray-300">Total de Jobs</span>
+                  <span className="text-sm text-muted-foreground">Total de Jobs</span>
                 </div>
-                <div className="text-2xl font-bold text-white">{data.totalJobs}</div>
+                <div className="text-2xl font-bold text-foreground">{data.totalJobs}</div>
               </div>
               
-              <div className="bg-gray-700 p-4 rounded-lg">
+              <div className="bg-secondary p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-gray-300">Sucessos</span>
+                  <span className="text-sm text-muted-foreground">Sucessos</span>
                 </div>
                 <div className="text-2xl font-bold text-green-400">{data.successJobs}</div>
               </div>
               
-              <div className="bg-gray-700 p-4 rounded-lg">
+              <div className="bg-secondary p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <XCircle className="h-4 w-4 text-red-400" />
-                  <span className="text-sm text-gray-300">Erros</span>
+                  <span className="text-sm text-muted-foreground">Erros</span>
                 </div>
                 <div className="text-2xl font-bold text-red-400">{data.errorJobs}</div>
               </div>
               
-              <div className="bg-gray-700 p-4 rounded-lg">
+              <div className="bg-secondary p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="h-4 w-4 text-purple-400" />
-                  <span className="text-sm text-gray-300">Clientes</span>
+                  <span className="text-sm text-muted-foreground">Clientes</span>
                 </div>
                 <div className="text-2xl font-bold text-purple-400">{data.affectedClients}</div>
               </div>
@@ -499,25 +499,25 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
             <div className="mt-4 space-y-3">
               <div>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-300">Taxa de Sucesso</span>
-                  <span className="text-white font-medium">{successRate.toFixed(1)}%</span>
+                  <span className="text-muted-foreground">Taxa de Sucesso</span>
+                  <span className="text-foreground font-medium">{successRate.toFixed(1)}%</span>
                 </div>
                 <Progress value={successRate} className="h-2" />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="bg-gray-700 p-3 rounded-lg">
+                <div className="bg-secondary p-3 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
                     <HardDrive className="h-4 w-4 text-cyan-400" />
-                    <span className="text-sm text-gray-300">Volume Total</span>
+                    <span className="text-sm text-muted-foreground">Volume Total</span>
                   </div>
                   <div className="text-lg font-semibold text-cyan-400">{formatBytes(data.totalBytes)}</div>
                 </div>
                 
-                <div className="bg-gray-700 p-3 rounded-lg">
+                <div className="bg-secondary p-3 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
                     <FileText className="h-4 w-4 text-yellow-400" />
-                    <span className="text-sm text-gray-300">Arquivos Processados</span>
+                    <span className="text-sm text-muted-foreground">Arquivos Processados</span>
                   </div>
                   <div className="text-lg font-semibold text-yellow-400">{formatNumber(data.totalFiles)}</div>
                 </div>
@@ -639,7 +639,7 @@ export const BaculaReportViewer: React.FC<BaculaReportViewerProps> = ({ messageC
             className="cursor-pointer" 
             onClick={() => toggleSection('analysis')}
           >
-            <CardTitle className="flex items-center justify-between text-white">
+            <CardTitle className="flex items-center justify-between text-foreground">
               <div className="flex items-center gap-2">
                 <TrendingDown className="h-4 w-4 text-red-400" />
                 Análise Crítica

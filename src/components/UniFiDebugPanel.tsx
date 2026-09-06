@@ -61,18 +61,18 @@ export const UniFiDebugPanel: React.FC<UniFiDebugPanelProps> = ({
               </div>
 
               {/* Dados Brutos */}
-              <div className="bg-slate-800 rounded-lg p-4">
-                <h4 className="text-white text-sm font-medium mb-2">Dados Brutos da API:</h4>
-                <pre className="text-xs text-gray-300 bg-slate-900 rounded p-3 overflow-auto max-h-64">
+              <div className="bg-card rounded-lg p-4">
+                <h4 className="text-foreground text-sm font-medium mb-2">Dados Brutos da API:</h4>
+                <pre className="text-xs text-muted-foreground bg-background rounded p-3 overflow-auto max-h-64">
                   {JSON.stringify(sites, null, 2) || 'Nenhum dado disponível'}
                 </pre>
               </div>
 
               {/* Análise dos Dados */}
               {sites && (
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <h4 className="text-white text-sm font-medium mb-2">Análise dos Dados:</h4>
-                  <div className="space-y-1 text-xs text-gray-300">
+                <div className="bg-card rounded-lg p-4">
+                  <h4 className="text-foreground text-sm font-medium mb-2">Análise dos Dados:</h4>
+                  <div className="space-y-1 text-xs text-muted-foreground">
                     <p><strong>Tipo da resposta:</strong> {typeof sites}</p>
                     <p><strong>Tem propriedade 'data':</strong> {sites.data ? 'Sim' : 'Não'}</p>
                     <p><strong>É array:</strong> {Array.isArray(sites) ? 'Sim' : 'Não'}</p>

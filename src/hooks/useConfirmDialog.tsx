@@ -117,7 +117,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                 isDestructive
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-destructive/25"
                   : isWarning
-                  ? "bg-yellow-500 text-white hover:bg-yellow-600 shadow-yellow-500/25"
+                  ? "bg-yellow-500 text-foreground hover:bg-yellow-600 shadow-yellow-500/25"
                   : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25"
               }`}
             >

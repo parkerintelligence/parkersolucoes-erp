@@ -77,25 +77,25 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="title" className="text-gray-300">Título *</Label>
+        <Label htmlFor="title" className="text-muted-foreground">Título *</Label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Ex: Renovação Certificado SSL"
-          className="bg-slate-900 border-gray-700 text-white placeholder:text-gray-400"
+          className="bg-background border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="schedule_type_id" className="text-gray-300">Tipo *</Label>
+        <Label htmlFor="schedule_type_id" className="text-muted-foreground">Tipo *</Label>
         <Select value={formData.schedule_type_id} onValueChange={(value) => setFormData({ ...formData, schedule_type_id: value })}>
-          <SelectTrigger className="bg-slate-900 border-gray-700 text-white">
+          <SelectTrigger className="bg-background border-border text-foreground">
             <SelectValue placeholder="Selecione o tipo" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-900 border-gray-700">
+          <SelectContent className="bg-background border-border">
             {scheduleTypes.map((type) => (
-              <SelectItem key={type.id} value={type.id} className="text-white hover:bg-gray-800">
+              <SelectItem key={type.id} value={type.id} className="text-foreground hover:bg-card">
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
@@ -110,14 +110,14 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="company" className="text-gray-300">Empresa *</Label>
+        <Label htmlFor="company" className="text-muted-foreground">Empresa *</Label>
         <Select value={formData.company_id} onValueChange={handleCompanyChange}>
-          <SelectTrigger className="bg-slate-900 border-gray-700 text-white">
+          <SelectTrigger className="bg-background border-border text-foreground">
             <SelectValue placeholder="Selecione a empresa" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-900 border-gray-700">
+          <SelectContent className="bg-background border-border">
             {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id} className="text-white hover:bg-gray-800">
+              <SelectItem key={company.id} value={company.id} className="text-foreground hover:bg-card">
                 {company.name}
               </SelectItem>
             ))}
@@ -126,42 +126,42 @@ export const ScheduleForm = ({ onSubmit, initialData }: ScheduleFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="due_date" className="text-gray-300">Data de Vencimento *</Label>
+        <Label htmlFor="due_date" className="text-muted-foreground">Data de Vencimento *</Label>
         <Input
           id="due_date"
           type="date"
           value={formData.due_date}
           onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-          className="bg-slate-900 border-gray-700 text-white"
+          className="bg-background border-border text-foreground"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-gray-300">Descrição</Label>
+        <Label htmlFor="description" className="text-muted-foreground">Descrição</Label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Detalhes sobre o agendamento..."
           rows={3}
-          className="bg-slate-900 border-gray-700 text-white placeholder:text-gray-400"
+          className="bg-background border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {glpiIntegration && !initialData && (
-        <div className="flex items-center space-x-2 p-3 bg-gray-700 rounded-lg">
+        <div className="flex items-center space-x-2 p-3 bg-secondary rounded-lg">
           <Checkbox
             id="create_glpi_ticket"
             checked={createGLPITicket}
             onCheckedChange={(checked) => setCreateGLPITicket(checked as boolean)}
           />
-          <Label htmlFor="create_glpi_ticket" className="text-sm text-gray-300">
+          <Label htmlFor="create_glpi_ticket" className="text-sm text-muted-foreground">
             Criar chamado no GLPI na data de vencimento
           </Label>
         </div>
       )}
 
-      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-foreground">
         <Plus className="mr-2 h-4 w-4" />
         {initialData ? 'Atualizar Agendamento' : 'Adicionar Agendamento'}
       </Button>

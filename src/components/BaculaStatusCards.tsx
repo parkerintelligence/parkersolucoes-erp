@@ -20,7 +20,7 @@ export const BaculaStatusCards = () => {
     if (connectionTest && (connectionTest.output || connectionTest.result || connectionTest.data)) {
       return { status: 'success', label: 'Conectado', color: 'bg-green-900/20 text-green-400 border-green-600' };
     }
-    return { status: 'unknown', label: 'Desconhecido', color: 'bg-slate-900/20 text-gray-400 border-gray-600' };
+    return { status: 'unknown', label: 'Desconhecido', color: 'bg-background/20 text-muted-foreground border-border' };
   };
 
   const getRunningJobsCount = () => {
@@ -100,10 +100,10 @@ export const BaculaStatusCards = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       {/* Connection Status */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Conexão</CardTitle>
-          <Database className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Conexão</CardTitle>
+          <Database className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
@@ -123,10 +123,10 @@ export const BaculaStatusCards = () => {
       </Card>
 
       {/* Director Status */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Director</CardTitle>
-          <Server className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Director</CardTitle>
+          <Server className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
@@ -145,14 +145,14 @@ export const BaculaStatusCards = () => {
       </Card>
 
       {/* Running Jobs */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Jobs Executando</CardTitle>
-          <Clock className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Jobs Executando</CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-white">{runningJobsCount}</div>
-          <p className="text-xs text-slate-400">jobs ativos</p>
+          <div className="text-2xl font-bold text-foreground">{runningJobsCount}</div>
+          <p className="text-xs text-muted-foreground">jobs ativos</p>
           {runningError && (
             <p className="text-xs text-red-400 mt-1">
               {runningError.message}

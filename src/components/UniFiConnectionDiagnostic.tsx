@@ -187,7 +187,7 @@ const UniFiConnectionDiagnostic: React.FC<UniFiConnectionDiagnosticProps> = ({ i
       case 'running':
         return 'border-blue-500 bg-blue-50 dark:bg-blue-950';
       default:
-        return 'border-gray-500 bg-gray-50 dark:bg-gray-950';
+        return 'border-border bg-gray-50 dark:bg-gray-950';
     }
   };
 

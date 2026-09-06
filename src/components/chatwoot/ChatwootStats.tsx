@@ -70,17 +70,17 @@ export const ChatwootStats = () => {
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.title} className={`${stat.bgColor} border ${stat.borderColor} bg-slate-800`}>
+          <Card key={stat.title} className={`${stat.bgColor} border ${stat.borderColor} bg-card`}>
         <CardContent className="p-4 text-center">
           <Icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
           <div className={`text-2xl font-bold mb-0.5 ${stat.color}`}>
             {stat.value}
           </div>
-          <div className="text-sm text-slate-300 font-medium">
+          <div className="text-sm text-muted-foreground font-medium">
             {stat.title}
           </div>
               {stat.title === 'Resolvidas' && stats.resolutionRate > 0 && (
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Taxa: {stats.resolutionRate}%
                 </p>
               )}

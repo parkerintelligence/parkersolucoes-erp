@@ -14,10 +14,10 @@ export const ChatwootMessageStatus = ({ status, messageType }: ChatwootMessageSt
       case 'read':
         return <CheckCheck className="h-3 w-3 text-blue-400" />;
       case 'delivered':
-        return <CheckCheck className="h-3 w-3 text-slate-400" />;
+        return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
       case 'sent':
       default:
-        return <Check className="h-3 w-3 text-slate-400" />;
+        return <Check className="h-3 w-3 text-muted-foreground" />;
     }
   };
 

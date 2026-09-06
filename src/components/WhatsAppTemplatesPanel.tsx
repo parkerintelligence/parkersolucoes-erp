@@ -210,21 +210,21 @@ const WhatsAppTemplatesPanel = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="text-gray-400">Carregando templates...</div>
+        <div className="text-muted-foreground">Carregando templates...</div>
       </div>
     );
   }
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <MessageSquare className="h-5 w-5" />
               Templates de Mensagens WhatsApp
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Modelos de mensagens para relatórios automáticos
             </CardDescription>
           </div>
@@ -241,42 +241,42 @@ const WhatsAppTemplatesPanel = () => {
                     is_active: true
                   });
                 }}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-green-600 hover:bg-green-700 text-foreground"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Template
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] bg-gray-800 border-gray-700">
+            <DialogContent className="sm:max-w-[600px] bg-card border-border">
               <DialogHeader>
-                <DialogTitle className="text-white">
+                <DialogTitle className="text-foreground">
                   {editingTemplate ? 'Editar Template' : 'Novo Template'}
                 </DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription className="text-muted-foreground">
                   Configure um template de mensagem para relatórios automáticos
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-gray-300">Nome do Template *</Label>
+                  <Label htmlFor="name" className="text-muted-foreground">Nome do Template *</Label>
                   <Input 
                     id="name" 
                     placeholder="ex: Alerta de Backups Personalizado"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="template_type" className="text-gray-300">Tipo de Template *</Label>
+                  <Label htmlFor="template_type" className="text-muted-foreground">Tipo de Template *</Label>
                   <Select value={formData.template_type} onValueChange={(value: any) => setFormData({...formData, template_type: value})}>
-                    <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                    <SelectTrigger className="bg-background border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-900 border-gray-700">
+                    <SelectContent className="bg-background border-border">
                       {Object.entries(templateTypes).map(([key, type]) => (
-                        <SelectItem key={key} value={key} className="text-white hover:bg-gray-800">
+                        <SelectItem key={key} value={key} className="text-foreground hover:bg-card">
                           <div className="flex items-center gap-2">
                             <type.icon className="h-4 w-4" />
                             {type.name}
@@ -288,28 +288,28 @@ const WhatsAppTemplatesPanel = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="subject" className="text-gray-300">Assunto *</Label>
+                  <Label htmlFor="subject" className="text-muted-foreground">Assunto *</Label>
                   <Input 
                     id="subject" 
                     placeholder="ex: 🚨 Backups Desatualizados - {{date}}"
                     value={formData.subject}
                     onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                    className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="template-body" className="text-gray-300">Corpo da Mensagem *</Label>
+                  <Label htmlFor="template-body" className="text-muted-foreground">Corpo da Mensagem *</Label>
                   <Textarea 
                     id="template-body"
                     placeholder="Digite o corpo da mensagem aqui..."
                     value={formData.body}
                     onChange={(e) => setFormData({...formData, body: e.target.value})}
                     rows={10}
-                    className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-400"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                   />
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <Label className="text-sm text-gray-400">Variáveis disponíveis:</Label>
+                    <Label className="text-sm text-muted-foreground">Variáveis disponíveis:</Label>
                     {templateTypes[formData.template_type].variables.map((variable) => (
                       <Button
                         key={variable}
@@ -317,7 +317,7 @@ const WhatsAppTemplatesPanel = () => {
                         size="sm"
                         type="button"
                         onClick={() => insertVariable(variable)}
-                        className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                        className="text-xs bg-secondary hover:bg-muted text-muted-foreground border-border"
                       >
                         {variable}
                       </Button>
@@ -331,21 +331,21 @@ const WhatsAppTemplatesPanel = () => {
                     checked={formData.is_active}
                     onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
                   />
-                  <Label htmlFor="is_active" className="text-gray-300">Template ativo</Label>
+                  <Label htmlFor="is_active" className="text-muted-foreground">Template ativo</Label>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button 
                   onClick={handleSaveTemplate} 
                   disabled={createTemplate.isPending || updateTemplate.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 hover:bg-green-700 text-foreground"
                 >
                   {editingTemplate ? 'Atualizar' : 'Criar'}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => setIsDialogOpen(false)}
-                  className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600"
+                  className="bg-secondary hover:bg-muted text-foreground border-border"
                 >
                   Cancelar
                 </Button>
@@ -355,28 +355,28 @@ const WhatsAppTemplatesPanel = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-700 border-gray-600 hover:bg-gray-700">
-                <TableHead className="text-gray-300">Nome</TableHead>
-                <TableHead className="text-gray-300">Tipo</TableHead>
-                <TableHead className="text-gray-300">Assunto</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-gray-300">Ações</TableHead>
+              <TableRow className="bg-secondary border-border hover:bg-secondary">
+                <TableHead className="text-muted-foreground">Nome</TableHead>
+                <TableHead className="text-muted-foreground">Tipo</TableHead>
+                <TableHead className="text-muted-foreground">Assunto</TableHead>
+                <TableHead className="text-muted-foreground">Status</TableHead>
+                <TableHead className="text-muted-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {templates.map((template) => (
-                <TableRow key={template.id} className="hover:bg-gray-800/30 border-gray-600">
-                  <TableCell className="font-medium text-gray-200">{template.name}</TableCell>
+                <TableRow key={template.id} className="hover:bg-card/30 border-border">
+                  <TableCell className="font-medium text-foreground">{template.name}</TableCell>
                   <TableCell>{getTypeBadge(template.template_type)}</TableCell>
-                  <TableCell className="max-w-xs truncate text-gray-200">{template.subject}</TableCell>
+                  <TableCell className="max-w-xs truncate text-foreground">{template.subject}</TableCell>
                   <TableCell>
                     {template.is_active ? (
-                      <Badge className="bg-green-600 text-white">Ativo</Badge>
+                      <Badge className="bg-green-600 text-foreground">Ativo</Badge>
                     ) : (
-                      <Badge className="bg-gray-600 text-white">Inativo</Badge>
+                      <Badge className="bg-muted text-foreground">Inativo</Badge>
                     )}
                   </TableCell>
                   <TableCell>
@@ -385,7 +385,7 @@ const WhatsAppTemplatesPanel = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleToggleActive(template)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                        className="bg-blue-600 hover:bg-blue-700 text-foreground border-blue-600"
                       >
                         {template.is_active ? 'Desativar' : 'Ativar'}
                       </Button>
@@ -393,14 +393,14 @@ const WhatsAppTemplatesPanel = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEditTemplate(template)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                        className="bg-blue-600 hover:bg-blue-700 text-foreground border-blue-600"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                        className="bg-red-600 hover:bg-red-700 text-foreground border-red-600"
                         onClick={() => handleDeleteTemplate(template.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -413,7 +413,7 @@ const WhatsAppTemplatesPanel = () => {
           </Table>
         </div>
         {templates.length === 0 && (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-muted-foreground">
             Nenhum template encontrado. Crie o primeiro template.
           </div>
         )}

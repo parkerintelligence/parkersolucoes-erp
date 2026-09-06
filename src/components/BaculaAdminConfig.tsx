@@ -110,12 +110,12 @@ export const BaculaAdminConfig = () => {
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Database className="h-5 w-5 text-blue-400" />
-            <CardTitle className="text-white">Configuração BaculaWeb</CardTitle>
+            <CardTitle className="text-foreground">Configuração BaculaWeb</CardTitle>
           </div>
           <Button
             onClick={() => setIsCreating(true)}
@@ -129,17 +129,17 @@ export const BaculaAdminConfig = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         {(isCreating || editingId) && (
-          <Card className="bg-slate-700 border-slate-600">
+          <Card className="bg-secondary border-border">
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   {editingId ? 'Editar Integração' : 'Nova Integração BaculaWeb'}
                 </h3>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={resetForm}
-                  className="text-slate-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -147,47 +147,47 @@ export const BaculaAdminConfig = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name" className="text-slate-200">Nome da Integração</Label>
+                  <Label htmlFor="name" className="text-foreground">Nome da Integração</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Ex: BaculaWeb Produção"
-                    className="bg-slate-600 border-slate-500 text-white"
+                    className="bg-muted border-border text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="base_url" className="text-slate-200">URL do BaculaWeb</Label>
+                  <Label htmlFor="base_url" className="text-foreground">URL do BaculaWeb</Label>
                   <Input
                     id="base_url"
                     value={formData.base_url}
                     onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
                     placeholder="http://baculaweb.example.com"
-                    className="bg-slate-600 border-slate-500 text-white"
+                    className="bg-muted border-border text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="username" className="text-slate-200">Usuário</Label>
+                  <Label htmlFor="username" className="text-foreground">Usuário</Label>
                   <Input
                     id="username"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="admin"
-                    className="bg-slate-600 border-slate-500 text-white"
+                    className="bg-muted border-border text-foreground"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="password" className="text-slate-200">Senha</Label>
+                  <Label htmlFor="password" className="text-foreground">Senha</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
-                    className="bg-slate-600 border-slate-500 text-white"
+                    className="bg-muted border-border text-foreground"
                   />
                 </div>
               </div>
@@ -198,7 +198,7 @@ export const BaculaAdminConfig = () => {
                   checked={formData.is_active}
                   onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
-                <Label htmlFor="is_active" className="text-slate-200">Integração ativa</Label>
+                <Label htmlFor="is_active" className="text-foreground">Integração ativa</Label>
               </div>
 
               <div className="flex gap-2">
@@ -210,7 +210,7 @@ export const BaculaAdminConfig = () => {
                   <Check className="mr-2 h-4 w-4" />
                   {editingId ? 'Salvar' : 'Criar'}
                 </Button>
-                <Button variant="outline" onClick={resetForm} className="border-slate-600 text-slate-200 hover:bg-slate-700">
+                <Button variant="outline" onClick={resetForm} className="border-border text-foreground hover:bg-secondary">
                   Cancelar
                 </Button>
               </div>
@@ -219,27 +219,27 @@ export const BaculaAdminConfig = () => {
         )}
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">Integrações Configuradas</h3>
+          <h3 className="text-lg font-semibold text-foreground">Integrações Configuradas</h3>
           {baculaIntegrations.length === 0 ? (
-            <Card className="bg-slate-700 border-slate-600">
+            <Card className="bg-secondary border-border">
               <CardContent className="p-6 text-center">
-                <Database className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-400">Nenhuma integração BaculaWeb configurada.</p>
+                <Database className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Nenhuma integração BaculaWeb configurada.</p>
               </CardContent>
             </Card>
           ) : (
             baculaIntegrations.map((integration) => (
-              <Card key={integration.id} className="bg-slate-700 border-slate-600">
+              <Card key={integration.id} className="bg-secondary border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="text-lg font-semibold text-white">{integration.name}</h4>
+                        <h4 className="text-lg font-semibold text-foreground">{integration.name}</h4>
                         <Badge variant={integration.is_active ? "default" : "secondary"}>
                           {integration.is_active ? "Ativo" : "Inativo"}
                         </Badge>
                       </div>
-                      <div className="space-y-1 text-sm text-slate-300">
+                      <div className="space-y-1 text-sm text-muted-foreground">
                         <p><strong>URL:</strong> {integration.base_url}</p>
                         <p><strong>Usuário:</strong> {integration.username}</p>
                         <p><strong>Criado em:</strong> {new Date(integration.created_at).toLocaleDateString('pt-BR')}</p>
@@ -251,7 +251,7 @@ export const BaculaAdminConfig = () => {
                         size="sm"
                         onClick={() => handleEdit(integration)}
                         disabled={isCreating || editingId !== null}
-                        className="border-slate-600 text-slate-200 hover:bg-slate-600"
+                        className="border-border text-foreground hover:bg-muted"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>

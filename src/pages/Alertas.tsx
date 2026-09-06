@@ -323,7 +323,7 @@ export default function Alertas() {
       case 'offline':
         return <WifiOff className="h-4 w-4 text-red-400" />;
       default:
-        return <Server className="h-4 w-4 text-gray-400" />;
+        return <Server className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -334,7 +334,7 @@ export default function Alertas() {
       case 'offline':
         return 'bg-red-500/30 border-red-500/40';
       default:
-        return 'bg-slate-800 border-slate-700';
+        return 'bg-card border-border';
     }
   };
 
@@ -480,7 +480,7 @@ export default function Alertas() {
                   .map((device) => (
                     <div 
                       key={device.id} 
-                      className="rounded-lg px-3 py-3 border transition-all text-center bg-gray-950 border-gray-500/30 opacity-60"
+                      className="rounded-lg px-3 py-3 border transition-all text-center bg-gray-950 border-border/30 opacity-60"
                     >
                       <div className="flex items-center justify-center gap-1.5 mb-1.5">
                         <Server className="h-4 w-4 text-gray-500" />
@@ -488,7 +488,7 @@ export default function Alertas() {
                       <p className="text-xs font-medium text-muted-foreground truncate leading-tight" title={device.name}>
                         {device.name}
                       </p>
-                      <Badge className="mt-1.5 text-[10px] px-1.5 py-0 bg-gray-900/50 text-gray-400 border-gray-500/30 hover:bg-gray-900/50">
+                      <Badge className="mt-1.5 text-[10px] px-1.5 py-0 bg-background/50 text-muted-foreground border-border/30 hover:bg-background/50">
                         INATIVO
                       </Badge>
                     </div>

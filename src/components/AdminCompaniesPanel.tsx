@@ -104,12 +104,12 @@ export const AdminCompaniesPanel = () => {
                 Nova Empresa
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700 text-white">
+            <DialogContent className="sm:max-w-[500px] bg-card border-border text-foreground">
               <DialogHeader>
-                <DialogTitle className="text-white">
+                <DialogTitle className="text-foreground">
                   {editingCompany ? 'Editar Empresa' : 'Nova Empresa'}
                 </DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription className="text-muted-foreground">
                   Preencha os dados da empresa.
                 </DialogDescription>
               </DialogHeader>
@@ -229,10 +229,10 @@ export const AdminCompaniesPanel = () => {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+                        <AlertDialogContent className="bg-card border-border text-foreground">
                           <AlertDialogHeader>
-                            <AlertDialogTitle className="text-white">Confirmar exclusão</AlertDialogTitle>
-                            <AlertDialogDescription className="text-gray-400">
+                            <AlertDialogTitle className="text-foreground">Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription className="text-muted-foreground">
                               Tem certeza que deseja excluir a empresa "{company.name}"? 
                               Esta ação não pode ser desfeita.
                             </AlertDialogDescription>

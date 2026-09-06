@@ -65,49 +65,49 @@ export const BaculaStatusTabs = ({
       case 'running':
         return <RefreshCw className="h-4 w-4 text-blue-400" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
   return <Tabs defaultValue="all" className="w-full">
-      <TabsList className="grid w-full grid-cols-6 border-slate-700 bg-blue-950">
-        <TabsTrigger value="all" className="data-[state=active]:bg-slate-700 text-slate-50">
+      <TabsList className="grid w-full grid-cols-6 border-border bg-blue-950">
+        <TabsTrigger value="all" className="data-[state=active]:bg-secondary text-slate-50">
           Todos
-          <Badge className="ml-2 bg-slate-600 text-white">
+          <Badge className="ml-2 bg-muted text-foreground">
             {getJobsByStatus('all').length}
           </Badge>
         </TabsTrigger>
-        <TabsTrigger value="T" className="text-slate-300 data-[state=active]:bg-slate-700">
+        <TabsTrigger value="T" className="text-muted-foreground data-[state=active]:bg-secondary">
           {getStatusIcon('success')}
           Sucesso
           <Badge className="ml-2 bg-green-900/20 text-green-400">
             {getStatusCount('T') + getStatusCount('W')}
           </Badge>
         </TabsTrigger>
-        <TabsTrigger value="E" className="text-slate-300 data-[state=active]:bg-slate-700">
+        <TabsTrigger value="E" className="text-muted-foreground data-[state=active]:bg-secondary">
           {getStatusIcon('error')}
           Erro
           <Badge className="ml-2 bg-red-900/20 text-red-400">
             {getStatusCount('E') + getStatusCount('f')}
           </Badge>
         </TabsTrigger>
-        <TabsTrigger value="R" className="text-slate-300 data-[state=active]:bg-slate-700">
+        <TabsTrigger value="R" className="text-muted-foreground data-[state=active]:bg-secondary">
           {getStatusIcon('running')}
           Executando
           <Badge className="ml-2 bg-blue-900/20 text-blue-400">
             {getStatusCount('R')}
           </Badge>
         </TabsTrigger>
-        <TabsTrigger value="W" className="text-slate-300 data-[state=active]:bg-slate-700">
+        <TabsTrigger value="W" className="text-muted-foreground data-[state=active]:bg-secondary">
           {getStatusIcon('warning')}
           Aviso
           <Badge className="ml-2 bg-yellow-900/20 text-yellow-400">
             {getStatusCount('W')}
           </Badge>
         </TabsTrigger>
-        <TabsTrigger value="pending" className="text-slate-300 data-[state=active]:bg-slate-700">
+        <TabsTrigger value="pending" className="text-muted-foreground data-[state=active]:bg-secondary">
           {getStatusIcon('pending')}
           Pendente
-          <Badge className="ml-2 bg-slate-900/20 text-gray-400">
+          <Badge className="ml-2 bg-background/20 text-muted-foreground">
             {getStatusCount('C') + getStatusCount('c')}
           </Badge>
         </TabsTrigger>

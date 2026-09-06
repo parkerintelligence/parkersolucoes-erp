@@ -107,17 +107,17 @@ export const AdminApiPanel = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="space-y-6 p-6">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-center gap-2">
                   <Settings className="h-5 w-5" />
                   Painel de APIs e Integrações
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-muted-foreground">
                   Gerencie todas as integrações e APIs do sistema
                 </CardDescription>
               </div>
@@ -133,65 +133,65 @@ export const AdminApiPanel = () => {
           <CardContent>
             {/* Form */}
             {showForm && (
-              <div className="mb-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
-                <h3 className="text-lg font-semibold text-white mb-4">
+              <div className="mb-6 p-4 bg-secondary rounded-lg border border-border">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                   {editingIntegration ? 'Editar Integração' : 'Nova Integração'}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name" className="text-gray-200">Nome</Label>
+                    <Label htmlFor="name" className="text-foreground">Nome</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="type" className="text-gray-200">Tipo</Label>
+                    <Label htmlFor="type" className="text-foreground">Tipo</Label>
                     <Input
                       id="type"
                       value={formData.type}
                       onChange={(e) => setFormData({...formData, type: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="base_url" className="text-gray-200">URL Base</Label>
+                    <Label htmlFor="base_url" className="text-foreground">URL Base</Label>
                     <Input
                       id="base_url"
                       value={formData.base_url}
                       onChange={(e) => setFormData({...formData, base_url: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="username" className="text-gray-200">Usuário</Label>
+                    <Label htmlFor="username" className="text-foreground">Usuário</Label>
                     <Input
                       id="username"
                       value={formData.username}
                       onChange={(e) => setFormData({...formData, username: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="password" className="text-gray-200">Senha</Label>
+                    <Label htmlFor="password" className="text-foreground">Senha</Label>
                     <Input
                       id="password"
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="api_token" className="text-gray-200">Token da API</Label>
+                    <Label htmlFor="api_token" className="text-foreground">Token da API</Label>
                     <Input
                       id="api_token"
                       type="password"
                       value={formData.api_token}
                       onChange={(e) => setFormData({...formData, api_token: e.target.value})}
-                      className="bg-gray-600 border-gray-500 text-white"
+                      className="bg-muted border-border text-foreground"
                     />
                   </div>
                   <div className="md:col-span-2 flex items-center space-x-2">
@@ -200,7 +200,7 @@ export const AdminApiPanel = () => {
                       checked={formData.is_active}
                       onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
                     />
-                    <Label htmlFor="is_active" className="text-gray-200">Ativo</Label>
+                    <Label htmlFor="is_active" className="text-foreground">Ativo</Label>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
@@ -213,7 +213,7 @@ export const AdminApiPanel = () => {
                       setShowForm(false);
                       setEditingIntegration(null);
                     }}
-                    className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                    className="border-border text-foreground hover:bg-secondary"
                   >
                     Cancelar
                   </Button>
@@ -224,26 +224,26 @@ export const AdminApiPanel = () => {
             {/* Integrations List */}
             <div className="space-y-4">
               {integrations.map((integration) => (
-                <div key={integration.id} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+                <div key={integration.id} className="bg-secondary p-4 rounded-lg border border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <h4 className="font-semibold text-white">{integration.name}</h4>
+                        <h4 className="font-semibold text-foreground">{integration.name}</h4>
                         <Badge variant={integration.is_active ? "default" : "secondary"}>
                           {integration.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
-                        <Badge variant="outline" className="border-gray-500 text-gray-300">
+                        <Badge variant="outline" className="border-border text-muted-foreground">
                           {integration.type}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-400 mt-1">{integration.base_url}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{integration.base_url}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => window.open(integration.base_url, '_blank')}
-                        className="border-gray-600 text-gray-200 hover:bg-gray-600"
+                        className="border-border text-foreground hover:bg-muted"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -251,7 +251,7 @@ export const AdminApiPanel = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(integration)}
-                        className="border-gray-600 text-gray-200 hover:bg-gray-600"
+                        className="border-border text-foreground hover:bg-muted"
                       >
                         <Settings className="h-4 w-4" />
                       </Button>

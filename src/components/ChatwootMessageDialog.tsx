@@ -34,20 +34,20 @@ export const ChatwootMessageDialog = ({ conversation, open, onOpenChange }: Chat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Send className="h-5 w-5 text-blue-400" />
             Enviar Mensagem
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             Enviando mensagem para: <strong>{conversation.meta.sender.name}</strong> ({conversation.meta.sender.phone_number})
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
           <div>
-            <label htmlFor="message" className="block text-sm font-medium text-white mb-2">
+            <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
               Mensagem
             </label>
             <Textarea

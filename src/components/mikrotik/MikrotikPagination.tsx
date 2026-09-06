@@ -26,7 +26,7 @@ export const MikrotikPagination = ({
   return (
     <div className="flex items-center justify-between mt-4 px-2">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-400">Registros por página:</span>
+        <span className="text-sm text-muted-foreground">Registros por página:</span>
         <Select
           value={itemsPerPage.toString()}
           onValueChange={(value) => {
@@ -34,16 +34,16 @@ export const MikrotikPagination = ({
             onPageChange(1);
           }}
         >
-          <SelectTrigger className="w-20 bg-slate-700 border-slate-600 text-white">
+          <SelectTrigger className="w-20 bg-secondary border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-slate-700 border-slate-600">
+          <SelectContent className="bg-secondary border-border">
             <SelectItem value="25">25</SelectItem>
             <SelectItem value="50">50</SelectItem>
             <SelectItem value="100">100</SelectItem>
           </SelectContent>
         </Select>
-        <span className="text-sm text-slate-400">
+        <span className="text-sm text-muted-foreground">
           Mostrando {startIndex + 1} a {Math.min(endIndex, totalItems)} de {totalItems} registros
         </span>
       </div>
@@ -54,7 +54,7 @@ export const MikrotikPagination = ({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-border text-muted-foreground hover:bg-secondary"
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
@@ -63,11 +63,11 @@ export const MikrotikPagination = ({
           size="sm"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-border text-muted-foreground hover:bg-secondary"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm text-slate-300 px-3">
+        <span className="text-sm text-muted-foreground px-3">
           Página {currentPage} de {totalPages}
         </span>
         <Button
@@ -75,7 +75,7 @@ export const MikrotikPagination = ({
           size="sm"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-border text-muted-foreground hover:bg-secondary"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -84,7 +84,7 @@ export const MikrotikPagination = ({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          className="border-border text-muted-foreground hover:bg-secondary"
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>

@@ -37,10 +37,10 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700 mb-4">
+    <Card className="bg-card border-border mb-4">
       <CardContent className="p-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex items-center gap-2 text-sm text-slate-300">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Filter className="h-4 w-4" />
             <span>Filtros:</span>
           </div>
@@ -50,7 +50,7 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="h-8 bg-slate-700 border-slate-600 text-white text-xs"
+              className="h-8 bg-secondary border-border text-foreground text-xs"
               title="Data Inicial"
             />
           </div>
@@ -60,17 +60,17 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
               type="date"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="h-8 bg-slate-700 border-slate-600 text-white text-xs"
+              className="h-8 bg-secondary border-border text-foreground text-xs"
               title="Data Final"
             />
           </div>
 
           <div className="min-w-[120px]">
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger className="h-8 bg-slate-700 border-slate-600 text-white text-xs">
+              <SelectTrigger className="h-8 bg-secondary border-border text-foreground text-xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-700 border-slate-600">
+              <SelectContent className="bg-secondary border-border">
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="T">Sucesso</SelectItem>
                 <SelectItem value="W">Aviso</SelectItem>
@@ -87,7 +87,7 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
               placeholder="Cliente"
               value={clientFilter}
               onChange={(e) => onClientFilterChange(e.target.value)}
-              className="h-8 bg-slate-700 border-slate-600 text-white text-xs placeholder-slate-400"
+              className="h-8 bg-secondary border-border text-foreground text-xs placeholder-slate-400"
             />
           </div>
 
@@ -95,7 +95,7 @@ export const BaculaFilters: React.FC<BaculaFiltersProps> = ({
             onClick={onReset}
             variant="outline"
             size="sm"
-            className="h-8 px-3 border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="h-8 px-3 border-border text-muted-foreground hover:bg-secondary"
           >
             <RotateCcw className="h-3 w-3 mr-1" />
             Resetar

@@ -63,25 +63,25 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   const getStatusColor = (status: number) => {
     switch (status) {
-      case 1: return 'bg-blue-600 text-white';
-      case 2: return 'bg-yellow-600 text-white';
-      case 3: return 'bg-orange-600 text-white';
-      case 4: return 'bg-purple-600 text-white';
-      case 5: return 'bg-green-600 text-white';
-      case 6: return 'bg-gray-600 text-white';
-      default: return 'bg-gray-600 text-white';
+      case 1: return 'bg-blue-600 text-foreground';
+      case 2: return 'bg-yellow-600 text-foreground';
+      case 3: return 'bg-orange-600 text-foreground';
+      case 4: return 'bg-purple-600 text-foreground';
+      case 5: return 'bg-green-600 text-foreground';
+      case 6: return 'bg-muted text-foreground';
+      default: return 'bg-muted text-foreground';
     }
   };
 
   const getPriorityColor = (priority: number) => {
     switch (priority) {
-      case 1: return 'bg-gray-600 text-white';
-      case 2: return 'bg-blue-600 text-white';
-      case 3: return 'bg-green-600 text-white';
-      case 4: return 'bg-yellow-600 text-white';
-      case 5: return 'bg-orange-600 text-white';
-      case 6: return 'bg-red-600 text-white';
-      default: return 'bg-gray-600 text-white';
+      case 1: return 'bg-muted text-foreground';
+      case 2: return 'bg-blue-600 text-foreground';
+      case 3: return 'bg-green-600 text-foreground';
+      case 4: return 'bg-yellow-600 text-foreground';
+      case 5: return 'bg-orange-600 text-foreground';
+      case 6: return 'bg-red-600 text-foreground';
+      default: return 'bg-muted text-foreground';
     }
   };
 
@@ -180,30 +180,30 @@ const GLPITicketsGrid = ({ filters = {} }: GLPITicketsGridProps) => {
 
   const getEntityColor = (entityId: number) => {
     const colors = [
-      'bg-blue-600 text-white',
-      'bg-purple-600 text-white',
-      'bg-green-600 text-white',
-      'bg-yellow-600 text-white',
-      'bg-orange-600 text-white',
-      'bg-pink-600 text-white',
-      'bg-indigo-600 text-white',
-      'bg-cyan-600 text-white',
+      'bg-blue-600 text-foreground',
+      'bg-purple-600 text-foreground',
+      'bg-green-600 text-foreground',
+      'bg-yellow-600 text-foreground',
+      'bg-orange-600 text-foreground',
+      'bg-pink-600 text-foreground',
+      'bg-indigo-600 text-foreground',
+      'bg-cyan-600 text-foreground',
     ];
     return colors[entityId % colors.length];
   };
 
   const getCategoryColor = (categoryId: number) => {
     const colors = [
-      'bg-blue-600 text-white',
-      'bg-purple-600 text-white',
-      'bg-green-600 text-white',
-      'bg-yellow-600 text-white',
-      'bg-orange-600 text-white',
-      'bg-pink-600 text-white',
-      'bg-indigo-600 text-white',
-      'bg-cyan-600 text-white',
-      'bg-teal-600 text-white',
-      'bg-red-600 text-white',
+      'bg-blue-600 text-foreground',
+      'bg-purple-600 text-foreground',
+      'bg-green-600 text-foreground',
+      'bg-yellow-600 text-foreground',
+      'bg-orange-600 text-foreground',
+      'bg-pink-600 text-foreground',
+      'bg-indigo-600 text-foreground',
+      'bg-cyan-600 text-foreground',
+      'bg-teal-600 text-foreground',
+      'bg-red-600 text-foreground',
     ];
     return colors[categoryId % colors.length];
   };

@@ -81,7 +81,7 @@ const GLPI = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-orange-600 p-2 rounded-lg">
-            <ExternalLink className="h-5 w-5 text-white" />
+            <ExternalLink className="h-5 w-5 text-foreground" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">Central de Chamados GLPI</h1>
@@ -143,15 +143,15 @@ const GLPI = () => {
       {/* Tabs */}
       <Tabs defaultValue="tickets" className="w-full">
         <TabsList className="bg-muted/50 border border-border">
-          <TabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white gap-1.5 text-xs">
+          <TabsTrigger value="tickets" className="data-[state=active]:bg-orange-600 data-[state=active]:text-foreground gap-1.5 text-xs">
             <Ticket className="h-3.5 w-3.5" />
             Chamados
           </TabsTrigger>
-          <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white gap-1.5 text-xs">
+          <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-600 data-[state=active]:text-foreground gap-1.5 text-xs">
             <Box className="h-3.5 w-3.5" />
             Inventário
           </TabsTrigger>
-          <TabsTrigger value="scheduled" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white gap-1.5 text-xs">
+          <TabsTrigger value="scheduled" className="data-[state=active]:bg-orange-600 data-[state=active]:text-foreground gap-1.5 text-xs">
             <CalendarClock className="h-3.5 w-3.5" />
             Agendados
           </TabsTrigger>

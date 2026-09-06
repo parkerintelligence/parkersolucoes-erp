@@ -27,10 +27,10 @@ export const ScheduleTypeDialog = ({ open, onOpenChange }: ScheduleTypeDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white">Novo Tipo de Agenda</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-foreground">Novo Tipo de Agenda</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Crie um novo tipo para categorizar seus agendamentos.
           </DialogDescription>
         </DialogHeader>

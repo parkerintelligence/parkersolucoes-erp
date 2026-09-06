@@ -200,14 +200,14 @@ const WazuhAdminConfig = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8 text-orange-500" />
               <div>
-                <CardTitle className="text-white">Configuração Wazuh</CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardTitle className="text-foreground">Configuração Wazuh</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Configure a integração com o Wazuh SIEM para monitoramento de segurança
                 </CardDescription>
               </div>
@@ -221,11 +221,11 @@ const WazuhAdminConfig = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <Tabs defaultValue="connection" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-slate-700">
-              <TabsTrigger value="connection" className="text-white">Conexão</TabsTrigger>
-              <TabsTrigger value="troubleshoot" className="text-white">Diagnóstico</TabsTrigger>
-              <TabsTrigger value="guide" className="text-white">Guia de Setup</TabsTrigger>
-              <TabsTrigger value="settings" className="text-white">Configurações</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 bg-secondary">
+              <TabsTrigger value="connection" className="text-foreground">Conexão</TabsTrigger>
+              <TabsTrigger value="troubleshoot" className="text-foreground">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="guide" className="text-foreground">Guia de Setup</TabsTrigger>
+              <TabsTrigger value="settings" className="text-foreground">Configurações</TabsTrigger>
             </TabsList>
 
             <TabsContent value="connection" className="space-y-4">
@@ -240,70 +240,70 @@ const WazuhAdminConfig = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-white">Nome da Integração</Label>
+                  <Label htmlFor="name" className="text-foreground">Nome da Integração</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Wazuh Principal"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="base_url" className="text-white">URL do Wazuh *</Label>
+                  <Label htmlFor="base_url" className="text-foreground">URL do Wazuh *</Label>
                   <Input
                     id="base_url"
                     value={formData.base_url}
                     onChange={(e) => setFormData({ ...formData, base_url: e.target.value })}
                     placeholder="https://wazuh.empresa.com:55000"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Porta padrão: 55000. HTTPS com cert válido ou HTTP em rede interna.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-white">Usuário</Label>
+                  <Label htmlFor="username" className="text-foreground">Usuário</Label>
                   <Input
                     id="username"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="wazuh-user"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-white">Senha</Label>
+                  <Label htmlFor="password" className="text-foreground">Senha</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="api_token" className="text-white">API Token (alternativo)</Label>
+                  <Label htmlFor="api_token" className="text-foreground">API Token (alternativo)</Label>
                   <Input
                     id="api_token"
                     type="password"
                     value={formData.api_token}
                     onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
                     placeholder="Token JWT do Wazuh (opcional, substitui usuário/senha)"
-                    className="bg-slate-700 border-slate-600 text-white"
+                    className="bg-secondary border-border text-foreground"
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Se informado, será usado no lugar de usuário/senha para autenticação.
                   </p>
                 </div>
               </div>
 
-              <Separator className="bg-slate-600" />
+              <Separator className="bg-muted" />
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -312,7 +312,7 @@ const WazuhAdminConfig = () => {
                     checked={formData.is_active}
                     onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                   />
-                  <Label htmlFor="is_active" className="text-white">Integração ativa</Label>
+                  <Label htmlFor="is_active" className="text-foreground">Integração ativa</Label>
                 </div>
               </div>
 
@@ -321,7 +321,7 @@ const WazuhAdminConfig = () => {
                 <div className="space-y-3">
                   <Alert className={healthCheck.success ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"}>
                     {healthCheck.success ? <CheckCircle className="h-4 w-4 text-green-400" /> : <XCircle className="h-4 w-4 text-red-400" />}
-                    <AlertDescription className="text-white text-sm">
+                    <AlertDescription className="text-foreground text-sm">
                       {healthCheck.summary}
                     </AlertDescription>
                   </Alert>
@@ -329,7 +329,7 @@ const WazuhAdminConfig = () => {
                   {healthCheck.results.length > 0 && (
                     <div className="grid gap-2">
                       {healthCheck.results.map((r, i) => (
-                        <div key={i} className="flex items-center gap-3 p-2 rounded bg-slate-700/50 text-xs text-slate-300">
+                        <div key={i} className="flex items-center gap-3 p-2 rounded bg-secondary/50 text-xs text-muted-foreground">
                           <Badge variant="outline" className="text-[10px] shrink-0">
                             {r.protocol}
                           </Badge>
@@ -369,7 +369,7 @@ const WazuhAdminConfig = () => {
               {testResult && (
                 <Alert className={testResult.success ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"}>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-white">{testResult.message}</AlertDescription>
+                  <AlertDescription className="text-foreground">{testResult.message}</AlertDescription>
                 </Alert>
               )}
 
@@ -378,7 +378,7 @@ const WazuhAdminConfig = () => {
                   onClick={handleHealthCheck}
                   disabled={isHealthChecking}
                   variant="outline"
-                  className="border-amber-600 text-amber-400 hover:bg-amber-600 hover:text-white"
+                  className="border-amber-600 text-amber-400 hover:bg-amber-600 hover:text-foreground"
                 >
                   {isHealthChecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HeartPulse className="mr-2 h-4 w-4" />}
                   {isHealthChecking ? "Verificando..." : "Health-Check"}
@@ -388,7 +388,7 @@ const WazuhAdminConfig = () => {
                   onClick={handleTestConnection}
                   disabled={isTesting || !wazuhIntegration}
                   variant="outline"
-                  className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+                  className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-foreground"
                 >
                   <TestTube className="mr-2 h-4 w-4" />
                   {isTesting ? "Testando..." : "Testar Conexão"}
@@ -397,7 +397,7 @@ const WazuhAdminConfig = () => {
                 <Button 
                   onClick={handleSave}
                   disabled={isLoading}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 hover:bg-green-700 text-foreground"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {isLoading ? "Salvando..." : "Salvar"}
@@ -426,7 +426,7 @@ const WazuhAdminConfig = () => {
             <TabsContent value="settings" className="space-y-4">
               <Alert className="border-blue-500 bg-blue-500/10">
                 <Shield className="h-4 w-4" />
-                 <AlertDescription className="text-white">
+                 <AlertDescription className="text-foreground">
                    <strong>Sobre a API do Wazuh:</strong><br />
                    • Porta padrão: 55000<br />
                    • Autenticação JWT via Basic Auth<br />
@@ -436,28 +436,28 @@ const WazuhAdminConfig = () => {
                  </AlertDescription>
               </Alert>
 
-              <Card className="bg-slate-700 border-slate-600">
+              <Card className="bg-secondary border-border">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Funcionalidades Disponíveis</CardTitle>
+                  <CardTitle className="text-foreground text-lg">Funcionalidades Disponíveis</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2 text-foreground">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Monitoramento de agentes em tempo real</span>
                   </div>
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2 text-foreground">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Visualização de alertas de segurança</span>
                   </div>
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2 text-foreground">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Estatísticas de conformidade</span>
                   </div>
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2 text-foreground">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Relatórios de vulnerabilidades</span>
                   </div>
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2 text-foreground">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span>Dashboard de segurança</span>
                   </div>

@@ -214,9 +214,9 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
   return (
     <div className="space-y-6">
       {/* Horário */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
+          <CardTitle className="flex items-center gap-2 text-lg text-foreground">
             <Clock className="h-5 w-5 text-blue-400" />
             Horário de Envio
           </CardTitle>
@@ -226,7 +226,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hour" className="text-gray-300">Hora</Label>
+                <Label htmlFor="hour" className="text-muted-foreground">Hora</Label>
                 <Input
                   id="hour"
                   type="number"
@@ -234,12 +234,12 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                   max="23"
                   value={hour}
                   onChange={(e) => handleHourChange(e.target.value)}
-                  className="w-20 text-center bg-gray-700 border-gray-600 text-white"
+                  className="w-20 text-center bg-secondary border-border text-foreground"
                 />
               </div>
-              <div className="text-2xl font-bold text-gray-400 mt-6">:</div>
+              <div className="text-2xl font-bold text-muted-foreground mt-6">:</div>
               <div className="space-y-2">
-                <Label htmlFor="minute" className="text-gray-300">Minuto</Label>
+                <Label htmlFor="minute" className="text-muted-foreground">Minuto</Label>
                 <Input
                   id="minute"
                   type="number"
@@ -247,7 +247,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                   max="59"
                   value={minute}
                   onChange={(e) => handleMinuteChange(e.target.value)}
-                  className="w-20 text-center bg-gray-700 border-gray-600 text-white"
+                  className="w-20 text-center bg-secondary border-border text-foreground"
                 />
               </div>
               <div className="ml-4 mt-6">
@@ -259,7 +259,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                   )}
                   <Badge 
                     variant="outline" 
-                    className="text-lg px-3 py-1 bg-gray-700 border-gray-600 text-white"
+                    className="text-lg px-3 py-1 bg-secondary border-border text-foreground"
                   >
                     {String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')}
                   </Badge>
@@ -269,7 +269,7 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
 
             {/* Horários Rápidos */}
             <div className="space-y-2">
-              <Label className="text-gray-300">Horários Rápidos:</Label>
+              <Label className="text-muted-foreground">Horários Rápidos:</Label>
               <div className="flex flex-wrap gap-2">
                 {QUICK_TIMES.map((time) => (
                   <button
@@ -278,8 +278,8 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                     onClick={() => handleQuickTime(time)}
                     className={`px-3 py-1 rounded text-sm transition-colors ${
                       hour === time.hour && minute === time.minute
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? 'bg-blue-600 text-foreground'
+                        : 'bg-secondary text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {time.label}
@@ -292,16 +292,16 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
       </Card>
 
       {/* Frequência */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
+          <CardTitle className="flex items-center gap-2 text-lg text-foreground">
             <Calendar className="h-5 w-5 text-green-400" />
             Frequência de Envio
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-gray-300">Tipo de Repetição</Label>
+            <Label className="text-muted-foreground">Tipo de Repetição</Label>
             <Select value={frequency} onValueChange={(value: FrequencyType) => {
               console.log('⏰ Frequency changed:', value);
               setFrequency(value);
@@ -312,20 +312,20 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                 setSelectedDays([]);
               }
             }}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+              <SelectTrigger className="bg-secondary border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
-                <SelectItem value="daily" className="text-white hover:bg-gray-600">Diário</SelectItem>
-                <SelectItem value="weekdays" className="text-white hover:bg-gray-600">Dias Úteis (Seg-Sex)</SelectItem>
-                <SelectItem value="custom" className="text-white hover:bg-gray-600">Dias Específicos</SelectItem>
+              <SelectContent className="bg-secondary border-border">
+                <SelectItem value="daily" className="text-foreground hover:bg-muted">Diário</SelectItem>
+                <SelectItem value="weekdays" className="text-foreground hover:bg-muted">Dias Úteis (Seg-Sex)</SelectItem>
+                <SelectItem value="custom" className="text-foreground hover:bg-muted">Dias Específicos</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {frequency === 'custom' && (
             <div className="space-y-3">
-              <Label className="text-gray-300">Selecione os dias da semana:</Label>
+              <Label className="text-muted-foreground">Selecione os dias da semana:</Label>
               <div className="grid grid-cols-7 gap-2">
                 {WEEKDAYS.map((day) => (
                   <div
@@ -336,11 +336,11 @@ export const AdvancedCronBuilder = ({ value, onChange }: AdvancedCronBuilderProp
                       id={`day-${day.id}`}
                       checked={selectedDays.includes(day.id)}
                       onCheckedChange={() => toggleDay(day.id)}
-                      className="border-gray-600 data-[state=checked]:bg-blue-600"
+                      className="border-border data-[state=checked]:bg-blue-600"
                     />
                     <Label
                       htmlFor={`day-${day.id}`}
-                      className="text-xs font-medium cursor-pointer text-gray-300"
+                      className="text-xs font-medium cursor-pointer text-muted-foreground"
                     >
                       {day.label}
                     </Label>
