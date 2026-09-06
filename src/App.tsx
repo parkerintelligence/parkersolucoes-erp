@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { MikrotikProvider } from '@/contexts/MikrotikContext';
 import { ConfirmDialogProvider } from '@/hooks/useConfirmDialog';
-import { ThemeProvider } from '@/hooks/useTheme';
 import { Toaster } from '@/components/ui/sonner';
 import Login from '@/pages/Login';
 import VPS from '@/pages/VPS';
@@ -59,7 +58,7 @@ const MasterRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+
       <AuthProvider>
         <MikrotikProvider>
           <ConfirmDialogProvider>
@@ -105,7 +104,6 @@ function App() {
         </ConfirmDialogProvider>
         </MikrotikProvider>
       </AuthProvider>
-      </ThemeProvider>
     </QueryClientProvider>
   );
 }
