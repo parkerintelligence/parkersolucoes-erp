@@ -189,7 +189,7 @@ export const EvolutionAPIAdminConfig = () => {
       const raw = payload?.data ?? payload;
       const state = (raw?.state || raw?.instance?.state || raw?.status || 'unknown') as ConnState;
       setConnState(state);
-      if (state === 'open') setQrCode(null);
+      if (state === 'open') { setQrCode(null); setPairCode(null); }
       toast({ title: "Status da instância", description: `Estado: ${state}` });
     } catch (error: any) {
       toast({ title: "Erro ao consultar status", description: error?.message || 'Falha.', variant: "destructive" });
@@ -204,6 +204,7 @@ export const EvolutionAPIAdminConfig = () => {
       await callProxy(`/instance/logout/${formData.instance_name}`, 'DELETE');
       setConnState('close');
       setQrCode(null);
+      setPairCode(null);
       toast({ title: "Desconectado", description: "A instância foi desconectada do WhatsApp." });
     } catch (error: any) {
       toast({ title: "Erro ao desconectar", description: error?.message || 'Falha.', variant: "destructive" });
@@ -309,6 +310,12 @@ export const EvolutionAPIAdminConfig = () => {
             disabled={!evolutionIntegration || !formData.instance_name || isWorking}>
             <QrCode className="mr-2 h-3.5 w-3.5" />Gerar QR Code
           </Button>
+
+          <Button size="sm" variant="outline" className="text-xs" onClick={handlePairCode}
+            disabled={!evolutionIntegration || !formData.instance_name || isWorking}>
+            <KeyRound className="mr-2 h-3.5 w-3.5" />Conectar por Código
+          </Button>
+
 
           <Button size="sm" variant="outline" className="text-xs" onClick={handleCheckState}
             disabled={!evolutionIntegration || !formData.instance_name || isWorking}>
