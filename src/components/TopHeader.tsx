@@ -90,6 +90,21 @@ export const TopHeader = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  onClick={toggleTheme}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
+                  aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+                >
+                  {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
                   onClick={handleLogout}
                   variant="ghost"
                   size="icon"
