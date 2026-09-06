@@ -1,7 +1,7 @@
 // Configura automaticamente a caixa de entrada do Chatwoot para a instância do Evolution Go
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getWhatsAppIntegration } from '../_shared/evolutionGo.ts';
+import { getWhatsAppIntegration, normalizeEvolutionBaseUrl, resolveInstanceToken } from '../_shared/evolutionGo.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
