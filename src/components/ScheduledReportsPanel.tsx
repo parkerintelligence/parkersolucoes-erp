@@ -9,6 +9,7 @@ import { ReportsStatusPanel } from './automation/ReportsStatusPanel';
 import { LazyAutomationStats } from './LazyAutomationStats';
 import { AutomationProcessesPanel } from './automation/AutomationProcessesPanel';
 import { useToast } from "@/hooks/use-toast";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useScheduledReports, useDeleteScheduledReport, useToggleScheduledReportActive, useTestScheduledReport } from '@/hooks/useScheduledReports';
 import type { ScheduledReport } from '@/hooks/useScheduledReports';
 
@@ -38,7 +39,20 @@ export const ScheduledReportsPanel = () => {
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteReport.mutateAsync(id); }
+    const report = scheduledReports.find(r => r.id === id);
+    const confirmed = await confirm({
+      title: 'Excluir automação',
+      description: `Tem certeza que deseja excluir "${report?.name ?? 'esta automação'}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'destructive',
+      icon: 'trash',
+    });
+    if (!confirmed) return;
+    try {
+      await deleteReport.mutateAsync(id);
+      toast({ title: 'Automação excluída', description: `"${report?.name ?? 'Automação'}" foi removida com sucesso.` });
+    }
     catch (error: any) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); }
   };
 
