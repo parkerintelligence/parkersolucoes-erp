@@ -57,6 +57,13 @@ const Atendimentos = () => {
     refetchConversations, markConversationAsRead
   } = useChatwootAPI();
 
+  const { data: whatsappAvatar } = useWhatsAppAvatar(selectedConversation?.meta?.sender?.phone_number);
+  const selectedAvatar =
+    selectedConversation?.meta?.sender?.avatar_url ||
+    selectedConversation?.meta?.sender?.thumbnail ||
+    whatsappAvatar ||
+    undefined;
+
   const { agents, isLoading: agentsLoading } = useChatwootAgents();
   const { labels: availableLabels } = useChatwootLabels(integrationId);
   const { labelStats, isLoading: isLoadingLabelStats } = useChatwootLabelStats(conversations, integrationId);
