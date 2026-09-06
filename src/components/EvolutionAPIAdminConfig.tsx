@@ -238,7 +238,43 @@ export const EvolutionAPIAdminConfig = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evolutionIntegration?.id, formData.instance_name]);
 
-  const handleLogout = async () => {
+  const loadBridge = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chatwoot-bridge-setup', {
+        body: { action: 'status' },
+      });
+      if (error) return;
+      setBridge(data?.config ?? null);
+      setBridgeUrl(data?.webhookUrl ?? null);
+    } catch {
+      // silencioso
+    }
+  };
+
+  useEffect(() => { loadBridge(); }, []);
+
+  const handleSetupBridge = async () => {
+    setIsBridging(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('chatwoot-bridge-setup', {
+        body: { action: 'setup' },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setBridge(data?.config ?? null);
+      setBridgeUrl(data?.webhookUrl ?? null);
+      toast({
+        title: "Chatwoot conectado",
+        description: `Caixa de entrada "${data?.inboxName}" pronta. Copie o endereço gerado e cole no webhook do Evolution Go.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Erro ao conectar o Chatwoot", description: error?.message || 'Falha na configuração.', variant: "destructive" });
+    } finally {
+      setIsBridging(false);
+    }
+  };
+
+
     setIsWorking(true);
     try {
       await callProxy(`/instance/logout/${formData.instance_name}`, 'DELETE');
