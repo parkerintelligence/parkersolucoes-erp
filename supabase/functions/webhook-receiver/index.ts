@@ -107,50 +107,16 @@ serve(async (req) => {
 
       try {
         if (action.action_type === "whatsapp") {
-          // Get Evolution API integration, prefer the one matching the configured instance
-          let integration: any = null;
-
-          if (webhookInstanceName) {
-            const { data } = await supabase
-              .from("integrations")
-              .select("*")
-              .eq("type", "evolution_api")
-              .eq("is_active", true)
-              .eq("instance_name", webhookInstanceName)
-              .limit(1)
-              .maybeSingle();
-            integration = data;
-          }
-
-          // Fallback: any active evolution_api integration
-          if (!integration) {
-            const { data } = await supabase
-              .from("integrations")
-              .select("*")
-              .eq("type", "evolution_api")
-              .eq("is_active", true)
-              .limit(1)
-              .single();
-            integration = data;
-          }
-
-          if (integration) {
-            const baseUrl = integration.base_url?.replace(/\/$/, "");
-            const instanceToUse = webhookInstanceName || integration.instance_name;
-            const response = await fetch(`${baseUrl}/message/sendText/${instanceToUse}`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: integration.api_token!,
-              },
-              body: JSON.stringify({ number: action.destination, text: message }),
-            });
-
-            const result = await response.json();
-            results.push({ action: "whatsapp", destination: action.destination, instance: instanceToUse, success: response.ok, result });
-          } else {
-            results.push({ action: "whatsapp", destination: action.destination, success: false, error: "Integração Evolution API não encontrada" });
-          }
+          // Instância ÚNICA de WhatsApp configurada em Administração (Evolution Go)
+          const sendResult = await sendWhatsAppViaConfiguredInstance(supabase, action.destination, message);
+          results.push({
+            action: "whatsapp",
+            destination: action.destination,
+            instance: sendResult.usedInstance,
+            success: sendResult.ok,
+            result: sendResult.data ?? sendResult.raw,
+            error: sendResult.ok ? undefined : (sendResult.error || `HTTP ${sendResult.status}`),
+          });
         } else if (action.action_type === "email") {
           // Get SMTP integration
           const { data: smtpIntegration } = await supabase
