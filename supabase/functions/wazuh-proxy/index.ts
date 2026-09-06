@@ -276,7 +276,7 @@ const fetchLocalTlsSocket = async (url: string, options: RequestInit = {}, timeo
   }
 };
 
-const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
+const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 25000): Promise<Response> => {
   if (url.startsWith('https://')) {
     try {
       const hostname = new URL(url).hostname;
@@ -721,18 +721,31 @@ serve(async (req) => {
       const errorMessage = error instanceof Error ? error.message : 'Unknown Wazuh authentication error';
       console.error('❌ Authentication failed:', errorMessage);
 
-      return new Response(
-        JSON.stringify({
-          error: '❌ Wazuh Authentication Failed',
-          details: errorMessage,
-          suggestions: [
+      const isTimeout = /signal has been aborted|aborted|Tempo esgotado|timed? ?out/i.test(errorMessage);
+
+      const suggestions = isTimeout
+        ? [
+            `1️⃣ A porta 55000 de ${targetHostname} não responde da internet (conexão fica pendurada até o tempo limite). Isso indica firewall/Security Group bloqueando, não erro de senha.`,
+            '2️⃣ Libere a porta 55000/TCP no firewall do servidor e no provedor (ufw/iptables + painel da hospedagem) para acesso externo.',
+            '3️⃣ Alternativa recomendada: publicar a API Wazuh atrás de um proxy reverso (Nginx/Caddy) em 443 com certificado Let\'s Encrypt e salvar essa URL aqui.',
+            `4️⃣ Teste de fora do servidor: curl -vk --max-time 10 https://${targetHostname}:55000/`,
+            '5️⃣ Depois que a porta responder, revise usuário/senha ou o API token.'
+          ]
+        : [
             `1️⃣ Corrija o certificado HTTPS do Wazuh para incluir ${targetHostname} no CN/SAN. O certificado atual parece estar válido apenas para localhost.`,
             '2️⃣ Se quiser usar HTTPS no Supabase Edge Functions, o certificado precisa ser válido e confiável publicamente (por exemplo, Let\'s Encrypt).',
             '3️⃣ Como alternativa, exponha um HTTP real na porta 55000 e salve a URL com http://, sem redirecionamento para HTTPS.',
             '4️⃣ Revise usuário/senha ou configure um API token válido após corrigir o certificado/protocolo.',
             `5️⃣ Teste no servidor: curl -u usuario:senha -k https://${targetHostname}:55000/security/user/authenticate?raw=true`
-          ]
+          ];
+
+      return new Response(
+        JSON.stringify({
+          error: isTimeout ? '❌ Wazuh inacessível (porta 55000 bloqueada)' : '❌ Wazuh Authentication Failed',
+          details: errorMessage,
+          suggestions
         }),
+
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
