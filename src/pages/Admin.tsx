@@ -31,7 +31,6 @@ import {
   Database,
   Server,
   Archive,
-  Activity,
   Wifi,
   Router,
   Users,
