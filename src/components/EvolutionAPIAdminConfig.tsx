@@ -29,6 +29,9 @@ export const EvolutionAPIAdminConfig = () => {
   const [connError, setConnError] = useState<string | null>(null);
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [lastSend, setLastSend] = useState<{ date: string; status: string; name?: string } | null>(null);
+  const [bridge, setBridge] = useState<any | null>(null);
+  const [bridgeUrl, setBridgeUrl] = useState<string | null>(null);
+  const [isBridging, setIsBridging] = useState(false);
 
   const [formData, setFormData] = useState({
     name: 'Evolution Go WhatsApp',
