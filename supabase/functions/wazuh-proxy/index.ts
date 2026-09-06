@@ -276,7 +276,7 @@ const fetchLocalTlsSocket = async (url: string, options: RequestInit = {}, timeo
   }
 };
 
-const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
+const fetchWazuh = async (url: string, options: RequestInit = {}, timeoutMs = 25000): Promise<Response> => {
   if (url.startsWith('https://')) {
     try {
       const hostname = new URL(url).hostname;
