@@ -7,7 +7,11 @@ export interface EvolutionIntegration {
   user_token?: string | null;
 }
 
-const trimUrl = (url: string) => url.replace(/\/$/, '');
+/** Aceita tanto a URL da API quanto a URL do painel (/manager). */
+export const normalizeEvolutionBaseUrl = (url: string) => {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  return trimmed.replace(/\/manager$/i, '');
+};
 
 const parseJson = (raw: string) => {
   try {
@@ -19,7 +23,7 @@ const parseJson = (raw: string) => {
 
 /** Lista instâncias do Evolution Go */
 export async function listGoInstances(baseUrl: string, globalKey: string): Promise<any[]> {
-  const res = await fetch(`${trimUrl(baseUrl)}/instance/all`, {
+  const res = await fetch(`${normalizeEvolutionBaseUrl(baseUrl)}/instance/all`, {
     headers: { apikey: globalKey, 'Content-Type': 'application/json' },
   });
   if (!res.ok) return [];
@@ -65,7 +69,7 @@ export async function sendWhatsAppText(
   text: string,
   instanceNameOverride?: string | null,
 ): Promise<SendTextResult> {
-  const baseUrl = trimUrl(integration.base_url || '');
+  const baseUrl = normalizeEvolutionBaseUrl(integration.base_url || '');
   const globalKey = integration.api_token || '';
   const instanceName = instanceNameOverride || integration.instance_name || '';
 
