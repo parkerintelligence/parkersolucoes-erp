@@ -637,7 +637,7 @@ const Atendimentos = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} />
+                        <AvatarImage src={selectedAvatar} />
                         <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                           {getInitials(selectedConversation.meta?.sender?.name)}
                         </AvatarFallback>
@@ -798,7 +798,7 @@ const Atendimentos = () => {
           {/* Contact Panel */}
           {showContactPanel && (
             <div className="col-span-12 lg:col-span-3 hidden lg:block space-y-2">
-              <ChatwootContactPanel conversation={selectedConversation} />
+              <ChatwootContactPanel conversation={selectedConversation} avatarUrl={selectedAvatar} />
               {selectedConversation && <ChatwootStatusHistory integrationId={integrationId} conversationId={selectedConversation.id.toString()} />}
             </div>
           )}
