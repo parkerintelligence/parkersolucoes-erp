@@ -303,9 +303,19 @@ export const EvolutionAPIAdminConfig = () => {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex flex-wrap items-center gap-2 text-base">
           <MessageCircle className="h-5 w-5" />
-          WhatsApp (Evolution Go)
+          <span>WhatsApp (Evolution Go)</span>
+          {evolutionIntegration?.instance_name && (
+            <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+              {evolutionIntegration.instance_name}
+            </span>
+          )}
+          {evolutionIntegration?.phone_number && (
+            <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+              {evolutionIntegration.phone_number.replace(/\D/g, '').replace(/^(\d{2})(\d{2})(\d{4,5})(\d{4})$/, '+$1 ($2) $3-$4')}
+            </span>
+          )}
           {stateBadge()}
         </CardTitle>
         <CardDescription className="text-xs">
