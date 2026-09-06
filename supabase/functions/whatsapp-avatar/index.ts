@@ -55,14 +55,15 @@ const fetchAvatar = async (
       const raw = await res.text();
       let parsed: any = raw;
       try { parsed = JSON.parse(raw); } catch { /* texto puro */ }
+      console.log(`📥 avatar ${phone} → ${res.status} ${raw.substring(0, 300)}`);
       const url = extractUrl(parsed);
       if (url) return { url, retryable: false };
       const message = String(parsed?.error || parsed?.message || raw || '').toLowerCase();
       if (message.includes('does not have a profile picture') || message.includes('not found')) {
         return { url: null, retryable: false };
       }
-    } catch (_e) {
-      // timeout / rede: tenta de novo
+    } catch (e) {
+      console.log(`⏱️ avatar ${phone} tentativa ${attempt + 1} falhou: ${(e as Error).message}`);
     } finally {
       clearTimeout(timer);
     }
