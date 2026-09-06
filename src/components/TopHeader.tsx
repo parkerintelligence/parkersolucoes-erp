@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Lock } from 'lucide-react';
+import { LogOut, Lock, Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
@@ -11,6 +12,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 export const TopHeader = () => {
   const { user, userProfile, logout } = useAuth();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   const handleLogout = async () => {
@@ -85,6 +87,21 @@ export const TopHeader = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Alterar senha</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={toggleTheme}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg"
+                  aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+                >
+                  {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</TooltipContent>
             </Tooltip>
 
             <Tooltip>
