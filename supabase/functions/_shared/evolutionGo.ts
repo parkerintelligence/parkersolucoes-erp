@@ -100,3 +100,48 @@ export async function sendWhatsAppText(
     mode,
   };
 }
+
+/**
+ * Retorna a ÚNICA integração WhatsApp (Evolution Go) configurada em Administração.
+ * Prioriza a integração global ativa; cai para qualquer ativa.
+ */
+export async function getWhatsAppIntegration(supabaseAdmin: any): Promise<
+  (EvolutionIntegration & { id: string; name?: string; phone_number?: string | null }) | null
+> {
+  const { data, error } = await supabaseAdmin
+    .from('integrations')
+    .select('id, name, base_url, api_token, instance_name, user_token, phone_number, is_global')
+    .eq('type', 'evolution_api')
+    .eq('is_active', true)
+    .order('is_global', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('❌ [Evolution] Erro ao buscar integração WhatsApp:', error.message);
+    return null;
+  }
+  return (data && data[0]) || null;
+}
+
+/** Envia texto usando a instância única configurada em Administração */
+export async function sendWhatsAppViaConfiguredInstance(
+  supabaseAdmin: any,
+  number: string,
+  text: string,
+): Promise<SendTextResult & { integrationId?: string; error?: string }> {
+  const integration = await getWhatsAppIntegration(supabaseAdmin);
+  if (!integration) {
+    return {
+      ok: false,
+      status: 404,
+      raw: '',
+      data: null,
+      usedInstance: '',
+      mode: 'evolution_go',
+      error: 'Nenhuma integração WhatsApp ativa configurada em Administração',
+    };
+  }
+  const result = await sendWhatsAppText(integration, number, text);
+  return { ...result, integrationId: integration.id };
+}
