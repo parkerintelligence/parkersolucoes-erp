@@ -59,6 +59,15 @@ async function chatwootFetch(baseUrl: string, token: string, path: string, metho
   return { ok: res.ok, status: res.status, data: parsed };
 }
 
+
+// Remove sufixos de navegação (/app, /dashboard, /accounts/1...) do endereço do Chatwoot
+function normalizeChatwootUrl(url: string) {
+  let u = String(url || '').trim().replace(/\/+$/, '');
+  u = u.replace(/\/(app|dashboard)(\/.*)?$/i, '');
+  u = u.replace(/\/api\/v1.*$/i, '');
+  return u.replace(/\/+$/, '');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -129,7 +138,7 @@ Deno.serve(async (req) => {
       return json({ error: 'Ponte não configurada: caixa de entrada ausente' }, 400);
     }
 
-    const base = chatwoot.base_url;
+    const base = normalizeChatwootUrl(chatwoot.base_url);
     const key = chatwoot.api_token;
     const acc = config.account_id;
     const inboxId = Number(config.inbox_id);
