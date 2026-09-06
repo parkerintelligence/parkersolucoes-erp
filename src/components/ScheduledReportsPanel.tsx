@@ -34,6 +34,7 @@ export const ScheduledReportsPanel = () => {
   const testReport = useTestScheduledReport();
   const { toast } = useToast();
   const { confirm } = useConfirmDialog();
+  const queryClient = useQueryClient();
 
   const activeReports = scheduledReports.filter(r => r.is_active).length;
 
