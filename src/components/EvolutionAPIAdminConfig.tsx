@@ -470,6 +470,50 @@ export const EvolutionAPIAdminConfig = () => {
           </div>
         )}
 
+        <div className="space-y-2 rounded-lg border p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-medium">Atendimento pelo Chatwoot</p>
+              <p className="text-[10px] text-muted-foreground">
+                Cria a caixa de entrada no Chatwoot e liga as conversas desta instância à tela de Atendimento.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {bridge?.is_active
+                ? <Badge className="bg-emerald-600 text-[10px]">Ligado</Badge>
+                : <Badge variant="outline" className="text-[10px]">Não configurado</Badge>}
+              <Button size="sm" variant="outline" className="text-xs" onClick={handleSetupBridge} disabled={isBridging}>
+                {isBridging
+                  ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Configurando...</>
+                  : <><MessageCircle className="mr-2 h-3.5 w-3.5" />Conectar Chatwoot</>}
+              </Button>
+            </div>
+          </div>
+
+          {bridgeUrl && (
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">
+                Endereço para colar no webhook do Evolution Go (WEBHOOK_URL)
+              </Label>
+              <div className="flex gap-1">
+                <Input readOnly className="h-8 font-mono text-[10px]" value={bridgeUrl} />
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => { navigator.clipboard.writeText(bridgeUrl); toast({ title: "Endereço copiado" }); }}
+                  aria-label="Copiar endereço do webhook">
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {bridge?.last_inbound_at
+                  ? `Última mensagem recebida: ${new Date(bridge.last_inbound_at).toLocaleString('pt-BR')}`
+                  : 'Nenhuma mensagem recebida ainda.'}
+                {bridge?.last_error ? ` · Erro: ${bridge.last_error}` : ''}
+              </p>
+            </div>
+          )}
+        </div>
+
+
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-xs">
