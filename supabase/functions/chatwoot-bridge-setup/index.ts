@@ -135,6 +135,26 @@ Deno.serve(async (req) => {
       inbox = created.data;
     }
 
+    // Garante que todos os atendentes da conta tenham acesso à caixa de entrada
+    let agentsAdded = 0;
+    const agents = await chatwootFetch(base, key, `/api/v1/accounts/${accountId}/agents`);
+    if (agents.ok && Array.isArray(agents.data) && inbox?.id) {
+      const userIds = agents.data.map((a: any) => a?.id).filter(Boolean);
+      if (userIds.length) {
+        const added = await chatwootFetch(
+          base,
+          key,
+          `/api/v1/accounts/${accountId}/inbox_members`,
+          'POST',
+          { inbox_id: inbox.id, user_ids: userIds },
+        );
+        if (added.ok) agentsAdded = userIds.length;
+        else console.log('⚠️ inbox_members falhou:', added.status, added.data);
+      }
+    }
+
+
+
     const record = {
       evolution_integration_id: evolution.id,
       chatwoot_integration_id: chatwoot.id,
