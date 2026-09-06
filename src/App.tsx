@@ -104,7 +104,6 @@ function App() {
         </ConfirmDialogProvider>
         </MikrotikProvider>
       </AuthProvider>
-      </ThemeProvider>
     </QueryClientProvider>
   );
 }
