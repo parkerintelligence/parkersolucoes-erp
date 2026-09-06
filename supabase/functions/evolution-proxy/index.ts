@@ -128,6 +128,7 @@ serve(async (req) => {
       const name = nameFromEndpoint('/instance/connect/');
       const token = await resolveInstanceToken(baseUrl, globalKey, name);
       const status = await goFetch('/instance/status', 'GET', token);
+      if (!status.ok) return json(status.data, status.status);
       const isOpen = (status.data as any)?.Connected === true && (status.data as any)?.LoggedIn === true;
       if (isOpen) return json({ instance: { instanceName: name, state: 'open' }, state: 'open' });
 
@@ -193,6 +194,7 @@ serve(async (req) => {
         : (integration.instance_name || '');
       const token = await resolveInstanceToken(baseUrl, globalKey, name);
       const status = await goFetch('/instance/status', 'GET', token);
+      if (!status.ok) return json(status.data, status.status);
       const info = status.data as any;
       const state = info?.Connected === true ? (info?.LoggedIn === false ? 'connecting' : 'open') : 'close';
       return json({ instance: { instanceName: name, state }, state, raw: info });
