@@ -335,6 +335,22 @@ export const EvolutionAPIAdminConfig = () => {
           </div>
         )}
 
+        {pairCode && (
+          <div className="flex flex-col items-center gap-2 rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground text-center">
+              No WhatsApp do número <strong>{formData.phone_number}</strong>: Aparelhos conectados → Conectar aparelho → <strong>Conectar com número de telefone</strong> e digite o código:
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-2xl font-bold tracking-[0.3em] text-foreground">{pairCode}</span>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8"
+                onClick={() => { navigator.clipboard.writeText(pairCode); toast({ title: "Código copiado" }); }}
+                aria-label="Copiar código de pareamento">
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-xs">
