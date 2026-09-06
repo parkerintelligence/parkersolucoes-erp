@@ -49,7 +49,7 @@ const fetchAvatar = async (
       const res = await fetch(`${baseUrl}/user/avatar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: token },
-        body: JSON.stringify({ number: phone, preview: false }),
+        body: JSON.stringify({ number: `${phone}@s.whatsapp.net`, preview: attempt === 0 }),
         signal: controller.signal,
       });
       const raw = await res.text();
