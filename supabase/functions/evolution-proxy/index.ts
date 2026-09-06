@@ -33,7 +33,9 @@ serve(async (req) => {
   }
 
   try {
-    const { integrationId, endpoint, method = 'GET', body } = await req.json();
+    const payload = await req.json();
+    const { integrationId, endpoint, method = 'GET' } = payload;
+    const body = payload.body ?? payload.data;
     console.log(`🔄 Evolution Go Proxy: ${method} ${endpoint}`, { integrationId, hasBody: !!body });
 
     if (!integrationId || !endpoint) {
@@ -124,6 +126,36 @@ serve(async (req) => {
       const qr = await goFetch('/instance/qr', 'GET', token);
       const qrCode = (qr.data as any)?.Qrcode || (qr.data as any)?.qrcode || null;
       return json({ base64: qrCode, instance: { instanceName: name, state: 'connecting' }, state: 'connecting' });
+    }
+
+    // ---- Código de pareamento (conectar por código) ----
+    if (endpoint.startsWith('/instance/pair/')) {
+      const name = nameFromEndpoint('/instance/pair/');
+      const phone = String((body as any)?.phone || integration.phone_number || '').replace(/\D/g, '');
+      if (!phone) return json({ error: 'Informe o número do WhatsApp (DDD + número) para gerar o código.' }, 400);
+      const token = await resolveInstanceToken(baseUrl, globalKey, name);
+      // Garante que a instância iniciou o fluxo de conexão antes de pedir o código
+      await goFetch('/instance/connect', 'POST', token, {});
+      const extractCode = (d: any) =>
+        d?.pairCode || d?.PairCode || d?.pairingCode || d?.code || d?.Code || null;
+      const attempts: Array<() => Promise<{ status: number; ok: boolean; data: any }>> = [
+        () => goFetch('/instance/pair', 'POST', token, { phone }),
+        () => goFetch(`/instance/pair?phone=${encodeURIComponent(phone)}`, 'GET', token),
+        () => goFetch(`/instance/connect?phone=${encodeURIComponent(phone)}`, 'POST', token, {}),
+        () => goFetch('/instance/connect', 'POST', token, { phone }),
+      ];
+      let last: { status: number; data: any } = { status: 502, data: null };
+      for (const attempt of attempts) {
+        try {
+          const r = await attempt();
+          const code = extractCode(r.data);
+          if (r.ok && code) return json({ pairingCode: code, phone });
+          last = { status: r.status, data: r.data };
+        } catch (e) {
+          console.error('Pair attempt failed:', e);
+        }
+      }
+      return json({ error: 'O servidor não retornou um código de pareamento.', details: last.data }, last.status === 200 ? 502 : last.status);
     }
 
     // ---- Estado da conexão ----

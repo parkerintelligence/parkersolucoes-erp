@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, AlertTriangle, CheckCircle, QrCode, RefreshCw, Eye, EyeOff, Power } from 'lucide-react';
+import { Loader2, MessageCircle, AlertTriangle, CheckCircle, QrCode, RefreshCw, Eye, EyeOff, Power, KeyRound, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type ConnState = 'unknown' | 'open' | 'connecting' | 'close';
@@ -24,6 +24,7 @@ export const EvolutionAPIAdminConfig = () => {
   const [isWorking, setIsWorking] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairCode, setPairCode] = useState<string | null>(null);
   const [connState, setConnState] = useState<ConnState>('unknown');
 
   const [formData, setFormData] = useState({
@@ -158,6 +159,29 @@ export const EvolutionAPIAdminConfig = () => {
     }
   };
 
+  const handlePairCode = async () => {
+    const phone = formData.phone_number.replace(/\D/g, '');
+    if (!phone) {
+      toast({ title: "Número obrigatório", description: "Preencha o campo Número do WhatsApp (DDD + número) e salve.", variant: "destructive" });
+      return;
+    }
+    setIsWorking(true);
+    try {
+      const payload = await callProxy(`/instance/pair/${formData.instance_name}`, 'POST', { phone });
+      const raw = payload?.data ?? payload;
+      const code = raw?.pairingCode || raw?.pairCode || null;
+      if (!code) throw new Error(raw?.error || 'O servidor não retornou um código.');
+      setPairCode(code);
+      setQrCode(null);
+      setConnState('connecting');
+      toast({ title: "Código gerado", description: "No WhatsApp: Aparelhos conectados → Conectar com número de telefone." });
+    } catch (error: any) {
+      toast({ title: "Erro ao gerar código", description: error?.message || 'Falha.', variant: "destructive" });
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
   const handleCheckState = async () => {
     setIsWorking(true);
     try {
@@ -165,7 +189,7 @@ export const EvolutionAPIAdminConfig = () => {
       const raw = payload?.data ?? payload;
       const state = (raw?.state || raw?.instance?.state || raw?.status || 'unknown') as ConnState;
       setConnState(state);
-      if (state === 'open') setQrCode(null);
+      if (state === 'open') { setQrCode(null); setPairCode(null); }
       toast({ title: "Status da instância", description: `Estado: ${state}` });
     } catch (error: any) {
       toast({ title: "Erro ao consultar status", description: error?.message || 'Falha.', variant: "destructive" });
@@ -180,6 +204,7 @@ export const EvolutionAPIAdminConfig = () => {
       await callProxy(`/instance/logout/${formData.instance_name}`, 'DELETE');
       setConnState('close');
       setQrCode(null);
+      setPairCode(null);
       toast({ title: "Desconectado", description: "A instância foi desconectada do WhatsApp." });
     } catch (error: any) {
       toast({ title: "Erro ao desconectar", description: error?.message || 'Falha.', variant: "destructive" });
@@ -286,6 +311,12 @@ export const EvolutionAPIAdminConfig = () => {
             <QrCode className="mr-2 h-3.5 w-3.5" />Gerar QR Code
           </Button>
 
+          <Button size="sm" variant="outline" className="text-xs" onClick={handlePairCode}
+            disabled={!evolutionIntegration || !formData.instance_name || isWorking}>
+            <KeyRound className="mr-2 h-3.5 w-3.5" />Conectar por Código
+          </Button>
+
+
           <Button size="sm" variant="outline" className="text-xs" onClick={handleCheckState}
             disabled={!evolutionIntegration || !formData.instance_name || isWorking}>
             <RefreshCw className="mr-2 h-3.5 w-3.5" />Verificar Status
@@ -301,6 +332,22 @@ export const EvolutionAPIAdminConfig = () => {
           <div className="flex flex-col items-center gap-2 rounded-lg border p-4">
             <p className="text-xs text-muted-foreground">Escaneie no WhatsApp: Aparelhos conectados → Conectar aparelho</p>
             <img src={qrCode} alt="QR Code para conectar a instância do WhatsApp" className="h-56 w-56 rounded bg-white p-2" />
+          </div>
+        )}
+
+        {pairCode && (
+          <div className="flex flex-col items-center gap-2 rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground text-center">
+              No WhatsApp do número <strong>{formData.phone_number}</strong>: Aparelhos conectados → Conectar aparelho → <strong>Conectar com número de telefone</strong> e digite o código:
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-2xl font-bold tracking-[0.3em] text-foreground">{pairCode}</span>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8"
+                onClick={() => { navigator.clipboard.writeText(pairCode); toast({ title: "Código copiado" }); }}
+                aria-label="Copiar código de pareamento">
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         )}
 
