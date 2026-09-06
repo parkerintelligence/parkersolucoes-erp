@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Phone, Mail, MessageCircle, Calendar } from 'lucide-react';
 import { ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { format } from 'date-fns';
@@ -8,9 +9,10 @@ import { ptBR } from 'date-fns/locale';
 
 interface ChatwootContactPanelProps {
   conversation: ChatwootConversation | null;
+  avatarUrl?: string;
 }
 
-export const ChatwootContactPanel = ({ conversation }: ChatwootContactPanelProps) => {
+export const ChatwootContactPanel = ({ conversation, avatarUrl }: ChatwootContactPanelProps) => {
   if (!conversation) {
     return (
       <Card className="h-full bg-card border-border">
@@ -23,6 +25,13 @@ export const ChatwootContactPanel = ({ conversation }: ChatwootContactPanelProps
   }
 
   const contact = conversation.meta?.sender;
+  const photo = avatarUrl || contact?.avatar_url || contact?.thumbnail;
+  const initials = (contact?.name || 'C')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 
   return (
     <Card className="h-full flex flex-col bg-card border-border">
@@ -35,11 +44,19 @@ export const ChatwootContactPanel = ({ conversation }: ChatwootContactPanelProps
       
       <ScrollArea className="flex-1">
         <CardContent className="space-y-4 text-foreground">
+          <div className="flex flex-col items-center gap-2 pt-2">
+            <Avatar className="h-20 w-20 border border-border">
+              <AvatarImage src={photo} alt={contact?.name || 'Contato'} />
+              <AvatarFallback className="bg-primary/20 text-primary text-lg font-bold">{initials}</AvatarFallback>
+            </Avatar>
+          </div>
+
           <div className="space-y-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1">Nome</p>
               <p className="text-sm font-medium text-foreground">{contact?.name || 'Não informado'}</p>
             </div>
+
             {contact?.phone_number && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1"><Phone className="h-3 w-3" />Telefone</p>

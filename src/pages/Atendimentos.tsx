@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3, Mail, Inbox } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
+import { useWhatsAppAvatar } from '@/hooks/useWhatsAppAvatar';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -56,6 +57,13 @@ const Atendimentos = () => {
     testConnection, sendMessage, updateConversationStatus,
     refetchConversations, markConversationAsRead
   } = useChatwootAPI();
+
+  const { data: whatsappAvatar } = useWhatsAppAvatar(selectedConversation?.meta?.sender?.phone_number);
+  const selectedAvatar =
+    selectedConversation?.meta?.sender?.avatar_url ||
+    selectedConversation?.meta?.sender?.thumbnail ||
+    whatsappAvatar ||
+    undefined;
 
   const { agents, isLoading: agentsLoading } = useChatwootAgents();
   const { labels: availableLabels } = useChatwootLabels(integrationId);
@@ -629,7 +637,7 @@ const Atendimentos = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedConversation.meta?.sender?.avatar_url || selectedConversation.meta?.sender?.thumbnail} />
+                        <AvatarImage src={selectedAvatar} />
                         <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                           {getInitials(selectedConversation.meta?.sender?.name)}
                         </AvatarFallback>
@@ -790,7 +798,7 @@ const Atendimentos = () => {
           {/* Contact Panel */}
           {showContactPanel && (
             <div className="col-span-12 lg:col-span-3 hidden lg:block space-y-2">
-              <ChatwootContactPanel conversation={selectedConversation} />
+              <ChatwootContactPanel conversation={selectedConversation} avatarUrl={selectedAvatar} />
               {selectedConversation && <ChatwootStatusHistory integrationId={integrationId} conversationId={selectedConversation.id.toString()} />}
             </div>
           )}
