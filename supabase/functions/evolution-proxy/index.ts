@@ -1,10 +1,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { listGoInstances, resolveInstanceToken, sendWhatsAppText } from "../_shared/evolutionGo.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+};
+
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+const parseJson = (raw: string) => {
+  try { return JSON.parse(raw); } catch { return raw; }
+};
+
+const unwrap = (payload: any) => (payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload);
+
+const statusFromGo = (inst: any) => {
+  const connected = inst?.connected ?? inst?.Connected;
+  if (connected === true) return 'open';
+  if (connected === false) return 'close';
+  return 'unknown';
 };
 
 serve(async (req) => {
@@ -14,18 +34,16 @@ serve(async (req) => {
 
   try {
     const { integrationId, endpoint, method = 'GET', body } = await req.json();
-    console.log(`🔄 Evolution Proxy - Request: ${method} ${endpoint}`, { integrationId, hasBody: !!body });
+    console.log(`🔄 Evolution Go Proxy: ${method} ${endpoint}`, { integrationId, hasBody: !!body });
 
     if (!integrationId || !endpoint) {
-      return new Response(JSON.stringify({ error: 'integrationId and endpoint are required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'integrationId and endpoint are required' }, 400);
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const { data: integration, error: dbError } = await supabase
       .from('integrations')
@@ -35,77 +53,124 @@ serve(async (req) => {
 
     if (dbError || !integration) {
       console.error('Integration not found:', dbError);
-      return new Response(JSON.stringify({ error: 'Integration not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Integration not found' }, 404);
     }
 
-    const baseUrl = integration.base_url?.replace(/\/$/, '');
-    const apiToken = integration.api_token;
+    const baseUrl = (integration.base_url || '').replace(/\/$/, '');
+    const globalKey = integration.api_token || '';
 
-    if (!baseUrl || !apiToken) {
-      console.error('Missing base_url or api_token');
-      return new Response(JSON.stringify({ error: 'Integration missing base_url or api_token' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!baseUrl || !globalKey) {
+      return json({ error: 'Integration missing base_url or api_token' }, 400);
     }
 
-    const url = `${baseUrl}${endpoint}`;
-    console.log(`📡 Evolution Proxy: ${method} ${url}`);
-
-    const fetchOptions: RequestInit = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': apiToken,
-      },
+    const goFetch = async (path: string, httpMethod: string, token: string, payload?: unknown) => {
+      const url = `${baseUrl}${path}`;
+      console.log(`📡 Evolution Go: ${httpMethod} ${url}`);
+      const res = await fetch(url, {
+        method: httpMethod,
+        headers: { 'Content-Type': 'application/json', apikey: token },
+        body: payload && httpMethod !== 'GET' && httpMethod !== 'DELETE' ? JSON.stringify(payload) : undefined,
+      });
+      const raw = await res.text();
+      console.log(`📥 ${res.status} ${raw.substring(0, 500)}`);
+      return { status: res.status, ok: res.ok, data: unwrap(parseJson(raw)), raw };
     };
 
-    if (body && (method === 'POST' || method === 'PUT')) {
-      fetchOptions.body = JSON.stringify(body);
-      console.log('📦 Request body:', JSON.stringify(body));
+    const nameFromEndpoint = (prefix: string) =>
+      decodeURIComponent(endpoint.replace(prefix, '').split('?')[0] || '');
+
+    // ---- Listar instâncias ----
+    if (endpoint.startsWith('/instance/fetchInstances') || endpoint.startsWith('/instance/all')) {
+      const list = await listGoInstances(baseUrl, globalKey);
+      const normalized = list.map((inst: any) => ({
+        instanceName: inst?.name ?? inst?.instanceName,
+        instanceId: inst?.id,
+        connectionStatus: statusFromGo(inst),
+        status: statusFromGo(inst),
+        ownerJid: inst?.jid || '',
+        token: inst?.token,
+        createdAt: inst?.createdAt,
+      }));
+      return json(normalized);
     }
 
-    const response = await fetch(url, fetchOptions);
-    const responseText = await response.text();
-    console.log(`📥 Response status: ${response.status}`);
-    console.log(`📥 Response body (first 1000 chars): ${responseText.substring(0, 1000)}`);
+    // ---- Criar instância ----
+    if (endpoint.startsWith('/instance/create')) {
+      const name = (body as any)?.instanceName || (body as any)?.name;
+      const created = await goFetch('/instance/create', 'POST', globalKey, { name });
+      if (!created.ok) return json(created.data, created.status);
 
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      responseData = responseText;
+      const instanceToken = (created.data as any)?.token || globalKey;
+      await goFetch('/instance/connect', 'POST', instanceToken, {});
+      const qr = await goFetch('/instance/qr', 'GET', instanceToken);
+      const qrCode = (qr.data as any)?.Qrcode || (qr.data as any)?.qrcode || null;
+
+      return json({
+        instance: { instanceName: name, instanceId: (created.data as any)?.id, status: 'connecting' },
+        token: instanceToken,
+        base64: qrCode,
+      });
     }
 
-    // For connect/create endpoints, log QR code details extensively
-    if (endpoint.includes('/connect/') || endpoint.includes('/instance/create')) {
-      if (typeof responseData === 'object' && responseData !== null) {
-        console.log('🔑 Response keys:', Object.keys(responseData));
-        console.log('🔑 Has base64:', !!responseData.base64);
-        console.log('🔑 Has qrcode:', !!responseData.qrcode);
-        console.log('🔑 qrcode type:', typeof responseData.qrcode);
-        if (responseData.qrcode && typeof responseData.qrcode === 'object') {
-          console.log('🔑 qrcode keys:', Object.keys(responseData.qrcode));
-          console.log('🔑 qrcode.base64 exists:', !!responseData.qrcode.base64);
-          console.log('🔑 qrcode.count:', responseData.qrcode.count);
-        }
-        console.log('🔑 Has code:', !!responseData.code);
-        console.log('🔑 Has pairingCode:', !!responseData.pairingCode);
-      }
+    // ---- Conectar / QR ----
+    if (endpoint.startsWith('/instance/connect/')) {
+      const name = nameFromEndpoint('/instance/connect/');
+      const token = await resolveInstanceToken(baseUrl, globalKey, name);
+      const status = await goFetch('/instance/status', 'GET', token);
+      const isOpen = (status.data as any)?.Connected === true && (status.data as any)?.LoggedIn === true;
+      if (isOpen) return json({ instance: { instanceName: name, state: 'open' }, state: 'open' });
+
+      await goFetch('/instance/connect', 'POST', token, {});
+      const qr = await goFetch('/instance/qr', 'GET', token);
+      const qrCode = (qr.data as any)?.Qrcode || (qr.data as any)?.qrcode || null;
+      return json({ base64: qrCode, instance: { instanceName: name, state: 'connecting' }, state: 'connecting' });
     }
 
-    return new Response(JSON.stringify(responseData), {
-      status: response.status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // ---- Estado da conexão ----
+    if (endpoint.startsWith('/instance/connectionState/') || endpoint.startsWith('/instance/status')) {
+      const name = endpoint.startsWith('/instance/connectionState/')
+        ? nameFromEndpoint('/instance/connectionState/')
+        : (integration.instance_name || '');
+      const token = await resolveInstanceToken(baseUrl, globalKey, name);
+      const status = await goFetch('/instance/status', 'GET', token);
+      const info = status.data as any;
+      const state = info?.Connected === true ? (info?.LoggedIn === false ? 'connecting' : 'open') : 'close';
+      return json({ instance: { instanceName: name, state }, state, raw: info });
+    }
+
+    // ---- Logout ----
+    if (endpoint.startsWith('/instance/logout/')) {
+      const name = nameFromEndpoint('/instance/logout/');
+      const token = await resolveInstanceToken(baseUrl, globalKey, name);
+      const result = await goFetch('/instance/logout', 'DELETE', token);
+      return json(result.data, result.status);
+    }
+
+    // ---- Excluir ----
+    if (endpoint.startsWith('/instance/delete/')) {
+      const name = nameFromEndpoint('/instance/delete/');
+      const list = await listGoInstances(baseUrl, globalKey);
+      const found = list.find((i: any) => String(i?.name ?? '').toLowerCase() === name.toLowerCase());
+      const instanceId = found?.id || name;
+      const result = await goFetch(`/instance/delete/${encodeURIComponent(instanceId)}`, 'DELETE', globalKey);
+      return json(result.data, result.status);
+    }
+
+    // ---- Enviar texto ----
+    if (endpoint.startsWith('/message/sendText/') || endpoint.startsWith('/send/text')) {
+      const name = endpoint.startsWith('/message/sendText/')
+        ? nameFromEndpoint('/message/sendText/')
+        : (integration.instance_name || '');
+      const result = await sendWhatsAppText(integration, (body as any)?.number, (body as any)?.text, name);
+      return json(result.data, result.ok ? 200 : result.status);
+    }
+
+    // ---- Passthrough para qualquer outro endpoint do Evolution Go ----
+    const token = await resolveInstanceToken(baseUrl, globalKey, integration.instance_name);
+    const result = await goFetch(endpoint, method, token, body);
+    return json(result.data, result.status);
   } catch (error) {
-    console.error('Evolution proxy error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Evolution Go proxy error:', error);
+    return json({ error: (error as Error).message }, 500);
   }
 });
