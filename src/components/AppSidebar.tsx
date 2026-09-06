@@ -16,7 +16,6 @@ const menuItems = [
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
-  { title: 'WhatsApp', url: '/whatsapp', icon: Smartphone, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },

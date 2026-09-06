@@ -33,7 +33,6 @@ export const TopHeader = () => {
       '/backups': 'Backups FTP',
       '/passwords': 'Senhas',
       '/links': 'Links',
-      '/whatsapp': 'WhatsApp',
       '/whatsapp-templates': 'Modelos WhatsApp',
       '/wasabi': 'Wasabi',
       '/schedule': 'Agenda',
