@@ -12,6 +12,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 export const TopHeader = () => {
   const { user, userProfile, logout } = useAuth();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   const handleLogout = async () => {
