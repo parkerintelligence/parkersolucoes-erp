@@ -58,7 +58,46 @@ serve(async (req) => {
       console.log('✅ Service role authenticated');
     }
 
-    const { integrationId, phoneNumber, message, instanceName: instanceNameOverride } = await req.json() as WhatsAppMessageRequest;
+    const { phoneNumber, message } = await req.json() as WhatsAppMessageRequest;
+
+    console.log('📋 Request:', { phoneNumber: phoneNumber?.substring(0, 4) + '****' });
+
+    if (!phoneNumber || !message) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Parâmetros obrigatórios: phoneNumber, message' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (phoneNumber.length < 12 || phoneNumber.length > 15) {
+      console.error('❌ Número inválido:', phoneNumber.length);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Número de telefone inválido. Deve ter código do país (ex: 5564999887766)',
+          details: `Número fornecido tem ${phoneNumber.length} dígitos. Esperado: 12-15 dígitos com código do país.`
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Instância ÚNICA configurada em Administração
+    const result = await sendWhatsAppViaConfiguredInstance(supabaseAdmin, phoneNumber, message);
+
+    if (!result.ok) {
+      console.error('❌ Evolution error:', result.status, result.error || result.raw?.substring(0, 300));
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: result.error || `Servidor WhatsApp retornou erro ${result.status}`,
+          details: result.raw?.substring(0, 500)
+        }),
+        { status: result.status || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const responseText = result.raw;
+
 
     console.log('📋 Request:', { integrationId, phoneNumber: phoneNumber.substring(0, 4) + '****' });
 
