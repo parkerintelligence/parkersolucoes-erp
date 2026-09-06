@@ -178,6 +178,8 @@ Deno.serve(async (req) => {
       config: saved.data,
       webhookUrl,
       inboxName,
+      inboxId: inbox?.id ?? null,
+      agentsAdded,
       instructions:
         'Cole este endereço na variável de webhook do servidor Evolution Go (WEBHOOK_URL / WEBHOOK_GLOBAL_URL) e reinicie o serviço.',
     });
