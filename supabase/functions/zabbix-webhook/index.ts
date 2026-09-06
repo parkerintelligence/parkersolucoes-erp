@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { sendWhatsAppViaConfiguredInstance } from '../_shared/evolutionGo.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -209,100 +210,34 @@ serve(async (req) => {
           console.log('WhatsApp number configured:', webhook.actions.whatsapp_number)
           
           try {
-            // Get Evolution API integration
-            const { data: evolutionIntegration, error: evolutionError } = await supabase
-              .from('integrations')
-              .select('*')
-              .eq('type', 'evolution_api')
-              .eq('is_active', true)
-              .single()
+            // Prepare custom message with variable replacement
+            let message = webhook.actions.custom_message ||
+              `🚨 Alerta Zabbix\n\nProblema: ${problem_name}\nHost: ${host_name}\nSeveridade: ${severity}\nStatus: ${status === '0' ? 'Resolvido' : 'Ativo'}`
 
-            console.log('Evolution integration found:', evolutionIntegration ? 'Yes' : 'No')
-            if (evolutionError) {
-              console.error('Evolution integration error:', evolutionError)
-            }
+            message = message
+              .replace(/{problem_name}/g, problem_name)
+              .replace(/{host_name}/g, host_name)
+              .replace(/{severity}/g, severity)
+              .replace(/{timestamp}/g, new Date().toLocaleString('pt-BR'))
 
-            if (evolutionIntegration) {
-              console.log('Evolution API details:', {
-                base_url: evolutionIntegration.base_url,
-                instance_name: evolutionIntegration.instance_name,
-                has_token: !!evolutionIntegration.api_token
-              })
+            // Instância ÚNICA de WhatsApp configurada em Administração (Evolution Go)
+            const sendResult = await sendWhatsAppViaConfiguredInstance(
+              supabase,
+              webhook.actions.whatsapp_number,
+              message
+            )
 
-              // Teste de conectividade com a API
-              console.log('Testing Evolution API connectivity...')
-              const testUrl = `${evolutionIntegration.base_url}/instance/fetchInstances`
-              const testResponse = await fetch(testUrl, {
-                method: 'GET',
-                headers: {
-                  'apikey': evolutionIntegration.api_token
-                }
-              })
-              
-              console.log('API connectivity test response:', testResponse.status, testResponse.statusText)
-              
-              // Verificar status da instância
-              const instanceUrl = `${evolutionIntegration.base_url}/instance/connectionState/${evolutionIntegration.instance_name}`
-              const instanceResponse = await fetch(instanceUrl, {
-                method: 'GET',
-                headers: {
-                  'apikey': evolutionIntegration.api_token
-                }
-              })
-              
-              const instanceStatus = await instanceResponse.json()
-              console.log('Instance status:', instanceStatus)
+            console.log('WhatsApp send result:', sendResult.status, sendResult.ok)
 
-              // Prepare custom message with variable replacement
-              let message = webhook.actions.custom_message || 
-                `🚨 Alerta Zabbix\n\nProblema: ${problem_name}\nHost: ${host_name}\nSeveridade: ${severity}\nStatus: ${status === '0' ? 'Resolvido' : 'Ativo'}`
+            webhookResult.actions.push({
+              type: 'whatsapp_message',
+              success: sendResult.ok,
+              result: sendResult.data ?? sendResult.raw,
+              api_status: sendResult.status,
+              instance: sendResult.usedInstance,
+              error: sendResult.ok ? undefined : (sendResult.error || `HTTP ${sendResult.status}`)
+            })
 
-              // Replace variables in message
-              message = message
-                .replace(/{problem_name}/g, problem_name)
-                .replace(/{host_name}/g, host_name)
-                .replace(/{severity}/g, severity)
-                .replace(/{timestamp}/g, new Date().toLocaleString('pt-BR'))
-
-              console.log('Sending message to:', webhook.actions.whatsapp_number)
-              console.log('Message content:', message)
-
-              const whatsappUrl = `${evolutionIntegration.base_url}/message/sendText/${evolutionIntegration.instance_name}`
-              console.log('WhatsApp API URL:', whatsappUrl)
-
-              const whatsappPayload = {
-                number: webhook.actions.whatsapp_number,
-                text: message
-              }
-              console.log('WhatsApp payload:', whatsappPayload)
-
-              const whatsappResponse = await fetch(whatsappUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': evolutionIntegration.api_token
-                },
-                body: JSON.stringify(whatsappPayload)
-              })
-
-              console.log('WhatsApp response status:', whatsappResponse.status, whatsappResponse.statusText)
-
-              const whatsappResult = await whatsappResponse.json()
-              console.log('WhatsApp message result:', JSON.stringify(whatsappResult, null, 2))
-
-              webhookResult.actions.push({ 
-                type: 'whatsapp_message', 
-                success: whatsappResponse.ok, 
-                result: whatsappResult,
-                api_status: whatsappResponse.status,
-                api_url: whatsappUrl,
-                instance_status: instanceStatus
-              })
-            } else {
-              const errorMsg = 'Evolution API integration not found or inactive'
-              console.error(errorMsg)
-              webhookResult.actions.push({ type: 'whatsapp_message', success: false, error: errorMsg })
-            }
           } catch (whatsappError) {
             console.error('WhatsApp message error details:', {
               message: whatsappError.message,

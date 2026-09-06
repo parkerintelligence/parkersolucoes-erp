@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
+import { sendWhatsAppViaConfiguredInstance } from '../_shared/evolutionGo.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,124 +178,38 @@ const handler = async (req: Request): Promise<Response> => {
       execution_date: new Date().toISOString()
     };
 
-    // Buscar Evolution API integration global
-    const { data: integration, error: integrationError } = await supabase
-      .from('integrations')
-      .select('*')
-      .eq('type', 'evolution_api')
-      .eq('is_active', true)
-      .eq('is_global', true)
-      .maybeSingle();
-
-    if (integrationError || !integration) {
-      console.error('❌ [SEND] Evolution API não configurada:', integrationError);
-      throw new Error(`Evolution API não configurada para este usuário: ${integrationError?.message || 'Integration not found'}`);
-    }
-
-    console.log(`🔌 [SEND] Integration encontrada: ${integration.name}`);
-
-    // Buscar configuração de instância por tela (whatsapp_screen_config)
-    let screenConfigSetting: { setting_value: string } | null = null;
-
-    const { data: userScreenConfigSetting } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'whatsapp_screen_config')
-      .eq('user_id', report.user_id)
-      .maybeSingle();
-
-    screenConfigSetting = userScreenConfigSetting;
-
-    if (!screenConfigSetting) {
-      const { data: fallbackScreenConfigSetting } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'whatsapp_screen_config')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      screenConfigSetting = fallbackScreenConfigSetting;
-
-      if (screenConfigSetting) {
-        console.warn(`⚠️ [SEND] Screen config do usuário ${report.user_id} não encontrada. Usando configuração global mais recente.`);
-      }
-    }
-
-    let screenInstanceName = '';
-    if (screenConfigSetting) {
-      try {
-        const screenConfig = JSON.parse(screenConfigSetting.setting_value);
-        screenInstanceName = screenConfig['agendamentos'] || '';
-        console.log(`📱 [SEND] Instância da screen config (agendamentos): ${screenInstanceName || 'não definida'}`);
-      } catch (e) {
-        console.warn('⚠️ [SEND] Erro ao parsear screen config:', e);
-      }
-    }
-
     // Gerar conteúdo baseado no template com autenticação correta
     const authHeader = req.headers.get('authorization') || '';
     const message = await generateMessageFromTemplate(template, template.template_type, report.user_id, report.settings, authHeader);
     console.log(`💬 [SEND] Mensagem gerada (${message.length} caracteres)`);
 
-    // Atualizar log com conteúdo da mensagem
-    reportLog.message_content = message.substring(0, 1000); // Limitar tamanho
+    reportLog.message_content = message.substring(0, 1000);
 
-    // Enviar mensagem via WhatsApp - usar instância da screen config ou fallback para a da integração
-    const instanceName = screenInstanceName || integration.instance_name || 'main_instance';
     const cleanPhoneNumber = report.phone_number.replace(/\D/g, '');
-    
-    console.log(`📱 [SEND] Enviando para: ${cleanPhoneNumber} via instância: ${instanceName}`);
-    console.log(`🔗 [SEND] Base URL: ${integration.base_url}`);
-    
-    // Preparar dados para envio
-    const whatsappPayload = {
-      number: cleanPhoneNumber,
-      text: message,
-    };
+    console.log(`📱 [SEND] Enviando para: ${cleanPhoneNumber} via instância única de Administração`);
 
-    console.log(`📤 [SEND] Payload WhatsApp:`, JSON.stringify(whatsappPayload, null, 2));
-
-    // Tentar enviar via Evolution API
-    const url = `${integration.base_url}/message/sendText/${instanceName}`;
-    console.log(`🔄 [SEND] Enviando para: ${url}`);
-    
-    const whatsappApiResponse = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': integration.api_token || '',
-      },
-      body: JSON.stringify(whatsappPayload),
-    });
-
-    console.log(`📡 [SEND] Status da resposta: ${whatsappApiResponse.status}`);
-    
-    let whatsappResponse;
-    const responseText = await whatsappApiResponse.text();
-    console.log(`📋 [SEND] Resposta bruta:`, responseText);
-
-    try {
-      whatsappResponse = JSON.parse(responseText);
-    } catch {
-      whatsappResponse = { raw: responseText };
-    }
+    const sendResult = await sendWhatsAppViaConfiguredInstance(supabase, cleanPhoneNumber, message);
+    const responseText = sendResult.raw;
+    const whatsappResponse: any =
+      typeof sendResult.data === 'object' && sendResult.data !== null
+        ? sendResult.data
+        : { raw: responseText };
 
     const executionTime = Date.now() - startTime;
 
-    if (!whatsappApiResponse.ok) {
-      // Log de erro
+    if (!sendResult.ok) {
       await supabase.from('scheduled_reports_logs').insert({
         ...reportLog,
         status: 'error',
         message_sent: false,
-        error_details: `Falha HTTP ${whatsappApiResponse.status}: ${responseText}`,
+        error_details: `Falha ao enviar (${sendResult.status}): ${sendResult.error || responseText}`,
         execution_time_ms: executionTime,
         whatsapp_response: whatsappResponse
       });
-      
-      throw new Error(`Falha ao enviar mensagem WhatsApp (${whatsappApiResponse.status}): ${responseText}`);
+
+      throw new Error(`Falha ao enviar mensagem WhatsApp (${sendResult.status}): ${sendResult.error || responseText}`);
     }
+
 
     // Log de sucesso
     await supabase.from('scheduled_reports_logs').insert({

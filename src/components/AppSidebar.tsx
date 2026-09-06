@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Settings, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Smartphone, Calendar, Shield, ShieldCheck, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router, Zap, Wifi } from 'lucide-react';
+import { LayoutDashboard, Settings, FileText, Headphones, Activity, HardDrive, Lock, Link, MessageCircle, Calendar, Shield, ShieldCheck, Cloud, Notebook, Database, Monitor, Kanban, AlertTriangle, MessagesSquare, Router, Zap, Wifi } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from '@/components/ui/sidebar';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { useMyPermissions } from '@/hooks/useUserPermissions';
@@ -16,7 +16,6 @@ const menuItems = [
   { title: 'Senhas', url: '/passwords', icon: Lock, role: 'user' },
   { title: 'Anotações', url: '/annotations', icon: Notebook, role: 'user' },
   { title: 'Agenda', url: '/schedule', icon: Calendar, role: 'user' },
-  { title: 'WhatsApp', url: '/whatsapp', icon: Smartphone, role: 'user' },
   { title: 'Modelos WhatsApp', url: '/whatsapp-templates', icon: MessageCircle, role: 'user' },
   { title: 'Backups FTP', url: '/backups', icon: HardDrive, role: 'user' },
   { title: 'Wasabi', url: '/wasabi', icon: Cloud, role: 'user' },

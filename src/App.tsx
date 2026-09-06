@@ -15,7 +15,6 @@ import Backups from '@/pages/Backups';
 import Passwords from '@/pages/Passwords';
 import Annotations from '@/pages/Annotations';
 import Links from '@/pages/Links';
-import WhatsApp from '@/pages/WhatsApp';
 import WhatsAppTemplates from '@/pages/WhatsAppTemplates';
 import Wasabi from '@/pages/Wasabi';
 import Schedule from '@/pages/Schedule';
@@ -80,7 +79,6 @@ function App() {
               <Route path="/backups" element={<Layout><Backups /></Layout>} />
               <Route path="/passwords" element={<Layout><Passwords /></Layout>} />
               <Route path="/annotations" element={<Layout><Annotations /></Layout>} />
-              <Route path="/whatsapp" element={<Layout><WhatsApp /></Layout>} />
               <Route path="/whatsapp-templates" element={<Layout><WhatsAppTemplates /></Layout>} />
               <Route path="/wasabi" element={<Layout><Wasabi /></Layout>} />
               <Route path="/schedule" element={<Layout><Schedule /></Layout>} />

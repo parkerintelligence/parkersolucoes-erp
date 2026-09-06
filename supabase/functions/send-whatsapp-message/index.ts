@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { sendWhatsAppViaConfiguredInstance } from '../_shared/evolutionGo.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,10 +8,11 @@ const corsHeaders = {
 };
 
 interface WhatsAppMessageRequest {
-  integrationId: string;
   phoneNumber: string;
   message: string;
-  instanceName?: string; // Override para usar instância específica da screen config
+  /** @deprecated mantidos por compatibilidade; o sistema usa a instância única de Administração */
+  integrationId?: string;
+  instanceName?: string;
 }
 
 serve(async (req) => {
@@ -58,88 +60,48 @@ serve(async (req) => {
       console.log('✅ Service role authenticated');
     }
 
-    const { integrationId, phoneNumber, message, instanceName: instanceNameOverride } = await req.json() as WhatsAppMessageRequest;
+    const { phoneNumber, message } = await req.json() as WhatsAppMessageRequest;
 
-    console.log('📋 Request:', { integrationId, phoneNumber: phoneNumber.substring(0, 4) + '****' });
+    console.log('📋 Request:', { phoneNumber: phoneNumber?.substring(0, 4) + '****' });
 
-    if (!integrationId || !phoneNumber || !message) {
+    if (!phoneNumber || !message) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Parâmetros obrigatórios: integrationId, phoneNumber, message' }),
+        JSON.stringify({ success: false, error: 'Parâmetros obrigatórios: phoneNumber, message' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate phone number format (should have country code)
     if (phoneNumber.length < 12 || phoneNumber.length > 15) {
-      console.error('❌ Número inválido:', phoneNumber, 'Tamanho:', phoneNumber.length);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Número de telefone inválido. Deve ter código do país (ex: 5564999887766)',
-          details: `Número fornecido: ${phoneNumber.substring(0, 4)}**** tem ${phoneNumber.length} dígitos. Esperado: 12-15 dígitos com código do país.`
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Use service role client to fetch integration (works for both global and user-specific integrations)
-    const { data: integration, error: integrationError } = await supabaseAdmin
-      .from('integrations')
-      .select('base_url, api_token, instance_name')
-      .eq('id', integrationId)
-      .eq('type', 'evolution_api')
-      .eq('is_active', true)
-      .single();
-
-    if (integrationError || !integration) {
-      console.error('❌ Integration not found:', integrationError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Integração Evolution API não encontrada ou inativa' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('✅ Integration found:', {
-      base_url: integration.base_url,
-      instance_name: integration.instance_name,
-      has_token: !!integration.api_token
-    });
-
-    // Use instanceName override if provided (from screen config), otherwise use integration's instance_name
-    const finalInstanceName = instanceNameOverride || integration.instance_name;
-    console.log('📱 Instância a usar:', finalInstanceName, instanceNameOverride ? '(override da screen config)' : '(da integração)');
-
-    const evolutionUrl = `${integration.base_url.replace(/\/$/, '')}/message/sendText/${finalInstanceName}`;
-    
-    console.log('🚀 Sending to Evolution API:', evolutionUrl);
-
-    const evolutionResponse = await fetch(evolutionUrl, {
-      method: 'POST',
-      headers: {
-        'apikey': integration.api_token,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        number: phoneNumber,
-        text: message,
-      }),
-    });
-
-    const responseText = await evolutionResponse.text();
-    console.log('Evolution API response status:', evolutionResponse.status);
-    console.log('Evolution API response:', responseText.substring(0, 200));
-
-    if (!evolutionResponse.ok) {
-      console.error('❌ Evolution API error:', evolutionResponse.status, responseText);
+      console.error('❌ Número inválido:', phoneNumber.length);
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Evolution API retornou erro ${evolutionResponse.status}`,
-          details: responseText.substring(0, 500)
+          error: 'Número de telefone inválido. Deve ter código do país (ex: 5564999887766)',
+          details: `Número fornecido tem ${phoneNumber.length} dígitos. Esperado: 12-15 dígitos com código do país.`
         }),
-        { status: evolutionResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Instância ÚNICA configurada em Administração
+    const result = await sendWhatsAppViaConfiguredInstance(supabaseAdmin, phoneNumber, message);
+
+    if (!result.ok) {
+      console.error('❌ Evolution error:', result.status, result.error || result.raw?.substring(0, 300));
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: result.error || `Servidor WhatsApp retornou erro ${result.status}`,
+          details: result.raw?.substring(0, 500)
+        }),
+        { status: result.status || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const responseText = result.raw;
+
+
+
 
     let evolutionData;
     try {
