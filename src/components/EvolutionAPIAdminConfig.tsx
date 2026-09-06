@@ -274,7 +274,7 @@ export const EvolutionAPIAdminConfig = () => {
     }
   };
 
-
+  const handleLogout = async () => {
     setIsWorking(true);
     try {
       await callProxy(`/instance/logout/${formData.instance_name}`, 'DELETE');
