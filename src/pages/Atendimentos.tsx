@@ -208,7 +208,7 @@ const Atendimentos = () => {
     );
   };
 
-  const selectedAvatar = || whatsappAvatar || undefined;
+  const selectedAvatar = avatarFor(selectedConversation) || undefined;
 
 
   const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
