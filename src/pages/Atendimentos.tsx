@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3, Mail, Inbox } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
+import { useWhatsAppAvatar } from '@/hooks/useWhatsAppAvatar';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
 import { useIntegrations } from '@/hooks/useIntegrations';
