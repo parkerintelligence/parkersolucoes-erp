@@ -103,9 +103,9 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
           Análise
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700 text-white">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-background border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <BarChart3 className="h-5 w-5 text-blue-400" />
             Análise do Ambiente Zabbix
           </DialogTitle>
@@ -113,9 +113,9 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Resumo Geral */}
-          <Card className="col-span-full bg-slate-800 border-slate-700">
+          <Card className="col-span-full bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-white">
+              <CardTitle className="text-base flex items-center gap-2 text-foreground">
                 <Activity className="h-4 w-4 text-blue-400" />
                 Resumo Geral
               </CardTitle>
@@ -124,28 +124,28 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-400">{problems.length}</div>
-                  <div className="text-sm text-slate-400">Problemas Ativos</div>
+                  <div className="text-sm text-muted-foreground">Problemas Ativos</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-400">{hosts.length}</div>
-                  <div className="text-sm text-slate-400">Total de Hosts</div>
+                  <div className="text-sm text-muted-foreground">Total de Hosts</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-400">{hostsByStatus.online}</div>
-                  <div className="text-sm text-slate-400">Hosts Online</div>
+                  <div className="text-sm text-muted-foreground">Hosts Online</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-red-400">{hostsByStatus.offline}</div>
-                  <div className="text-sm text-slate-400">Hosts Offline</div>
+                  <div className="text-sm text-muted-foreground">Hosts Offline</div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Problemas por Severidade */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-white">
+              <CardTitle className="text-base flex items-center gap-2 text-foreground">
                 <AlertTriangle className="h-4 w-4 text-yellow-400" />
                 Por Severidade
               </CardTitle>
@@ -158,11 +158,11 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
                   <Badge variant="secondary" className={getSeverityColor(severity)}>
                     {getSeverityLabel(severity)}
                   </Badge>
-                  <span className="font-semibold text-white">{count as number}</span>
+                  <span className="font-semibold text-foreground">{count as number}</span>
                 </div>
               ))}
               {Object.keys(problemsBySeverity).length === 0 && (
-                <div className="text-center text-slate-400 text-sm">
+                <div className="text-center text-muted-foreground text-sm">
                   Nenhum problema encontrado
                 </div>
               )}
@@ -170,45 +170,45 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
           </Card>
 
           {/* Status dos Hosts */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-white">
+              <CardTitle className="text-base flex items-center gap-2 text-foreground">
                 <Server className="h-4 w-4 text-green-400" />
                 Status dos Hosts
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-green-600 text-white">
+                <Badge variant="secondary" className="bg-green-600 text-foreground">
                   Online
                 </Badge>
-                <span className="font-semibold text-white">{hostsByStatus.online}</span>
+                <span className="font-semibold text-foreground">{hostsByStatus.online}</span>
               </div>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-red-600 text-white">
+                <Badge variant="secondary" className="bg-red-600 text-foreground">
                   Offline
                 </Badge>
-                <span className="font-semibold text-white">{hostsByStatus.offline}</span>
+                <span className="font-semibold text-foreground">{hostsByStatus.offline}</span>
               </div>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-yellow-600 text-white">
+                <Badge variant="secondary" className="bg-yellow-600 text-foreground">
                   Desconhecido
                 </Badge>
-                <span className="font-semibold text-white">{hostsByStatus.unknown}</span>
+                <span className="font-semibold text-foreground">{hostsByStatus.unknown}</span>
               </div>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-gray-600 text-white">
+                <Badge variant="secondary" className="bg-muted text-foreground">
                   Desabilitado
                 </Badge>
-                <span className="font-semibold text-white">{hostsByStatus.disabled}</span>
+                <span className="font-semibold text-foreground">{hostsByStatus.disabled}</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Top Hosts com Problemas */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-white">
+              <CardTitle className="text-base flex items-center gap-2 text-foreground">
                 <TrendingUp className="h-4 w-4 text-orange-400" />
                 Hosts c/ Mais Problemas
               </CardTitle>
@@ -218,10 +218,10 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
                 topProblemsHosts.map(([hostName, count], index) => (
                   <div key={hostName} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-300">
+                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                         #{index + 1}
                       </Badge>
-                      <span className="text-sm truncate max-w-24 text-white" title={hostName}>
+                      <span className="text-sm truncate max-w-24 text-foreground" title={hostName}>
                         {hostName}
                       </span>
                     </div>
@@ -229,7 +229,7 @@ const ZabbixAnalysisDialog = ({ problems, hosts }: ZabbixAnalysisDialogProps) =>
                   </div>
                 ))
               ) : (
-                <div className="text-center text-slate-400 text-sm">
+                <div className="text-center text-muted-foreground text-sm">
                   Nenhum problema por host
                 </div>
               )}

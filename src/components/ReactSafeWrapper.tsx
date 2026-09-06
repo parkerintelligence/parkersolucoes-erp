@@ -48,15 +48,15 @@ export const ReactSafeWrapper: React.FC<ReactSafeWrapperProps> = ({
     }
 
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <AlertCircle className="h-8 w-8 text-red-400" />
             <div>
-              <h3 className="text-lg font-medium text-white mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 Erro de inicialização
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 {error}
               </p>
             </div>
@@ -72,15 +72,15 @@ export const ReactSafeWrapper: React.FC<ReactSafeWrapperProps> = ({
     }
 
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
             <div>
-              <h3 className="text-lg font-medium text-white mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 Carregando sistema...
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Aguarde enquanto inicializamos os componentes
               </p>
             </div>

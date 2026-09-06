@@ -29,15 +29,15 @@ const QueryContextChecker: React.FC<QuerySafeWrapperProps> = ({
     }
 
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <AlertCircle className="h-8 w-8 text-yellow-400" />
             <div>
-              <h3 className="text-lg font-medium text-white mb-2">
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 Contexto de consulta não disponível
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Aguardando inicialização do sistema...
               </p>
             </div>

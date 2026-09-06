@@ -83,9 +83,9 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
 
   if (loading) {
     return (
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Users className="h-5 w-5" />
             Gerenciamento de Clientes
           </CardTitle>
@@ -93,7 +93,7 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <RefreshCw className="h-6 w-6 animate-spin text-blue-400" />
-            <span className="ml-2 text-gray-400">Carregando clientes...</span>
+            <span className="ml-2 text-muted-foreground">Carregando clientes...</span>
           </div>
         </CardContent>
       </Card>
@@ -101,16 +101,16 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
   }
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Users className="h-5 w-5" />
           Gerenciamento de Clientes ({clients.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
         {clients.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nenhum cliente conectado</p>
             <p className="text-sm">Selecione um site para ver os clientes</p>
@@ -119,18 +119,18 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300">Cliente</TableHead>
-                  <TableHead className="text-gray-300">IP</TableHead>
-                  <TableHead className="text-gray-300">MAC</TableHead>
-                  <TableHead className="text-gray-300">Conexão</TableHead>
-                  <TableHead className="text-gray-300">Rede</TableHead>
-                  <TableHead className="text-gray-300">Sinal</TableHead>
-                  <TableHead className="text-gray-300">Última Conexão</TableHead>
-                  <TableHead className="text-gray-300">Uptime</TableHead>
-                  <TableHead className="text-gray-300">Download</TableHead>
-                  <TableHead className="text-gray-300">Upload</TableHead>
-                  <TableHead className="text-gray-300">Ações</TableHead>
+                <TableRow className="border-border hover:bg-card/50">
+                  <TableHead className="text-muted-foreground">Cliente</TableHead>
+                  <TableHead className="text-muted-foreground">IP</TableHead>
+                  <TableHead className="text-muted-foreground">MAC</TableHead>
+                  <TableHead className="text-muted-foreground">Conexão</TableHead>
+                  <TableHead className="text-muted-foreground">Rede</TableHead>
+                  <TableHead className="text-muted-foreground">Sinal</TableHead>
+                  <TableHead className="text-muted-foreground">Última Conexão</TableHead>
+                  <TableHead className="text-muted-foreground">Uptime</TableHead>
+                  <TableHead className="text-muted-foreground">Download</TableHead>
+                  <TableHead className="text-muted-foreground">Upload</TableHead>
+                  <TableHead className="text-muted-foreground">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -138,22 +138,22 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
                   const blocked = isClientBlocked(client);
                   
                   return (
-                    <TableRow key={client.id} className="border-gray-700 hover:bg-gray-800/30">
+                    <TableRow key={client.id} className="border-border hover:bg-card/30">
                       <TableCell className="flex items-center gap-2">
                         {getClientIcon(client.isWired || false)}
-                        <span className="font-medium text-gray-200">
+                        <span className="font-medium text-foreground">
                           {client.hostname || client.name || 'Cliente Desconhecido'}
                         </span>
                       </TableCell>
-                      <TableCell className="text-gray-300 font-mono text-sm">{client.ip}</TableCell>
-                      <TableCell className="text-gray-300 font-mono text-xs">{client.mac}</TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-muted-foreground font-mono text-sm">{client.ip}</TableCell>
+                      <TableCell className="text-muted-foreground font-mono text-xs">{client.mac}</TableCell>
+                      <TableCell className="text-muted-foreground">
                         <Badge className={client.isWired ? 'bg-green-900/20 text-green-400 border-green-600' : 'bg-blue-900/20 text-blue-400 border-blue-600'}>
                           {client.isWired ? 'Cabeada' : 'Wireless'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-gray-300">{client.network || 'N/A'}</TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-muted-foreground">{client.network || 'N/A'}</TableCell>
+                      <TableCell className="text-muted-foreground">
                         {client.signal ? (
                           <div className="flex items-center gap-1">
                             <Signal className="h-4 w-4" />
@@ -163,12 +163,12 @@ export const UniFiClientManager: React.FC<UniFiClientManagerProps> = ({
                           '-'
                         )}
                       </TableCell>
-                      <TableCell className="text-gray-300">
+                      <TableCell className="text-muted-foreground">
                         {client.lastSeen ? formatLastSeen(client.lastSeen) : '-'}
                       </TableCell>
-                      <TableCell className="text-gray-300">{client.uptime ? formatUptime(client.uptime) : '-'}</TableCell>
-                      <TableCell className="text-gray-300">{client.rxBytes ? formatBytes(client.rxBytes) : '0 B'}</TableCell>
-                      <TableCell className="text-gray-300">{client.txBytes ? formatBytes(client.txBytes) : '0 B'}</TableCell>
+                      <TableCell className="text-muted-foreground">{client.uptime ? formatUptime(client.uptime) : '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">{client.rxBytes ? formatBytes(client.rxBytes) : '0 B'}</TableCell>
+                      <TableCell className="text-muted-foreground">{client.txBytes ? formatBytes(client.txBytes) : '0 B'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button

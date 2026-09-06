@@ -152,20 +152,20 @@ export const BaculaDailyReportTester = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <TestTube className="h-5 w-5 text-blue-400" />
             Teste do Relatório Diário Bacula
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             Teste e envie relatórios diários com dados reais do sistema Bacula
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">
+              <label className="text-sm font-medium text-muted-foreground">
                 <Phone className="h-4 w-4 inline mr-1" />
                 Número do WhatsApp
               </label>
@@ -174,11 +174,11 @@ export const BaculaDailyReportTester = () => {
                 placeholder="5534992284722"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-secondary border-border text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Opções do Teste</label>
+              <label className="text-sm font-medium text-muted-foreground">Opções do Teste</label>
               <div className="flex gap-2">
                 <Button
                   variant={runDiagnostic ? "default" : "outline"}
@@ -206,7 +206,7 @@ export const BaculaDailyReportTester = () => {
             <Button
               onClick={handleTest}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-foreground"
             >
               {isLoading ? (
                 <Clock className="h-4 w-4 mr-2 animate-spin" />
@@ -219,7 +219,7 @@ export const BaculaDailyReportTester = () => {
               onClick={handleQuickSendReport}
               disabled={isLoading}
               variant="outline"
-              className="border-green-600 text-green-400 hover:bg-green-600 hover:text-white"
+              className="border-green-600 text-green-400 hover:bg-green-600 hover:text-foreground"
             >
               {isLoading ? (
                 <Clock className="h-4 w-4 mr-2 animate-spin" />
@@ -233,9 +233,9 @@ export const BaculaDailyReportTester = () => {
       </Card>
 
       {testResults && (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Activity className="h-5 w-5" />
               Resultados do Teste
               <Badge className={testResults.success ? 'bg-green-900/20 border-green-600/30 text-green-400' : 'bg-red-900/20 border-red-600/30 text-red-400'}>
@@ -245,14 +245,14 @@ export const BaculaDailyReportTester = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="summary" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-700 border-slate-600">
-                <TabsTrigger value="summary" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary border-border">
+                <TabsTrigger value="summary" className="data-[state=active]:bg-muted data-[state=active]:text-foreground">
                   Resumo
                 </TabsTrigger>
-                <TabsTrigger value="steps" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                <TabsTrigger value="steps" className="data-[state=active]:bg-muted data-[state=active]:text-foreground">
                   Passos Executados
                 </TabsTrigger>
-                <TabsTrigger value="diagnostic" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white">
+                <TabsTrigger value="diagnostic" className="data-[state=active]:bg-muted data-[state=active]:text-foreground">
                   Diagnóstico
                 </TabsTrigger>
               </TabsList>
@@ -260,36 +260,36 @@ export const BaculaDailyReportTester = () => {
               <TabsContent value="summary" className="space-y-4">
                 {testResults.summary && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="bg-slate-700 border-slate-600">
+                    <Card className="bg-secondary border-border">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-blue-400">
                           {testResults.summary.success_rate}%
                         </div>
-                        <div className="text-sm text-slate-300">Taxa de Sucesso</div>
+                        <div className="text-sm text-muted-foreground">Taxa de Sucesso</div>
                       </CardContent>
                     </Card>
-                    <Card className="bg-slate-700 border-slate-600">
+                    <Card className="bg-secondary border-border">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-green-400">
                           {testResults.summary.successful_steps}
                         </div>
-                        <div className="text-sm text-slate-300">Passos OK</div>
+                        <div className="text-sm text-muted-foreground">Passos OK</div>
                       </CardContent>
                     </Card>
-                    <Card className="bg-slate-700 border-slate-600">
+                    <Card className="bg-secondary border-border">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-red-400">
                           {testResults.summary.total_steps - testResults.summary.successful_steps}
                         </div>
-                        <div className="text-sm text-slate-300">Falhas</div>
+                        <div className="text-sm text-muted-foreground">Falhas</div>
                       </CardContent>
                     </Card>
-                    <Card className="bg-slate-700 border-slate-600">
+                    <Card className="bg-secondary border-border">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-purple-400">
                           {testResults.report_sent ? '✓' : '✗'}
                         </div>
-                        <div className="text-sm text-slate-300">Relatório Enviado</div>
+                        <div className="text-sm text-muted-foreground">Relatório Enviado</div>
                       </CardContent>
                     </Card>
                   </div>
@@ -326,13 +326,13 @@ export const BaculaDailyReportTester = () => {
 
               <TabsContent value="steps" className="space-y-3">
                 {testResults.steps.map((step, index) => (
-                  <Card key={index} className="bg-slate-700 border-slate-600">
+                  <Card key={index} className="bg-secondary border-border">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         {getStepIcon(step.status)}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-white">{getStepName(step.step)}</h4>
+                            <h4 className="font-medium text-foreground">{getStepName(step.step)}</h4>
                             <Badge 
                               className={step.status === 'success' 
                                 ? 'bg-green-900/20 border-green-600/30 text-green-400' 
@@ -342,10 +342,10 @@ export const BaculaDailyReportTester = () => {
                               {step.status === 'success' ? 'SUCESSO' : 'FALHA'}
                             </Badge>
                           </div>
-                          <p className="text-slate-300 text-sm">{step.message}</p>
+                          <p className="text-muted-foreground text-sm">{step.message}</p>
                           {step.details && (
-                            <div className="mt-2 text-xs text-slate-400">
-                              <pre className="bg-slate-800 p-2 rounded overflow-x-auto">
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              <pre className="bg-card p-2 rounded overflow-x-auto">
                                 {JSON.stringify(step.details, null, 2)}
                               </pre>
                             </div>
@@ -364,18 +364,18 @@ export const BaculaDailyReportTester = () => {
 
               <TabsContent value="diagnostic" className="space-y-3">
                 {testResults.diagnostic ? (
-                  <Card className="bg-slate-700 border-slate-600">
+                  <Card className="bg-secondary border-border">
                     <CardContent className="p-4">
-                      <h4 className="font-medium text-white mb-3">Dados do Diagnóstico</h4>
-                      <pre className="bg-slate-800 p-4 rounded text-slate-300 text-xs overflow-x-auto">
+                      <h4 className="font-medium text-foreground mb-3">Dados do Diagnóstico</h4>
+                      <pre className="bg-card p-4 rounded text-muted-foreground text-xs overflow-x-auto">
                         {JSON.stringify(testResults.diagnostic, null, 2)}
                       </pre>
                     </CardContent>
                   </Card>
                 ) : (
-                  <Alert className="bg-slate-700 border-slate-600">
+                  <Alert className="bg-secondary border-border">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="text-slate-300">
+                    <AlertDescription className="text-muted-foreground">
                       Diagnóstico não foi executado neste teste.
                     </AlertDescription>
                   </Alert>

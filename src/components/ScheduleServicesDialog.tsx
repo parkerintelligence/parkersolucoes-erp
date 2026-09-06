@@ -136,13 +136,13 @@ export const ScheduleServicesDialog = ({ open, onOpenChange }: ScheduleServicesD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Settings className="h-5 w-5" />
             Gerenciar Sistemas/Serviços
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-muted-foreground">
             Gerencie os sistemas e serviços disponíveis para agendamentos recorrentes
           </DialogDescription>
         </DialogHeader>

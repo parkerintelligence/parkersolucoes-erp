@@ -141,7 +141,7 @@ const Financial = () => {
               >
                 <CardContent className="p-6 text-center">
                   <div className={`w-16 h-16 rounded-full ${module.color} flex items-center justify-center mx-auto mb-4 transition-all duration-200`}>
-                    <module.icon className="h-8 w-8 text-white" />
+                    <module.icon className="h-8 w-8 text-foreground" />
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{module.title}</h3>
                   <p className="text-sm text-muted-foreground mb-4">

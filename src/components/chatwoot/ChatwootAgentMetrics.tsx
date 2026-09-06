@@ -16,10 +16,10 @@ export const ChatwootAgentMetrics = () => {
 
   if (isLoading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-8 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-          <span className="ml-3 text-slate-300">Carregando métricas dos agentes...</span>
+          <span className="ml-3 text-muted-foreground">Carregando métricas dos agentes...</span>
         </CardContent>
       </Card>
     );
@@ -27,8 +27,8 @@ export const ChatwootAgentMetrics = () => {
 
   if (!metrics || metrics.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-8 text-center text-slate-400">
+      <Card className="bg-card border-border">
+        <CardContent className="p-8 text-center text-muted-foreground">
           <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>Nenhum agente encontrado</p>
         </CardContent>
@@ -63,11 +63,11 @@ export const ChatwootAgentMetrics = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Users className="h-5 w-5 text-blue-400" />
           Métricas por Agente
         </h2>
-        <Badge variant="outline" className="bg-slate-700 text-slate-300 border-slate-600">
+        <Badge variant="outline" className="bg-secondary text-muted-foreground border-border">
           {sortedMetrics.length} {sortedMetrics.length === 1 ? 'agente' : 'agentes'}
         </Badge>
       </div>
@@ -76,23 +76,23 @@ export const ChatwootAgentMetrics = () => {
         {sortedMetrics.map((agent) => (
           <Card 
             key={agent.agentId} 
-            className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors"
+            className="bg-card border-border hover:border-border transition-colors"
           >
-            <CardHeader className="pb-3 border-b border-slate-700">
+            <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   {agent.avatarUrl && (
                     <AvatarImage src={agent.avatarUrl} alt={agent.agentName} />
                   )}
-                  <AvatarFallback className="bg-blue-600 text-white text-sm">
+                  <AvatarFallback className="bg-blue-600 text-foreground text-sm">
                     {getInitials(agent.agentName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base text-white truncate">
+                  <CardTitle className="text-base text-foreground truncate">
                     {agent.agentName}
                   </CardTitle>
-                  <p className="text-xs text-slate-400 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {agent.agentEmail}
                   </p>
                 </div>
@@ -103,8 +103,8 @@ export const ChatwootAgentMetrics = () => {
               {/* Conversas Totais */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-slate-400">Total de Conversas</span>
-                  <span className="text-lg font-bold text-white">
+                  <span className="text-sm text-muted-foreground">Total de Conversas</span>
+                  <span className="text-lg font-bold text-foreground">
                     {agent.totalConversations}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export const ChatwootAgentMetrics = () => {
               {/* Conversas Ativas */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-slate-400 flex items-center gap-1">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     Conversas Ativas
                   </span>
@@ -129,7 +129,7 @@ export const ChatwootAgentMetrics = () => {
               {/* Taxa de Resolução */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-400 flex items-center gap-1">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     Taxa de Resolução
                   </span>
@@ -139,14 +139,14 @@ export const ChatwootAgentMetrics = () => {
                 </div>
                 <Progress 
                   value={agent.resolutionRate} 
-                  className="h-2 bg-slate-700"
+                  className="h-2 bg-secondary"
                 />
               </div>
 
               {/* Tempo Médio de Resposta */}
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400 flex items-center gap-1">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     Tempo Médio
                   </span>
@@ -157,7 +157,7 @@ export const ChatwootAgentMetrics = () => {
               </div>
 
               {/* Status Breakdown */}
-              <div className="pt-2 border-t border-slate-700">
+              <div className="pt-2 border-t border-border">
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
                     <div className="text-xs text-slate-500">Abertas</div>

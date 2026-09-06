@@ -21,15 +21,15 @@ export const BaculaAnalysisDialog: React.FC<BaculaAnalysisDialogProps> = ({ jobs
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
-          className="bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+          className="bg-secondary border-border text-muted-foreground hover:bg-muted"
         >
           <BarChart3 className="mr-2 h-4 w-4" />
           Análise
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">Análise Estatística dos Jobs</DialogTitle>
+          <DialogTitle className="text-foreground">Análise Estatística dos Jobs</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 mt-4">
           <BaculaStatusCards />

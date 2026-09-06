@@ -32,7 +32,7 @@ const GLPIScheduledTicketsView = () => {
   const [editingTicket, setEditingTicket] = useState<GLPIScheduledTicket | null>(null);
 
   const PRIORITY_MAP: Record<number, { label: string; color: string }> = {
-    1: { label: 'Muito Baixa', color: 'bg-gray-800 text-gray-100 border-gray-700' },
+    1: { label: 'Muito Baixa', color: 'bg-card text-foreground border-border' },
     2: { label: 'Baixa', color: 'bg-blue-800 text-blue-100 border-blue-700' },
     3: { label: 'Média', color: 'bg-green-800 text-green-100 border-green-700' },
     4: { label: 'Alta', color: 'bg-yellow-800 text-yellow-100 border-yellow-700' },
@@ -166,14 +166,14 @@ const GLPIScheduledTicketsView = () => {
 
   if (!glpiIntegration) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="min-h-screen bg-background text-foreground p-6">
         <Card className="border-yellow-600 bg-yellow-900/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <ExternalLink className="h-5 w-5" />
               Agenda de Chamados GLPI
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Configure agendamentos automáticos para criação de chamados no GLPI
             </CardDescription>
           </CardHeader>
@@ -184,7 +184,7 @@ const GLPIScheduledTicketsView = () => {
               <p className="text-yellow-300 mb-4">
                 Para usar esta funcionalidade, configure primeiro a integração com o GLPI na área de administração.
               </p>
-              <Button variant="outline" className="bg-orange-800 hover:bg-orange-700 text-white border-orange-600">
+              <Button variant="outline" className="bg-orange-800 hover:bg-orange-700 text-foreground border-orange-600">
                 <Settings className="mr-2 h-4 w-4" />
                 Configurar GLPI
               </Button>
@@ -197,21 +197,21 @@ const GLPIScheduledTicketsView = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
+      <div className="min-h-screen bg-background text-foreground">
         <div className="flex justify-center items-center h-96">
-          <div className="text-gray-400">Carregando agendamentos...</div>
+          <div className="text-muted-foreground">Carregando agendamentos...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
+    <div className="min-h-screen bg-background text-foreground p-6">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold text-white">Agenda de Chamados GLPI</h3>
-            <p className="text-sm text-gray-400">
+            <h3 className="text-lg font-semibold text-foreground">Agenda de Chamados GLPI</h3>
+            <p className="text-sm text-muted-foreground">
               Configure agendamentos automáticos para criação de chamados no GLPI
             </p>
           </div>
@@ -220,13 +220,13 @@ const GLPIScheduledTicketsView = () => {
             <Button 
               onClick={handleTestCron}
               variant="outline"
-              className="bg-purple-600 border-purple-500 text-white hover:bg-purple-700"
+              className="bg-purple-600 border-purple-500 text-foreground hover:bg-purple-700"
             >
               <Play className="mr-2 h-4 w-4" />
               Testar Agendamentos
             </Button>
             
-            <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
+            <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-foreground">
               <Plus className="mr-2 h-4 w-4" />
               Novo Agendamento
             </Button>
@@ -235,12 +235,12 @@ const GLPIScheduledTicketsView = () => {
 
         {/* Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white">
+              <DialogTitle className="text-foreground">
                 {editingTicket ? 'Editar Agendamento' : 'Novo Agendamento de Chamado'}
               </DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-muted-foreground">
                 Configure um agendamento automático para criação de chamados no GLPI
               </DialogDescription>
             </DialogHeader>
@@ -254,52 +254,52 @@ const GLPIScheduledTicketsView = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-orange-500" />
                 <div>
-                  <p className="text-2xl font-bold text-white">{scheduledTickets.length}</p>
-                  <p className="text-sm text-gray-400">Total de Agendamentos</p>
+                  <p className="text-2xl font-bold text-foreground">{scheduledTickets.length}</p>
+                  <p className="text-sm text-muted-foreground">Total de Agendamentos</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <div>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-foreground">
                     {scheduledTickets.filter(t => t.is_active).length}
                   </p>
-                  <p className="text-sm text-gray-400">Ativos</p>
+                  <p className="text-sm text-muted-foreground">Ativos</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-purple-500" />
                 <div>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-foreground">
                     {scheduledTickets.reduce((sum, t) => sum + t.execution_count, 0)}
                   </p>
-                  <p className="text-sm text-gray-400">Total de Execuções</p>
+                  <p className="text-sm text-muted-foreground">Total de Execuções</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-500" />
                 <div>
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-foreground">
                     {scheduledTickets
                       .filter(t => t.is_active && t.next_execution)
                       .sort((a, b) => new Date(a.next_execution!).getTime() - new Date(b.next_execution!).getTime())[0]
@@ -310,7 +310,7 @@ const GLPIScheduledTicketsView = () => {
                       : 'N/A'
                     }
                   </p>
-                  <p className="text-sm text-gray-400">Próximo Agendamento</p>
+                  <p className="text-sm text-muted-foreground">Próximo Agendamento</p>
                 </div>
               </div>
             </CardContent>
@@ -318,20 +318,20 @@ const GLPIScheduledTicketsView = () => {
         </div>
 
         {/* Tickets Table */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white">Agendamentos Configurados</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">Agendamentos Configurados</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Lista de todos os agendamentos automáticos de chamados no GLPI
             </CardDescription>
           </CardHeader>
           <CardContent>
             {scheduledTickets.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                <p className="text-lg font-medium mb-2 text-white">Nenhum agendamento configurado</p>
+                <p className="text-lg font-medium mb-2 text-foreground">Nenhum agendamento configurado</p>
                 <p className="mb-4">Crie seu primeiro agendamento automático de chamados.</p>
-                <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-white">
+                <Button onClick={handleCreateNew} className="bg-orange-600 hover:bg-orange-700 text-foreground">
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Primeiro Agendamento
                 </Button>
@@ -339,37 +339,37 @@ const GLPIScheduledTicketsView = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-300">Nome</TableHead>
-                    <TableHead className="text-gray-300">Título do Chamado</TableHead>
-                    <TableHead className="text-gray-300">Prioridade</TableHead>
-                    <TableHead className="text-gray-300">Horário</TableHead>
-                    <TableHead className="text-gray-300">Próxima Execução</TableHead>
-                    <TableHead className="text-gray-300">Execuções</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Ações</TableHead>
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground">Nome</TableHead>
+                    <TableHead className="text-muted-foreground">Título do Chamado</TableHead>
+                    <TableHead className="text-muted-foreground">Prioridade</TableHead>
+                    <TableHead className="text-muted-foreground">Horário</TableHead>
+                    <TableHead className="text-muted-foreground">Próxima Execução</TableHead>
+                    <TableHead className="text-muted-foreground">Execuções</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {scheduledTickets.map((ticket) => (
-                    <TableRow key={ticket.id} className="border-gray-700">
-                      <TableCell className="font-medium text-white">{ticket.name}</TableCell>
-                      <TableCell className="text-white">{ticket.title}</TableCell>
+                    <TableRow key={ticket.id} className="border-border">
+                      <TableCell className="font-medium text-foreground">{ticket.name}</TableCell>
+                      <TableCell className="text-foreground">{ticket.title}</TableCell>
                       <TableCell>
                         <Badge className={PRIORITY_MAP[ticket.priority]?.color || 'bg-gray-100 text-gray-800'}>
                           {PRIORITY_MAP[ticket.priority]?.label || `Prioridade ${ticket.priority}`}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-white">{formatCronExpression(ticket.cron_expression)}</TableCell>
-                      <TableCell className="text-white">{formatNextExecution(ticket.next_execution || '')}</TableCell>
-                      <TableCell className="text-white">{ticket.execution_count}</TableCell>
+                      <TableCell className="text-foreground">{formatCronExpression(ticket.cron_expression)}</TableCell>
+                      <TableCell className="text-foreground">{formatNextExecution(ticket.next_execution || '')}</TableCell>
+                      <TableCell className="text-foreground">{ticket.execution_count}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Switch
                             checked={ticket.is_active}
                             onCheckedChange={() => handleToggleActive(ticket)}
                           />
-                          <span className="text-sm text-white">
+                          <span className="text-sm text-foreground">
                             {ticket.is_active ? 'Ativo' : 'Inativo'}
                           </span>
                         </div>
@@ -380,14 +380,14 @@ const GLPIScheduledTicketsView = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => handleEditTicket(ticket)}
-                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                            className="border-border text-muted-foreground hover:bg-secondary"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-gray-700"
+                            className="text-red-400 hover:text-red-300 border-border hover:bg-secondary"
                             onClick={() => handleDeleteTicket(ticket.id)}
                           >
                             <Trash2 className="h-4 w-4" />

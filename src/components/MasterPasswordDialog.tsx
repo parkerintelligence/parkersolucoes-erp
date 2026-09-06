@@ -89,20 +89,20 @@ export const MasterPasswordDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
+      <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Shield className="h-5 w-5 text-orange-500" />
             {title}
           </DialogTitle>
-          <DialogDescription className="text-slate-300">
+          <DialogDescription className="text-muted-foreground">
             {description}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="master-password" className="text-white">
+            <Label htmlFor="master-password" className="text-foreground">
               Senha Master
             </Label>
             <div className="relative">
@@ -113,7 +113,7 @@ export const MasterPasswordDialog = ({
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Digite sua senha"
-                className="bg-slate-700 border-slate-600 text-white pr-10"
+                className="bg-secondary border-border text-foreground pr-10"
                 disabled={isValidating}
                 autoFocus
               />
@@ -126,9 +126,9 @@ export const MasterPasswordDialog = ({
                 disabled={isValidating}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-slate-400" />
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <Eye className="h-4 w-4 text-slate-400" />
+                  <Eye className="h-4 w-4 text-muted-foreground" />
                 )}
               </Button>
             </div>
@@ -147,14 +147,14 @@ export const MasterPasswordDialog = ({
             variant="outline"
             onClick={handleClose}
             disabled={isValidating}
-            className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+            className="bg-secondary border-border text-foreground hover:bg-muted"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleValidate}
             disabled={isValidating || !password.trim()}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-orange-600 hover:bg-orange-700 text-foreground"
           >
             {isValidating ? 'Validando...' : 'Confirmar'}
           </Button>

@@ -80,11 +80,11 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
       case 'R': // Running
         return <Badge className="bg-blue-900/20 text-blue-400 border-blue-600">Executando</Badge>;
       case 'C': // Created but not yet running
-        return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">Criado</Badge>;
+        return <Badge className="bg-background/20 text-muted-foreground border-border">Criado</Badge>;
       case 'c': // Waiting for client
         return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Aguardando Cliente</Badge>;
       default:
-        return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">{status}</Badge>;
+        return <Badge className="bg-background/20 text-muted-foreground border-border">{status}</Badge>;
     }
   };
 
@@ -100,7 +100,7 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
       case 'R':
         return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -128,15 +128,15 @@ export const BaculaJobsByClient: React.FC<BaculaJobsByClientProps> = ({
       default:
         // Se não temos level, tentar usar o tipo
         if (type === 'B' || type === 'Backup') {
-          return <Badge className="bg-slate-900/20 text-slate-400 border-slate-600">Backup</Badge>;
+          return <Badge className="bg-background/20 text-muted-foreground border-border">Backup</Badge>;
         } else if (type === 'R' || type === 'Restore') {
           return <Badge className="bg-cyan-900/20 text-cyan-400 border-cyan-600">Restore</Badge>;
         } else if (type === 'V' || type === 'Verify') {
           return <Badge className="bg-pink-900/20 text-pink-400 border-pink-600">Verify</Badge>;
         } else if (type === 'A' || type === 'Admin') {
-          return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">Admin</Badge>;
+          return <Badge className="bg-background/20 text-muted-foreground border-border">Admin</Badge>;
         }
-        return <Badge className="bg-slate-900/20 text-gray-400 border-gray-600">{level || type || 'N/A'}</Badge>;
+        return <Badge className="bg-background/20 text-muted-foreground border-border">{level || type || 'N/A'}</Badge>;
     }
   };
 
@@ -219,14 +219,14 @@ Necessário investigar o motivo da falha no backup.`,
   if (error) {
     console.error('Jobs grid error:', error);
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-8 text-center">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-400" />
-          <h3 className="text-lg font-semibold mb-2 text-white">Erro ao carregar jobs</h3>
-          <p className="text-slate-400 mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Erro ao carregar jobs</h3>
+          <p className="text-muted-foreground mb-4">
             {error.message || 'Não foi possível conectar ao BaculaWeb'}
           </p>
-          <Button onClick={() => refetch()} className="bg-blue-800 hover:bg-blue-700 text-white">
+          <Button onClick={() => refetch()} className="bg-blue-800 hover:bg-blue-700 text-foreground">
             <RefreshCw className="mr-2 h-4 w-4" />
             Tentar novamente
           </Button>
@@ -238,29 +238,29 @@ Necessário investigar o motivo da falha no backup.`,
   return (
     <div className="space-y-6">
       {isLoading ? (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-8 text-center">
-            <RefreshCw className="h-8 w-8 mx-auto mb-4 text-slate-400 animate-spin" />
-            <p className="text-slate-400">Carregando jobs...</p>
+            <RefreshCw className="h-8 w-8 mx-auto mb-4 text-muted-foreground animate-spin" />
+            <p className="text-muted-foreground">Carregando jobs...</p>
           </CardContent>
         </Card>
       ) : Object.keys(jobsByClient).length === 0 ? (
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-8 text-center">
-            <Clock className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-            <p className="text-slate-400">Nenhum job encontrado para os filtros selecionados</p>
+            <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Nenhum job encontrado para os filtros selecionados</p>
           </CardContent>
         </Card>
       ) : (
         Object.entries(jobsByClient).map(([client, clientJobs]: [string, any]) => (
-          <Card key={client} className="bg-slate-800 border-slate-700">
+          <Card key={client} className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
+              <CardTitle className="text-foreground flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <RefreshCw className="h-5 w-5" />
                   <span className="text-sm">{client}</span>
                 </span>
-                <Badge variant="outline" className="border-slate-600 text-slate-300">
+                <Badge variant="outline" className="border-border text-muted-foreground">
                   {clientJobs.length} jobs
                 </Badge>
               </CardTitle>
@@ -269,46 +269,46 @@ Necessário investigar o motivo da falha no backup.`,
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-700">
-                      <TableHead className="text-slate-300">Status</TableHead>
-                      <TableHead className="text-slate-300">Job</TableHead>
-                      <TableHead className="text-slate-300">Tipo Backup</TableHead>
-                      <TableHead className="text-slate-300">Início</TableHead>
-                      <TableHead className="text-slate-300">Fim</TableHead>
-                      <TableHead className="text-slate-300">Duração</TableHead>
-                      <TableHead className="text-slate-300">Bytes</TableHead>
-                      <TableHead className="text-slate-300">Files</TableHead>
-                      <TableHead className="text-slate-300">Ações</TableHead>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-muted-foreground">Job</TableHead>
+                      <TableHead className="text-muted-foreground">Tipo Backup</TableHead>
+                      <TableHead className="text-muted-foreground">Início</TableHead>
+                      <TableHead className="text-muted-foreground">Fim</TableHead>
+                      <TableHead className="text-muted-foreground">Duração</TableHead>
+                      <TableHead className="text-muted-foreground">Bytes</TableHead>
+                      <TableHead className="text-muted-foreground">Files</TableHead>
+                      <TableHead className="text-muted-foreground">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {clientJobs.map((job: any, index: number) => (
-                      <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
+                      <TableRow key={job.jobid || index} className="border-border hover:bg-secondary/50">
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getJobStatusIcon(job.jobstatus)}
                             {getJobStatusBadge(job.jobstatus)}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium text-slate-200">
+                        <TableCell className="font-medium text-foreground">
                           {job.name || job.jobname || job.job || '-'}
                         </TableCell>
                         <TableCell>
                           {getBackupTypeBadge(job)}
                         </TableCell>
-                        <TableCell className="text-slate-300">
+                        <TableCell className="text-muted-foreground">
                           {formatDateTime(job.starttime || job.schedtime || job.realendtime)}
                         </TableCell>
-                        <TableCell className="text-slate-300">
+                        <TableCell className="text-muted-foreground">
                           {formatDateTime(job.endtime || job.realendtime)}
                         </TableCell>
-                        <TableCell className="text-slate-300">
+                        <TableCell className="text-muted-foreground">
                           {job.duration ? formatDuration(job.duration) : '-'}
                         </TableCell>
-                        <TableCell className="text-slate-300">
+                        <TableCell className="text-muted-foreground">
                           {job.jobbytes ? formatBytes(job.jobbytes) : '-'}
                         </TableCell>
-                        <TableCell className="text-slate-300">
+                        <TableCell className="text-muted-foreground">
                           {job.jobfiles || job.jobfilescount || '-'}
                         </TableCell>
                         <TableCell>

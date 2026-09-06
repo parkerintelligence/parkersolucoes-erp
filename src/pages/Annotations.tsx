@@ -83,7 +83,7 @@ const Annotations = () => {
     'sky': 'text-sky-400',
     'red': 'text-red-400',
     'indigo': 'text-indigo-400',
-    'gray': 'text-slate-400',
+    'gray': 'text-muted-foreground',
   };
 
   const serviceBgMap: Record<string, string> = {
@@ -94,17 +94,17 @@ const Annotations = () => {
     'sky': 'bg-sky-500/10 border-sky-500/20',
     'red': 'bg-red-500/10 border-red-500/20',
     'indigo': 'bg-indigo-500/10 border-indigo-500/20',
-    'gray': 'bg-slate-500/10 border-slate-500/20',
+    'gray': 'bg-slate-500/10 border-border/20',
   };
 
   const getServiceColor = (serviceName: string) => {
     const service = availableServices.find(s => s.name === serviceName);
-    return serviceColorMap[service?.color || 'gray'] || 'text-slate-400';
+    return serviceColorMap[service?.color || 'gray'] || 'text-muted-foreground';
   };
 
   const getServiceBg = (serviceName: string) => {
     const service = availableServices.find(s => s.name === serviceName);
-    return serviceBgMap[service?.color || 'gray'] || 'bg-slate-500/10 border-slate-500/20';
+    return serviceBgMap[service?.color || 'gray'] || 'bg-slate-500/10 border-border/20';
   };
 
   const getServiceIcon = (serviceName: string) => {

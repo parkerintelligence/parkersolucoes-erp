@@ -146,7 +146,7 @@ const UniFiConnectionWizard: React.FC<UniFiConnectionWizardProps> = ({ onConnect
       </Badge>;
     }
     
-    return <Badge variant="outline" className="text-gray-500 border-gray-500">
+    return <Badge variant="outline" className="text-gray-500 border-border">
       <Globe className="h-3 w-3 mr-1" />
       Não Testado
     </Badge>;

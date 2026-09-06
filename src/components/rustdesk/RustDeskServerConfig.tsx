@@ -198,7 +198,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
   };
 
   return (
-    <Card className={embedded ? "border-border" : "bg-slate-800 border-orange-500/30"}>
+    <Card className={embedded ? "border-border" : "bg-card border-orange-500/30"}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
@@ -221,7 +221,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
         {/* Servidores */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+            <label className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
               <Globe className="h-3 w-3 text-blue-400" />
               Servidor de ID (hbbs) *
             </label>
@@ -229,12 +229,12 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
               value={form.hbbs_server}
               onChange={e => setForm(p => ({ ...p, hbbs_server: e.target.value }))}
               placeholder="hbbs-rustdesk.meuservidor.com.br"
-              className="bg-slate-900 border-slate-600 text-white"
+              className="bg-background border-border text-foreground"
             />
             <p className="text-xs text-slate-500 mt-1">Servidor responsável pelo registro de IDs</p>
           </div>
           <div>
-            <label className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+            <label className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
               <Radio className="h-3 w-3 text-green-400" />
               Servidor de Relay (hbbr)
             </label>
@@ -242,7 +242,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
               value={form.hbbr_server}
               onChange={e => setForm(p => ({ ...p, hbbr_server: e.target.value }))}
               placeholder="hbbr-rustdesk.meuservidor.com.br"
-              className="bg-slate-900 border-slate-600 text-white"
+              className="bg-background border-border text-foreground"
             />
             <p className="text-xs text-slate-500 mt-1">Servidor de relay para conexões NAT</p>
           </div>
@@ -250,7 +250,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+            <label className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
               <Server className="h-3 w-3 text-purple-400" />
               Servidor da API (opcional)
             </label>
@@ -258,12 +258,12 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
               value={form.api_server}
               onChange={e => setForm(p => ({ ...p, api_server: e.target.value }))}
               placeholder="https://api-rustdesk.meuservidor.com.br"
-              className="bg-slate-900 border-slate-600 text-white"
+              className="bg-background border-border text-foreground"
             />
             <p className="text-xs text-slate-500 mt-1">API REST do RustDesk Server Pro (se disponível)</p>
           </div>
           <div>
-            <label className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+            <label className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
               <Key className="h-3 w-3 text-amber-400" />
               Key do Servidor
             </label>
@@ -272,10 +272,10 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
                 value={form.key}
                 onChange={e => setForm(p => ({ ...p, key: e.target.value }))}
                 placeholder="Chave pública do servidor"
-                className="bg-slate-900 border-slate-600 text-white font-mono text-xs"
+                className="bg-background border-border text-foreground font-mono text-xs"
               />
               {form.key && (
-                <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white shrink-0"
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground shrink-0"
                   onClick={() => copyToClipboard(form.key, 'Key')}>
                   <Copy className="h-3 w-3" />
                 </Button>
@@ -287,7 +287,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
 
         {/* Config String */}
         <div>
-          <label className="text-sm text-slate-400 mb-1 flex items-center gap-1">
+          <label className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
             <FileCode className="h-3 w-3 text-cyan-400" />
             String de Configuração (Encoded Config)
           </label>
@@ -295,7 +295,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
             value={form.config_string}
             onChange={e => setForm(p => ({ ...p, config_string: e.target.value }))}
             placeholder="Cole aqui a string de configuração do RustDesk..."
-            className="bg-slate-900 border-slate-600 text-white font-mono text-xs min-h-[60px]"
+            className="bg-background border-border text-foreground font-mono text-xs min-h-[60px]"
           />
           <p className="text-xs text-slate-500 mt-1">
             String codificada com todas as configurações do servidor (usada para configurar clientes automaticamente)
@@ -303,10 +303,10 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
         </div>
 
         {/* Status */}
-        <div className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-700">
+        <div className="flex items-center justify-between bg-background p-3 rounded-lg border border-border">
           <div>
-            <p className="text-sm text-white">Servidor ativo</p>
-            <p className="text-xs text-slate-400">Habilitar uso do servidor próprio para conexões</p>
+            <p className="text-sm text-foreground">Servidor ativo</p>
+            <p className="text-xs text-muted-foreground">Habilitar uso do servidor próprio para conexões</p>
           </div>
           <Switch
             checked={form.is_active}
@@ -327,7 +327,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
                 Resultado do Teste
               </span>
             </div>
-            <pre className="text-xs text-slate-300 whitespace-pre-wrap font-mono">
+            <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono">
               {testResult.message}
             </pre>
           </div>
@@ -335,21 +335,21 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
 
         {/* Existing config info */}
         {existing && (
-          <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 space-y-2">
+          <div className="bg-background p-3 rounded-lg border border-border space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <span className="text-sm text-white font-medium">Servidor Configurado</span>
+              <span className="text-sm text-foreground font-medium">Servidor Configurado</span>
               <Badge className={existing.is_active ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30'}>
                 {existing.is_active ? 'Ativo' : 'Inativo'}
               </Badge>
             </div>
             {existing.base_url && (
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-muted-foreground">
                 <span className="text-slate-500">hbbs:</span> <span className="text-blue-300">{existing.base_url}</span>
               </div>
             )}
             {existing.webhook_url && (
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-muted-foreground">
                 <span className="text-slate-500">hbbr:</span> <span className="text-green-300">{existing.webhook_url}</span>
               </div>
             )}
@@ -357,7 +357,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
         )}
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} className="border-slate-600 text-slate-300 hover:bg-slate-700">
+          <Button variant="outline" onClick={onClose} className="border-border text-muted-foreground hover:bg-secondary">
             Cancelar
           </Button>
           <Button
@@ -376,7 +376,7 @@ export const RustDeskServerConfig = ({ onClose, embedded = false }: Props) => {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-orange-600 hover:bg-orange-700 text-foreground"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />

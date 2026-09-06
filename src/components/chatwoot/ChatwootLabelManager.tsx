@@ -78,7 +78,7 @@ export const ChatwootLabelManager = ({
           );
         })}
         {remainingCount > 0 && (
-          <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-slate-700/80 border-slate-600 text-slate-200">
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-secondary/80 border-border text-foreground">
             +{remainingCount}
           </Badge>
         )}

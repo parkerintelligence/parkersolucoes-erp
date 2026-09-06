@@ -24,7 +24,7 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
   return (
     <Card className="bg-blue-900/30 border-blue-500 shadow-lg">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <HardDrive className="h-5 w-5 text-blue-400" />
           Seleção de Controladora UniFi
         </CardTitle>
@@ -36,15 +36,15 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
             onValueChange={onHostChange}
             disabled={loading || hosts.length === 0}
           >
-            <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="bg-secondary border-border text-foreground">
               <SelectValue placeholder="Selecione uma controladora UniFi" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
+            <SelectContent className="bg-secondary border-border">
               {hosts.map((host) => (
                 <SelectItem 
                   key={host.id} 
                   value={host.id}
-                  className="text-white hover:bg-gray-600"
+                  className="text-foreground hover:bg-muted"
                 >
                   <div className="flex items-center justify-between w-full">
                      <div className="flex items-center gap-2">
@@ -76,12 +76,12 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
           </Select>
 
           {selectedHost && (
-            <div className="mt-3 p-4 bg-gray-700 rounded-lg">
+            <div className="mt-3 p-4 bg-secondary rounded-lg">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                    <div className="flex items-center gap-2 mb-2">
                      <HardDrive className="h-4 w-4 text-blue-400" />
-                     <h4 className="text-sm font-medium text-white">
+                     <h4 className="text-sm font-medium text-foreground">
                        {selectedHost.reportedState?.name || selectedHost.reportedState?.hostname}
                      </h4>
                      {selectedHost.sitesCount !== undefined && (
@@ -90,7 +90,7 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
                        </Badge>
                      )}
                    </div>
-                   <div className="space-y-1 text-xs text-gray-300">
+                   <div className="space-y-1 text-xs text-muted-foreground">
                      <p><strong>Host ID:</strong> {selectedHost.id}</p>
                      <p><strong>IP:</strong> {selectedHost.reportedState?.ipAddrs?.[0] || selectedHost.ipAddress}</p>
                      <p><strong>Versão:</strong> {selectedHost.reportedState?.version}</p>
@@ -120,7 +120,7 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
           )}
 
           {hosts.length === 0 && !loading && (
-            <div className="text-center py-6 text-gray-300">
+            <div className="text-center py-6 text-muted-foreground">
               <Server className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium mb-1">Nenhuma controladora encontrada</p>
               <p className="text-xs mb-2">
@@ -135,7 +135,7 @@ export const UniFiHostSelector: React.FC<UniFiHostSelectorProps> = ({
           )}
 
           {loading && (
-            <div className="text-center py-6 text-gray-300">
+            <div className="text-center py-6 text-muted-foreground">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
               <p className="text-sm">Carregando controladoras...</p>
             </div>

@@ -172,11 +172,11 @@ const Security = () => {
 
   if (!wazuhIntegration) {
     return (
-      <div className="min-h-screen bg-slate-900 p-4">
+      <div className="min-h-screen bg-background p-4">
         <div className="max-w-7xl mx-auto">
           <Alert className="border-orange-500 bg-orange-500/10">
             <Shield className="h-4 w-4" />
-            <AlertDescription className="text-white">
+            <AlertDescription className="text-foreground">
               A integração com Wazuh não está configurada. 
               <Button 
                 variant="link" 
@@ -193,15 +193,15 @@ const Security = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Shield className="h-8 w-8 text-orange-500" />
             <div>
-              <h1 className="text-3xl font-bold text-white">Wazuh</h1>
-              <p className="text-slate-400">Monitoramento e análise de segurança em tempo real</p>
+              <h1 className="text-3xl font-bold text-foreground">Wazuh</h1>
+              <p className="text-muted-foreground">Monitoramento e análise de segurança em tempo real</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -212,7 +212,7 @@ const Security = () => {
               onClick={handleRefresh}
               disabled={isLoadingData}
               variant="outline"
-              className="border-slate-600 text-white hover:bg-slate-800"
+              className="border-border text-foreground hover:bg-card"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
               Atualizar
@@ -223,10 +223,10 @@ const Security = () => {
         {!isLoadingData && connectionError && (
           <Alert className="border-red-500 bg-red-500/10">
             <Bug className="h-4 w-4" />
-            <AlertDescription className="text-white">
+            <AlertDescription className="text-foreground">
               <div className="space-y-2">
                 <p>{connectionErrorMessage}</p>
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-muted-foreground">
                   Corrija o certificado/TLS ou troque para HTTP real no admin do Wazuh antes de usar esta tela.
                 </p>
               </div>
@@ -236,117 +236,117 @@ const Security = () => {
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Agentes Ativos</CardTitle>
+                <CardTitle className="text-foreground text-sm">Agentes Ativos</CardTitle>
                 <Users className="h-4 w-4 text-blue-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{displayData.agents.active}</div>
-              <p className="text-xs text-slate-400">de {displayData.agents.total} total</p>
+              <div className="text-2xl font-bold text-foreground">{displayData.agents.active}</div>
+              <p className="text-xs text-muted-foreground">de {displayData.agents.total} total</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Alertas Críticos</CardTitle>
+                <CardTitle className="text-foreground text-sm">Alertas Críticos</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-red-400" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-400">{displayData.alerts.critical}</div>
-              <p className="text-xs text-slate-400">últimas 24h</p>
+              <p className="text-xs text-muted-foreground">últimas 24h</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Manager Status</CardTitle>
+                <CardTitle className="text-foreground text-sm">Manager Status</CardTitle>
                 <Database className="h-4 w-4 text-green-400" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-xl font-bold text-green-400">{displayData.managerInfo.name}</div>
-              <p className="text-xs text-slate-400">v{displayData.managerInfo.version}</p>
+              <p className="text-xs text-muted-foreground">v{displayData.managerInfo.version}</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-sm">Regras Ativas</CardTitle>
+                <CardTitle className="text-foreground text-sm">Regras Ativas</CardTitle>
                 <FileText className="h-4 w-4 text-purple-400" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-400">{displayData.rulesCount}</div>
-              <p className="text-xs text-slate-400">regras de detecção</p>
+              <p className="text-xs text-muted-foreground">regras de detecção</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
-            <TabsTrigger value="dashboard" className="text-white">Dashboard</TabsTrigger>
-            <TabsTrigger value="agents" className="text-white">Agentes</TabsTrigger>
-            <TabsTrigger value="alerts" className="text-white">Alertas</TabsTrigger>
-            <TabsTrigger value="rules" className="text-white">Regras</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-card">
+            <TabsTrigger value="dashboard" className="text-foreground">Dashboard</TabsTrigger>
+            <TabsTrigger value="agents" className="text-foreground">Agentes</TabsTrigger>
+            <TabsTrigger value="alerts" className="text-foreground">Alertas</TabsTrigger>
+            <TabsTrigger value="rules" className="text-foreground">Regras</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Agentes Status */}
-              <Card className="bg-slate-800 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-foreground flex items-center gap-2">
                     <Users className="h-5 w-5" />
                     Status dos Agentes
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Ativos</span>
+                    <span className="text-muted-foreground">Ativos</span>
                     <Badge variant="default" className="bg-green-600">{displayData.agents.active}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Desconectados</span>
+                    <span className="text-muted-foreground">Desconectados</span>
                     <Badge variant="destructive">{displayData.agents.disconnected}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Nunca conectaram</span>
+                    <span className="text-muted-foreground">Nunca conectaram</span>
                     <Badge variant="secondary">{displayData.agents.never_connected}</Badge>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Alertas por Severidade */}
-              <Card className="bg-slate-800 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-foreground flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     Alertas por Severidade
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Críticos</span>
+                    <span className="text-muted-foreground">Críticos</span>
                     <Badge variant="destructive">{displayData.alerts.critical}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Altos</span>
+                    <span className="text-muted-foreground">Altos</span>
                     <Badge className="bg-orange-600">{displayData.alerts.high}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Médios</span>
+                    <span className="text-muted-foreground">Médios</span>
                     <Badge className="bg-yellow-600">{displayData.alerts.medium}</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">Baixos</span>
+                    <span className="text-muted-foreground">Baixos</span>
                     <Badge variant="secondary">{displayData.alerts.low}</Badge>
                   </div>
                 </CardContent>
@@ -355,22 +355,22 @@ const Security = () => {
           </TabsContent>
 
           <TabsContent value="agents" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-white">Agentes Wazuh</CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardTitle className="text-foreground">Agentes Wazuh</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Lista de todos os agentes conectados ao servidor Wazuh
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {displayData.agentsList.slice(0, 10).map((agent) => (
-                    <div key={agent.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div key={agent.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${agent.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
                         <div>
-                          <p className="text-white font-medium">{agent.name}</p>
-                          <p className="text-slate-400 text-sm">{agent.ip} - {agent.os?.name || 'Unknown OS'}</p>
+                          <p className="text-foreground font-medium">{agent.name}</p>
+                          <p className="text-muted-foreground text-sm">{agent.ip} - {agent.os?.name || 'Unknown OS'}</p>
                         </div>
                       </div>
                       <Badge variant={agent.status === 'active' ? 'default' : 'destructive'}>
@@ -384,17 +384,17 @@ const Security = () => {
           </TabsContent>
 
           <TabsContent value="alerts" className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader>
-                <CardTitle className="text-white">Alertas Recentes</CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardTitle className="text-foreground">Alertas Recentes</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Últimos alertas de segurança detectados pelo Wazuh
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {displayData.alertsList.slice(0, 10).map((alert) => (
-                    <div key={alert.id} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg">
+                    <div key={alert.id} className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${
                           alert.rule?.level >= 12 ? 'bg-red-500/20 text-red-400' :
@@ -404,8 +404,8 @@ const Security = () => {
                           <AlertTriangle className="h-4 w-4" />
                         </div>
                         <div>
-                          <p className="text-white font-medium">{alert.rule?.description || 'Unknown Alert'}</p>
-                          <p className="text-slate-400 text-sm">
+                          <p className="text-foreground font-medium">{alert.rule?.description || 'Unknown Alert'}</p>
+                          <p className="text-muted-foreground text-sm">
                             {alert.agent?.name || 'Unknown Agent'} - {
                               alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'Unknown Time'
                             }

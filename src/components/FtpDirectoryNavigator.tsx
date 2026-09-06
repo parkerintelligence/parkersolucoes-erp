@@ -71,7 +71,7 @@ export const FtpDirectoryNavigator = ({
         <span className="font-medium">Caminho:</span>
         {getPathBreadcrumbs().map((crumb, index) => (
           <span key={index} className="flex items-center gap-1">
-            {index > 0 && <span className="text-gray-400">/</span>}
+            {index > 0 && <span className="text-muted-foreground">/</span>}
             <button
               onClick={() => onNavigate(crumb.path)}
               className="hover:text-blue-600 hover:underline px-1 py-0.5 rounded"

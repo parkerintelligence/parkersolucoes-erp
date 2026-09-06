@@ -108,12 +108,12 @@ export const DiagnosticPanel = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Painel de Diagnóstico</h2>
+        <h2 className="text-2xl font-bold text-foreground">Painel de Diagnóstico</h2>
         <Button
           onClick={() => window.location.reload()}
           variant="outline"
           size="sm"
-          className="text-slate-300 border-slate-600"
+          className="text-muted-foreground border-border"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           Recarregar
@@ -122,9 +122,9 @@ export const DiagnosticPanel = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* WhatsApp Evolution API */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-white">
+            <CardTitle className="flex items-center justify-between text-foreground">
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" />
                 WhatsApp Evolution
@@ -133,7 +133,7 @@ export const DiagnosticPanel = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-muted-foreground">
               <p>Status: {evolutionIntegration ? 'Configurado' : 'Não configurado'}</p>
               {evolutionIntegration && (
                 <>
@@ -144,8 +144,8 @@ export const DiagnosticPanel = () => {
             </div>
             
             {lastTest.evolution && (
-              <Alert className="bg-slate-700 border-slate-600">
-                <AlertDescription className="text-slate-300">
+              <Alert className="bg-secondary border-border">
+                <AlertDescription className="text-muted-foreground">
                   <div className="flex items-center gap-2">
                     {getStatusIcon(lastTest.evolution.success ? 'success' : 'error')}
                     <span className="text-xs">
@@ -192,9 +192,9 @@ export const DiagnosticPanel = () => {
         </Card>
 
         {/* Export PDF */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-white">
+            <CardTitle className="flex items-center justify-between text-foreground">
               <div className="flex items-center gap-2">
                 <Download className="h-5 w-5" />
                 Export PDF
@@ -203,15 +203,15 @@ export const DiagnosticPanel = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-muted-foreground">
               <p>Links disponíveis: {linksCount}</p>
               <p>Empresas: {companies.length}</p>
               <p>Total senhas: {passwords.length}</p>
             </div>
             
             {lastTest.pdf && (
-              <Alert className="bg-slate-700 border-slate-600">
-                <AlertDescription className="text-slate-300">
+              <Alert className="bg-secondary border-border">
+                <AlertDescription className="text-muted-foreground">
                   <div className="flex items-center gap-2">
                     {getStatusIcon(lastTest.pdf.success ? 'success' : 'error')}
                     <span className="text-xs">
@@ -246,9 +246,9 @@ export const DiagnosticPanel = () => {
         </Card>
 
         {/* Guacamole */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-white">
+            <CardTitle className="flex items-center justify-between text-foreground">
               <div className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
                 Guacamole
@@ -257,7 +257,7 @@ export const DiagnosticPanel = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-muted-foreground">
               <p>Status: {guacamoleIntegration ? 'Configurado' : 'Não configurado'}</p>
               {guacamoleIntegration && (
                 <>
@@ -284,9 +284,9 @@ export const DiagnosticPanel = () => {
         </Card>
 
         {/* GLPI */}
-        <Card className="bg-slate-800 border-slate-700">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-white">
+            <CardTitle className="flex items-center justify-between text-foreground">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
                 GLPI Tickets
@@ -295,7 +295,7 @@ export const DiagnosticPanel = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-muted-foreground">
               <p>Status: {glpiIntegration ? 'Configurado' : 'Não configurado'}</p>
               {glpiIntegration && (
                 <p>URL: {glpiIntegration.base_url}</p>
@@ -319,9 +319,9 @@ export const DiagnosticPanel = () => {
         </Card>
       </div>
 
-      <Alert className="bg-slate-800 border-slate-600">
+      <Alert className="bg-card border-border">
         <Activity className="h-4 w-4" />
-        <AlertDescription className="text-slate-300">
+        <AlertDescription className="text-muted-foreground">
           <strong>Resumo do Sistema:</strong>
           <ul className="mt-2 space-y-1 text-sm">
             <li>• Evolution API: {evolutionIntegration ? '✅ Configurado' : '❌ Não configurado'}</li>

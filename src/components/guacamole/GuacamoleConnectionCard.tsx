@@ -38,7 +38,7 @@ export const GuacamoleConnectionCard = ({
       case 'vnc': return 'bg-green-400/20 text-green-300 border-green-400/30';
       case 'ssh': return 'bg-purple-400/20 text-purple-300 border-purple-400/30';
       case 'telnet': return 'bg-orange-400/20 text-orange-300 border-orange-400/30';
-      default: return 'bg-slate-600/20 text-slate-400 border-slate-600/30';
+      default: return 'bg-muted/20 text-muted-foreground border-border/30';
     }
   };
 
@@ -76,21 +76,21 @@ export const GuacamoleConnectionCard = ({
   const status = getConnectionStatus();
 
   return (
-    <Card className="bg-slate-800 border-slate-700 hover:shadow-lg hover:border-blue-500/40 transition-all h-[90px]">
+    <Card className="bg-card border-border hover:shadow-lg hover:border-blue-500/40 transition-all h-[90px]">
       <CardHeader className="pb-1 px-2 pt-2">
         <div className="flex items-center gap-1">
           <div className="bg-blue-500/10 p-1 rounded-sm">
             <Monitor className="h-2.5 w-2.5 text-blue-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-xs truncate text-white">{connection.name}</CardTitle>
+            <CardTitle className="text-xs truncate text-foreground">{connection.name}</CardTitle>
             <CardDescription className="flex items-center gap-1 mt-0">
               <Badge className={getProtocolColor(connection.protocol)} variant="secondary">
                 <span className="text-[10px]">{connection.protocol?.toUpperCase()}</span>
               </Badge>
               <div className="flex items-center gap-1">
                 <div className={`w-1 h-1 rounded-full ${status.color}`} />
-                <span className="text-[10px] text-slate-400">{status.label}</span>
+                <span className="text-[10px] text-muted-foreground">{status.label}</span>
                 {connection.activeConnections && connection.activeConnections > 0 && onDisconnect && (
                   <Button
                     variant="ghost"
@@ -114,7 +114,7 @@ export const GuacamoleConnectionCard = ({
             onClick={handleConnect}
             disabled={isConnecting}
             size="sm"
-            className="flex-1 h-6 text-[10px] bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex-1 h-6 text-[10px] bg-blue-600 hover:bg-blue-700 text-foreground"
           >
             {isConnecting ? (
               <Power className="h-2 w-2 mr-1 animate-spin" />
@@ -127,7 +127,7 @@ export const GuacamoleConnectionCard = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-6 px-1.5 border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="h-6 px-1.5 border-border text-muted-foreground hover:bg-secondary"
             onClick={() => onEdit(connection)}
           >
             <Edit className="h-2 w-2" />
@@ -136,7 +136,7 @@ export const GuacamoleConnectionCard = ({
           <Button
             variant="outline"
             size="sm"
-            className="h-6 px-1.5 border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="h-6 px-1.5 border-border text-muted-foreground hover:bg-secondary"
             onClick={() => onDelete(connection.identifier)}
             disabled={isDeleting}
           >

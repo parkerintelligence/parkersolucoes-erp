@@ -87,12 +87,12 @@ export const ChatwootStatusHistory = ({ integrationId, conversationId }: Chatwoo
 
                     {/* Mudança de status */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={`${prevConfig.color} text-white text-xs`}>
+                      <Badge className={`${prevConfig.color} text-foreground text-xs`}>
                         <PrevIcon className="h-3 w-3 mr-1" />
                         {prevConfig.label}
                       </Badge>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      <Badge className={`${newConfig.color} text-white text-xs`}>
+                      <Badge className={`${newConfig.color} text-foreground text-xs`}>
                         <NewIcon className="h-3 w-3 mr-1" />
                         {newConfig.label}
                       </Badge>

@@ -76,7 +76,7 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
+      <div className="text-center py-8 text-muted-foreground">
         <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
         <p>Nenhum agendamento cadastrado</p>
       </div>
@@ -104,8 +104,8 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
                     className="w-4 h-4 rounded-full border-2 border-white/20" 
                     style={{ backgroundColor: item.color || '#3b82f6' }}
                   ></div>
-                  <Icon className="h-4 w-4 text-gray-400" />
-                  <CardTitle className="text-sm font-medium text-white line-clamp-2">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-foreground line-clamp-2">
                     {item.title}
                   </CardTitle>
                 </div>
@@ -116,11 +116,11 @@ export const ScheduleGrid = ({ items, onUpdate, onDelete }: ScheduleGridProps) =
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
               <div className="space-y-2">
-                <div className="flex justify-between text-xs text-gray-300">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span className="font-medium">{typeLabels[item.type] || item.type || 'Geral'}</span>
                   <span className="font-medium">{item.company}</span>
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Vencimento:</span> {new Date(item.due_date).toLocaleDateString('pt-BR')}
                 </div>
                 {item.description && (

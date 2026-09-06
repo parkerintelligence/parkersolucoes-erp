@@ -113,9 +113,9 @@ export const UserPermissionsDialog = ({ open, onOpenChange, userId, userEmail }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="bg-card border-border max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-accent" />
             Permissões - {userEmail}
           </DialogTitle>
@@ -123,15 +123,15 @@ export const UserPermissionsDialog = ({ open, onOpenChange, userId, userEmail }:
 
         {isLoading || !initialized ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-1 pr-2">
             <div className="flex gap-2 mb-4">
-              <Button variant="outline" size="sm" onClick={selectAll} className="text-xs border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Button variant="outline" size="sm" onClick={selectAll} className="text-xs border-border text-muted-foreground hover:bg-secondary">
                 Marcar Todos
               </Button>
-              <Button variant="outline" size="sm" onClick={selectNone} className="text-xs border-slate-600 text-slate-300 hover:bg-slate-700">
+              <Button variant="outline" size="sm" onClick={selectNone} className="text-xs border-border text-muted-foreground hover:bg-secondary">
                 Desmarcar Todos
               </Button>
             </div>
@@ -145,15 +145,15 @@ export const UserPermissionsDialog = ({ open, onOpenChange, userId, userEmail }:
 
               return (
                 <Collapsible key={screen.key} open={expanded} onOpenChange={() => toggleExpand(screen.key)}>
-                  <div className={`rounded-lg border transition-colors ${enabled ? 'bg-slate-700/50 border-slate-600/50' : 'bg-slate-800/50 border-slate-700/30 opacity-60'}`}>
+                  <div className={`rounded-lg border transition-colors ${enabled ? 'bg-secondary/50 border-border/50' : 'bg-card/50 border-border/30 opacity-60'}`}>
                     <div className="flex items-center justify-between p-3">
                       <div className="flex items-center gap-2 flex-1">
                         <CollapsibleTrigger asChild>
-                          <button className="text-slate-400 hover:text-slate-200 transition-colors p-0.5">
+                          <button className="text-muted-foreground hover:text-foreground transition-colors p-0.5">
                             {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           </button>
                         </CollapsibleTrigger>
-                        <Label className="text-sm text-slate-200 cursor-pointer flex-1" onClick={() => toggleExpand(screen.key)}>
+                        <Label className="text-sm text-foreground cursor-pointer flex-1" onClick={() => toggleExpand(screen.key)}>
                           {screen.label}
                         </Label>
                         {enabled && (
@@ -170,14 +170,14 @@ export const UserPermissionsDialog = ({ open, onOpenChange, userId, userEmail }:
 
                     <CollapsibleContent>
                       <div className="px-3 pb-3 pt-0">
-                        <div className="flex flex-wrap gap-3 pl-7 pt-1 border-t border-slate-600/30">
+                        <div className="flex flex-wrap gap-3 pl-7 pt-1 border-t border-border/30">
                           {screen.actions.map(action => (
                             <label key={action} className="flex items-center gap-1.5 cursor-pointer py-1.5">
                               <Checkbox
                                 checked={currentActions.includes(action)}
                                 onCheckedChange={() => toggleAction(screen.key, action)}
                                 disabled={!enabled}
-                                className="border-slate-500 data-[state=checked]:bg-accent data-[state=checked]:border-accent"
+                                className="border-border data-[state=checked]:bg-accent data-[state=checked]:border-accent"
                               />
                               <span className={`text-xs ${enabled ? actionColors[action] : 'text-slate-600'}`}>
                                 {actionLabels[action]}
@@ -194,8 +194,8 @@ export const UserPermissionsDialog = ({ open, onOpenChange, userId, userEmail }:
           </div>
         )}
 
-        <DialogFooter className="pt-4 border-t border-slate-700">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-600 text-slate-300">
+        <DialogFooter className="pt-4 border-t border-border">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border text-muted-foreground">
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-accent text-accent-foreground hover:bg-accent/90">

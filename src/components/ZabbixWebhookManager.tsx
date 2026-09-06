@@ -140,8 +140,8 @@ export const ZabbixWebhookManager = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <RefreshCcw className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-400">Carregando webhooks...</span>
+        <RefreshCcw className="h-8 w-8 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Carregando webhooks...</span>
       </div>
     );
   }
@@ -149,24 +149,24 @@ export const ZabbixWebhookManager = () => {
   return (
     <div className="space-y-6">
       {/* Integration Status Panel */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Settings className="h-5 w-5" />
             Status das Integrações
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Verifique se as integrações necessárias estão configuradas
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
               <div className="flex items-center gap-3">
                 <MessageSquare className="h-5 w-5 text-green-400" />
                 <div>
-                  <div className="font-medium text-white">Evolution API (WhatsApp)</div>
-                  <div className="text-sm text-gray-400">Para envio de notificações</div>
+                  <div className="font-medium text-foreground">Evolution API (WhatsApp)</div>
+                  <div className="text-sm text-muted-foreground">Para envio de notificações</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -184,12 +184,12 @@ export const ZabbixWebhookManager = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
               <div className="flex items-center gap-3">
                 <ExternalLink className="h-5 w-5 text-blue-400" />
                 <div>
-                  <div className="font-medium text-white">GLPI</div>
-                  <div className="text-sm text-gray-400">Para criação de chamados</div>
+                  <div className="font-medium text-foreground">GLPI</div>
+                  <div className="text-sm text-muted-foreground">Para criação de chamados</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -226,56 +226,56 @@ export const ZabbixWebhookManager = () => {
       <ZabbixWebhookTester />
 
       {/* Existing webhook management */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Webhook className="h-5 w-5" />
             Webhooks e Automações
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Configure ações automáticas baseadas em eventos do Zabbix
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-6">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-muted-foreground">
               {webhooks.length} webhook{webhooks.length !== 1 ? 's' : ''} configurado{webhooks.length !== 1 ? 's' : ''}
             </div>
             <Dialog open={isCreating} onOpenChange={setIsCreating}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-foreground">
                   <Plus className="mr-2 h-4 w-4" />
                   Novo Webhook
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+              <DialogContent className="bg-card border-border text-foreground max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Criar Novo Webhook</DialogTitle>
-                  <DialogDescription className="text-gray-400">
+                  <DialogTitle className="text-foreground">Criar Novo Webhook</DialogTitle>
+                  <DialogDescription className="text-muted-foreground">
                     Configure as ações que serão executadas automaticamente
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="webhook-name" className="text-gray-200">Nome do Webhook</Label>
+                    <Label htmlFor="webhook-name" className="text-foreground">Nome do Webhook</Label>
                     <Input
                       id="webhook-name"
                       value={newWebhook.name}
                       onChange={(e) => setNewWebhook(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Ex: Notificar problemas críticos"
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label className="text-gray-200">Tipo de Trigger</Label>
+                    <Label className="text-foreground">Tipo de Trigger</Label>
                     <Select value={newWebhook.trigger_type} onValueChange={(value: any) => setNewWebhook(prev => ({ ...prev, trigger_type: value }))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
+                      <SelectContent className="bg-card border-border">
                         {Object.entries(triggerTypeLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value} className="text-white">
+                          <SelectItem key={value} value={value} className="text-foreground">
                             {label}
                           </SelectItem>
                         ))}
@@ -285,14 +285,14 @@ export const ZabbixWebhookManager = () => {
 
                   
                   <div className="space-y-4">
-                    <Label className="text-gray-200 text-lg">Ações</Label>
+                    <Label className="text-foreground text-lg">Ações</Label>
                     
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                       <div className="flex items-center gap-3">
                         <ExternalLink className="h-5 w-5 text-blue-400" />
                         <div>
-                          <div className="font-medium text-white">Criar Chamado GLPI</div>
-                          <div className="text-sm text-gray-400">Gera automaticamente um chamado no GLPI</div>
+                          <div className="font-medium text-foreground">Criar Chamado GLPI</div>
+                          <div className="text-sm text-muted-foreground">Gera automaticamente um chamado no GLPI</div>
                         </div>
                       </div>
                       <Switch
@@ -308,7 +308,7 @@ export const ZabbixWebhookManager = () => {
 
                     {newWebhook.actions.create_glpi_ticket && (
                       <div className="ml-8 space-y-2">
-                        <Label className="text-gray-200">ID da Entidade GLPI</Label>
+                        <Label className="text-foreground">ID da Entidade GLPI</Label>
                         <Input
                           type="number"
                           value={newWebhook.actions.glpi_entity_id}
@@ -317,17 +317,17 @@ export const ZabbixWebhookManager = () => {
                             actions: { ...prev.actions, glpi_entity_id: parseInt(e.target.value) || 0 }
                           }))}
                           placeholder="0"
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                       <div className="flex items-center gap-3">
                         <MessageSquare className="h-5 w-5 text-green-400" />
                         <div>
-                          <div className="font-medium text-white">Enviar WhatsApp</div>
-                          <div className="text-sm text-gray-400">Envia notificação via WhatsApp</div>
+                          <div className="font-medium text-foreground">Enviar WhatsApp</div>
+                          <div className="text-sm text-muted-foreground">Envia notificação via WhatsApp</div>
                         </div>
                       </div>
                       <Switch
@@ -343,7 +343,7 @@ export const ZabbixWebhookManager = () => {
 
                     {newWebhook.actions.send_whatsapp && (
                       <div className="ml-8 space-y-2">
-                        <Label className="text-gray-200">Número do WhatsApp</Label>
+                        <Label className="text-foreground">Número do WhatsApp</Label>
                         <Input
                           value={newWebhook.actions.whatsapp_number}
                           onChange={(e) => setNewWebhook(prev => ({
@@ -351,9 +351,9 @@ export const ZabbixWebhookManager = () => {
                             actions: { ...prev.actions, whatsapp_number: e.target.value }
                           }))}
                           placeholder="5511999999999"
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
-                        <Label className="text-gray-200">Mensagem Personalizada</Label>
+                        <Label className="text-foreground">Mensagem Personalizada</Label>
                         <Textarea
                           value={newWebhook.actions.custom_message}
                           onChange={(e) => setNewWebhook(prev => ({
@@ -361,10 +361,10 @@ export const ZabbixWebhookManager = () => {
                             actions: { ...prev.actions, custom_message: e.target.value }
                           }))}
                           placeholder="🚨 Alerta Zabbix: {problem_name} no host {host_name}"
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                           rows={3}
                         />
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Variáveis disponíveis: {'{problem_name}, {host_name}, {severity}, {timestamp}'}
                         </p>
                       </div>
@@ -374,13 +374,13 @@ export const ZabbixWebhookManager = () => {
                   <div className="flex gap-2 pt-4">
                     <Button 
                       onClick={handleCreateWebhook} 
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="bg-blue-600 hover:bg-blue-700 text-foreground"
                       disabled={createWebhook.isPending}
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       {createWebhook.isPending ? 'Criando...' : 'Criar Webhook'}
                     </Button>
-                    <Button variant="outline" onClick={() => setIsCreating(false)} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                    <Button variant="outline" onClick={() => setIsCreating(false)} className="border-border text-foreground hover:bg-secondary">
                       Cancelar
                     </Button>
                   </div>
@@ -391,10 +391,10 @@ export const ZabbixWebhookManager = () => {
 
           {/* Dialog de Edição */}
           <Dialog open={!!editingWebhook} onOpenChange={(open) => !open && resetEditForm()}>
-            <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+            <DialogContent className="bg-card border-border text-foreground max-w-2xl">
               <DialogHeader>
-                <DialogTitle className="text-white">Editar Webhook</DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogTitle className="text-foreground">Editar Webhook</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
                   Modifique as configurações do webhook
                 </DialogDescription>
               </DialogHeader>
@@ -402,26 +402,26 @@ export const ZabbixWebhookManager = () => {
                 <div className="space-y-4">
                   
                   <div className="grid gap-2">
-                    <Label className="text-gray-200">Nome do Webhook</Label>
+                    <Label className="text-foreground">Nome do Webhook</Label>
                     <Input
                       value={editingWebhook.name}
                       onChange={(e) => setEditingWebhook(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label className="text-gray-200">Tipo de Trigger</Label>
+                    <Label className="text-foreground">Tipo de Trigger</Label>
                     <Select 
                       value={editingWebhook.trigger_type} 
                       onValueChange={(value: any) => setEditingWebhook(prev => prev ? ({ ...prev, trigger_type: value }) : null)}
                     >
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger className="bg-secondary border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
+                      <SelectContent className="bg-card border-border">
                         {Object.entries(triggerTypeLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value} className="text-white">
+                          <SelectItem key={value} value={value} className="text-foreground">
                             {label}
                           </SelectItem>
                         ))}
@@ -430,14 +430,14 @@ export const ZabbixWebhookManager = () => {
                   </div>
 
                   <div className="space-y-4">
-                    <Label className="text-gray-200 text-lg">Ações</Label>
+                    <Label className="text-foreground text-lg">Ações</Label>
                     
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                       <div className="flex items-center gap-3">
                         <ExternalLink className="h-5 w-5 text-blue-400" />
                         <div>
-                          <div className="font-medium text-white">Criar Chamado GLPI</div>
-                          <div className="text-sm text-gray-400">Gera automaticamente um chamado no GLPI</div>
+                          <div className="font-medium text-foreground">Criar Chamado GLPI</div>
+                          <div className="text-sm text-muted-foreground">Gera automaticamente um chamado no GLPI</div>
                         </div>
                       </div>
                       <Switch
@@ -453,7 +453,7 @@ export const ZabbixWebhookManager = () => {
 
                     {editingWebhook.actions.create_glpi_ticket && (
                       <div className="ml-8 space-y-2">
-                        <Label className="text-gray-200">ID da Entidade GLPI</Label>
+                        <Label className="text-foreground">ID da Entidade GLPI</Label>
                         <Input
                           type="number"
                           value={editingWebhook.actions.glpi_entity_id}
@@ -461,17 +461,17 @@ export const ZabbixWebhookManager = () => {
                             ...prev,
                             actions: { ...prev.actions, glpi_entity_id: parseInt(e.target.value) || 0 }
                           }) : null)}
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                       <div className="flex items-center gap-3">
                         <MessageSquare className="h-5 w-5 text-green-400" />
                         <div>
-                          <div className="font-medium text-white">Enviar WhatsApp</div>
-                          <div className="text-sm text-gray-400">Envia notificação via WhatsApp</div>
+                          <div className="font-medium text-foreground">Enviar WhatsApp</div>
+                          <div className="text-sm text-muted-foreground">Envia notificação via WhatsApp</div>
                         </div>
                       </div>
                       <Switch
@@ -487,7 +487,7 @@ export const ZabbixWebhookManager = () => {
 
                     {editingWebhook.actions.send_whatsapp && (
                       <div className="ml-8 space-y-2">
-                        <Label className="text-gray-200">Número do WhatsApp</Label>
+                        <Label className="text-foreground">Número do WhatsApp</Label>
                         <Input
                           value={editingWebhook.actions.whatsapp_number}
                           onChange={(e) => setEditingWebhook(prev => prev ? ({
@@ -495,9 +495,9 @@ export const ZabbixWebhookManager = () => {
                             actions: { ...prev.actions, whatsapp_number: e.target.value }
                           }) : null)}
                           placeholder="5511999999999"
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                         />
-                        <Label className="text-gray-200">Mensagem Personalizada</Label>
+                        <Label className="text-foreground">Mensagem Personalizada</Label>
                         <Textarea
                           value={editingWebhook.actions.custom_message}
                           onChange={(e) => setEditingWebhook(prev => prev ? ({
@@ -505,10 +505,10 @@ export const ZabbixWebhookManager = () => {
                             actions: { ...prev.actions, custom_message: e.target.value }
                           }) : null)}
                           placeholder="🚨 Alerta Zabbix: {problem_name} no host {host_name}"
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className="bg-secondary border-border text-foreground"
                           rows={3}
                         />
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           Variáveis disponíveis: {'{problem_name}, {host_name}, {severity}, {timestamp}'}
                         </p>
                       </div>
@@ -518,13 +518,13 @@ export const ZabbixWebhookManager = () => {
                   <div className="flex gap-2 pt-4">
                     <Button 
                       onClick={handleUpdateWebhook} 
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="bg-blue-600 hover:bg-blue-700 text-foreground"
                       disabled={updateWebhook.isPending}
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       {updateWebhook.isPending ? 'Salvando...' : 'Salvar Alterações'}
                     </Button>
-                    <Button variant="outline" onClick={resetEditForm} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                    <Button variant="outline" onClick={resetEditForm} className="border-border text-foreground hover:bg-secondary">
                       Cancelar
                     </Button>
                   </div>
@@ -534,7 +534,7 @@ export const ZabbixWebhookManager = () => {
           </Dialog>
 
           {webhooks.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <Webhook className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium mb-2">Nenhum webhook configurado</p>
               <p className="text-sm">Crie webhooks para automatizar ações baseadas em eventos do Zabbix</p>
@@ -542,19 +542,19 @@ export const ZabbixWebhookManager = () => {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-300">Nome</TableHead>
-                  <TableHead className="text-gray-300">Trigger</TableHead>
-                  <TableHead className="text-gray-300">Ações</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300">Execuções</TableHead>
-                  <TableHead className="text-gray-300">Controles</TableHead>
+                <TableRow className="border-border hover:bg-card/50">
+                  <TableHead className="text-muted-foreground">Nome</TableHead>
+                  <TableHead className="text-muted-foreground">Trigger</TableHead>
+                  <TableHead className="text-muted-foreground">Ações</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Execuções</TableHead>
+                  <TableHead className="text-muted-foreground">Controles</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {webhooks.map((webhook) => (
-                  <TableRow key={webhook.id} className="border-gray-700 hover:bg-gray-800/30">
-                    <TableCell className="font-medium text-gray-200">{webhook.name}</TableCell>
+                  <TableRow key={webhook.id} className="border-border hover:bg-card/30">
+                    <TableCell className="font-medium text-foreground">{webhook.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-blue-900/20 text-blue-400 border-blue-600">
                         {triggerTypeLabels[webhook.trigger_type]}
@@ -583,11 +583,11 @@ export const ZabbixWebhookManager = () => {
                         {webhook.is_active ? (
                           <CheckCircle className="h-4 w-4 text-green-400" />
                         ) : (
-                          <AlertTriangle className="h-4 w-4 text-gray-400" />
+                          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-300">
+                    <TableCell className="text-muted-foreground">
                       <div className="flex flex-col">
                         <span>{webhook.trigger_count}</span>
                         {webhook.last_triggered && (
@@ -623,7 +623,7 @@ export const ZabbixWebhookManager = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => setEditingWebhook(webhook)}
-                          className="text-gray-400 hover:text-white hover:bg-gray-700"
+                          className="text-muted-foreground hover:text-foreground hover:bg-secondary"
                           title="Editar webhook"
                         >
                           <Edit className="h-4 w-4" />

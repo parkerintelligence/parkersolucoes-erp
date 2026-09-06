@@ -54,7 +54,7 @@ export function ActionBoard({ boardId, columns, cards, cardItems }: ActionBoardP
           <DialogTrigger asChild>
             <Button 
               variant="outline" 
-              className="h-12 w-72 border-dashed border-2 border-slate-600/50 hover:border-blue-500/50 hover:bg-slate-700/50 transition-colors shadow-sm bg-slate-800 text-slate-300 hover:text-white"
+              className="h-12 w-72 border-dashed border-2 border-border/50 hover:border-blue-500/50 hover:bg-secondary/50 transition-colors shadow-sm bg-card text-muted-foreground hover:text-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Coluna

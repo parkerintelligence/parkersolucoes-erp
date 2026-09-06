@@ -21,7 +21,7 @@ export const WasabiBucketSelector = ({
 }: WasabiBucketSelectorProps) => {
   return (
     <div className={className}>
-      <Label htmlFor="bucket-selector" className="text-white flex items-center gap-2 mb-2">
+      <Label htmlFor="bucket-selector" className="text-foreground flex items-center gap-2 mb-2">
         <Database className="h-4 w-4" />
         Selecionar Bucket
       </Label>
@@ -32,7 +32,7 @@ export const WasabiBucketSelector = ({
       >
         <SelectTrigger 
           id="bucket-selector"
-          className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+          className="bg-card border-border text-foreground hover:bg-secondary"
         >
           <SelectValue placeholder={
             buckets.length === 0 
@@ -40,12 +40,12 @@ export const WasabiBucketSelector = ({
               : "Escolha um bucket para visualizar arquivos..."
           } />
         </SelectTrigger>
-        <SelectContent className="bg-gray-800 border-gray-700">
+        <SelectContent className="bg-card border-border">
           {buckets.map((bucket) => (
             <SelectItem 
               key={bucket.name} 
               value={bucket.name}
-              className="text-white hover:bg-gray-700"
+              className="text-foreground hover:bg-secondary"
             >
               {bucket.name}
             </SelectItem>

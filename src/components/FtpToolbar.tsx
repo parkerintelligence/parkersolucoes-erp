@@ -108,7 +108,7 @@ export const FtpToolbar = ({
       <div className="flex items-center gap-1 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
         {getPathBreadcrumbs().map((crumb, index) => (
           <span key={index} className="flex items-center gap-1">
-            {index > 0 && <span className="text-gray-400">/</span>}
+            {index > 0 && <span className="text-muted-foreground">/</span>}
             <button
               onClick={() => navigateToPath(crumb.path)}
               className="hover:text-blue-600 hover:underline px-1 py-0.5 rounded"
@@ -122,7 +122,7 @@ export const FtpToolbar = ({
       {/* Search and Actions */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar arquivos..."
             value={searchTerm}

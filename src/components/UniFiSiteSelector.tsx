@@ -24,7 +24,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
   return (
     <Card className="bg-blue-900/30 border-blue-500 shadow-lg">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
+        <CardTitle className="text-foreground flex items-center gap-2">
           <Globe className="h-5 w-5 text-blue-400" />
           Seleção de Site UniFi
         </CardTitle>
@@ -36,15 +36,15 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
             onValueChange={onSiteChange}
             disabled={loading || sites.length === 0}
           >
-            <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="bg-secondary border-border text-foreground">
               <SelectValue placeholder="Selecione um site da controladora para gerenciar" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-700 border-gray-600">
+            <SelectContent className="bg-secondary border-border">
               {sites.map((site) => (
                 <SelectItem 
                   key={site.id} 
                   value={site.id}
-                  className="text-white hover:bg-gray-600"
+                  className="text-foreground hover:bg-muted"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
                       <div className="flex flex-col">
                         <span>{site.description || site.name}</span>
                         {(site as any).controllerName && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground">
                             {(site as any).controllerName}
                           </span>
                         )}
@@ -70,16 +70,16 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           </Select>
 
           {selectedSite && (
-            <div className="mt-3 p-4 bg-gray-700 rounded-lg">
+            <div className="mt-3 p-4 bg-secondary rounded-lg">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <Server className="h-4 w-4 text-blue-400" />
-                    <h4 className="text-sm font-medium text-white">
+                    <h4 className="text-sm font-medium text-foreground">
                       {selectedSite.description || selectedSite.name}
                     </h4>
                   </div>
-                   <div className="space-y-1 text-xs text-gray-300">
+                   <div className="space-y-1 text-xs text-muted-foreground">
                      <p><strong>Site ID:</strong> {selectedSite.id}</p>
                      <p><strong>Nome:</strong> {selectedSite.name}</p>
                      <div className="flex items-center gap-1">
@@ -122,7 +122,7 @@ export const UniFiSiteSelector: React.FC<UniFiSiteSelectorProps> = ({
           )}
 
           {loading && (
-            <div className="text-center py-6 text-gray-300">
+            <div className="text-center py-6 text-muted-foreground">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-3"></div>
               <p className="text-sm">Carregando sites da controladora...</p>
             </div>

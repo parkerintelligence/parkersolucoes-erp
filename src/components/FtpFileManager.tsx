@@ -102,7 +102,7 @@ export const FtpFileManager = ({ className }: FtpFileManagerProps) => {
     return (
       <Card className={className}>
         <CardContent className="p-6 text-center">
-          <Folder className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <Folder className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma conexão FTP configurada</h3>
           <p className="text-gray-600">Configure uma integração FTP no painel de administração para gerenciar arquivos.</p>
         </CardContent>
@@ -357,7 +357,7 @@ export const FtpFileManager = ({ className }: FtpFileManagerProps) => {
             </Table>
           ) : (
             <div className="text-center py-8">
-              <Folder className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <Folder className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Pasta vazia</h3>
               <p className="text-gray-600 mb-4">Nenhum arquivo encontrado neste diretório.</p>
               <FtpUploadDialog />

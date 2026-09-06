@@ -71,16 +71,16 @@ export const ScheduleFrequencySelector = ({ value, onChange, className }: Schedu
 
   return (
     <div className={className}>
-      <Label className="text-white">Frequência de Execução</Label>
+      <Label className="text-foreground">Frequência de Execução</Label>
       
       <div className="space-y-4 mt-2">
         <Select value={frequency} onValueChange={setFrequency}>
-          <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+          <SelectTrigger className="bg-muted border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-gray-600 border-gray-500">
+          <SelectContent className="bg-muted border-border">
             {FREQUENCY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="text-white hover:bg-gray-500">
+              <SelectItem key={option.value} value={option.value} className="text-foreground hover:bg-gray-500">
                 {option.label}
               </SelectItem>
             ))}
@@ -89,32 +89,32 @@ export const ScheduleFrequencySelector = ({ value, onChange, className }: Schedu
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label className="text-white text-sm">Hora</Label>
+            <Label className="text-foreground text-sm">Hora</Label>
             <Input
               type="number"
               min="0"
               max="23"
               value={hour}
               onChange={(e) => setHour(parseInt(e.target.value) || 0)}
-              className="bg-gray-600 border-gray-500 text-white"
+              className="bg-muted border-border text-foreground"
             />
           </div>
           <div>
-            <Label className="text-white text-sm">Minuto</Label>
+            <Label className="text-foreground text-sm">Minuto</Label>
             <Input
               type="number"
               min="0"
               max="59"
               value={minute}
               onChange={(e) => setMinute(parseInt(e.target.value) || 0)}
-              className="bg-gray-600 border-gray-500 text-white"
+              className="bg-muted border-border text-foreground"
             />
           </div>
         </div>
 
         {frequency === 'weekly' && (
           <div>
-            <Label className="text-white text-sm">Dias da Semana</Label>
+            <Label className="text-foreground text-sm">Dias da Semana</Label>
             <div className="grid grid-cols-2 gap-2 mt-2">
               {DAYS_OF_WEEK.map((day) => (
                 <div key={day.value} className="flex items-center space-x-2">
@@ -122,9 +122,9 @@ export const ScheduleFrequencySelector = ({ value, onChange, className }: Schedu
                     id={`day-${day.value}`}
                     checked={selectedDays.includes(day.value)}
                     onCheckedChange={(checked) => handleDayToggle(day.value, checked as boolean)}
-                    className="border-gray-500"
+                    className="border-border"
                   />
-                  <Label htmlFor={`day-${day.value}`} className="text-white text-sm">
+                  <Label htmlFor={`day-${day.value}`} className="text-foreground text-sm">
                     {day.label}
                   </Label>
                 </div>
@@ -135,32 +135,32 @@ export const ScheduleFrequencySelector = ({ value, onChange, className }: Schedu
 
         {frequency === 'monthly' && (
           <div>
-            <Label className="text-white text-sm">Dia do Mês</Label>
+            <Label className="text-foreground text-sm">Dia do Mês</Label>
             <Input
               type="number"
               min="1"
               max="31"
               value={dayOfMonth}
               onChange={(e) => setDayOfMonth(parseInt(e.target.value) || 1)}
-              className="bg-gray-600 border-gray-500 text-white"
+              className="bg-muted border-border text-foreground"
             />
           </div>
         )}
 
         {frequency === 'custom' && (
           <div>
-            <Label className="text-white text-sm">Expressão Cron Personalizada</Label>
+            <Label className="text-foreground text-sm">Expressão Cron Personalizada</Label>
             <Input
               value={customCron}
               onChange={(e) => setCustomCron(e.target.value)}
               placeholder="0 9 * * *"
-              className="bg-gray-600 border-gray-500 text-white"
+              className="bg-muted border-border text-foreground"
             />
           </div>
         )}
 
-        <div className="text-xs text-gray-400">
-          Expressão gerada: <code className="bg-gray-700 px-1 rounded">{generateCronExpression()}</code>
+        <div className="text-xs text-muted-foreground">
+          Expressão gerada: <code className="bg-secondary px-1 rounded">{generateCronExpression()}</code>
         </div>
       </div>
     </div>

@@ -46,9 +46,9 @@ export const FtpUploadDialog = () => {
           Upload para Servidor Real
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700 text-white">
+      <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Upload className="h-5 w-5 text-blue-400" />
             Upload para Servidor FTP Real
           </DialogTitle>
@@ -70,7 +70,7 @@ export const FtpUploadDialog = () => {
               accept=".sql,.txt,.zip,.tar,.gz,.bak,.log,.json,.xml,.csv"
             />
             <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-sm text-gray-600 mb-2">
                 Clique para selecionar um arquivo ou arraste aqui
               </p>
@@ -96,7 +96,7 @@ export const FtpUploadDialog = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedFile(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-gray-600"
                 >
                   <X className="h-4 w-4" />
                 </Button>

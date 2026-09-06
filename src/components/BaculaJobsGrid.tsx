@@ -146,11 +146,11 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
       case 'R':
         return <Badge className="bg-blue-900/30 text-blue-400 border-blue-600">Executando</Badge>;
       case 'C':
-        return <Badge className="bg-slate-900/30 text-gray-400 border-gray-600">Criado</Badge>;
+        return <Badge className="bg-background/30 text-muted-foreground border-border">Criado</Badge>;
       case 'c':
         return <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-600">Aguardando</Badge>;
       default:
-        return <Badge className="bg-slate-900/30 text-gray-400 border-gray-600">{status}</Badge>;
+        return <Badge className="bg-background/30 text-muted-foreground border-border">{status}</Badge>;
     }
   };
 
@@ -166,7 +166,7 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
       case 'R':
         return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -181,7 +181,7 @@ export const BaculaJobsGrid: React.FC<BaculaJobsGridProps> = ({
       case 'D':
         return <Badge className="bg-orange-900/30 text-orange-400 border-orange-600">Diferencial</Badge>;
       default:
-        return <Badge className="bg-slate-900/30 text-gray-400 border-gray-600">{level || 'N/A'}</Badge>;
+        return <Badge className="bg-background/30 text-muted-foreground border-border">{level || 'N/A'}</Badge>;
     }
   };
 
@@ -282,14 +282,14 @@ Necessário investigar o motivo da falha no backup.`,
 
   if (error) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-8 text-center">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-400" />
-          <h3 className="text-lg font-semibold mb-2 text-white">Erro ao carregar jobs</h3>
-          <p className="text-slate-400 mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Erro ao carregar jobs</h3>
+          <p className="text-muted-foreground mb-4">
             {error.message || 'Não foi possível conectar ao BaculaWeb'}
           </p>
-          <Button onClick={() => refetch()} className="bg-blue-800 hover:bg-blue-700 text-white">
+          <Button onClick={() => refetch()} className="bg-blue-800 hover:bg-blue-700 text-foreground">
             <RefreshCw className="mr-2 h-4 w-4" />
             Tentar novamente
           </Button>
@@ -300,10 +300,10 @@ Necessário investigar o motivo da falha no backup.`,
 
   if (isLoading) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-8 text-center">
-          <RefreshCw className="h-8 w-8 mx-auto mb-4 text-slate-400 animate-spin" />
-          <p className="text-slate-400">Carregando jobs...</p>
+          <RefreshCw className="h-8 w-8 mx-auto mb-4 text-muted-foreground animate-spin" />
+          <p className="text-muted-foreground">Carregando jobs...</p>
         </CardContent>
       </Card>
     );
@@ -311,10 +311,10 @@ Necessário investigar o motivo da falha no backup.`,
 
   if (sortedJobs.length === 0) {
     return (
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="p-8 text-center">
-          <Clock className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-          <p className="text-slate-400">Nenhum job encontrado para os filtros selecionados</p>
+          <Clock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">Nenhum job encontrado para os filtros selecionados</p>
         </CardContent>
       </Card>
     );
@@ -326,14 +326,14 @@ Necessário investigar o motivo da falha no backup.`,
   const paginatedJobs = sortedJobs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-foreground flex items-center justify-between">
           <span className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
             Jobs Status Terminated
           </span>
-          <Badge variant="outline" className="border-slate-600 text-slate-300">
+          <Badge variant="outline" className="border-border text-muted-foreground">
             {sortedJobs.length} jobs
           </Badge>
         </CardTitle>
@@ -342,10 +342,10 @@ Necessário investigar o motivo da falha no backup.`,
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-700">
-                <TableHead className="text-slate-300 w-16">JobID</TableHead>
+              <TableRow className="border-border">
+                <TableHead className="text-muted-foreground w-16">JobID</TableHead>
                 <TableHead 
-                  className="text-slate-300 cursor-pointer hover:text-white"
+                  className="text-muted-foreground cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center">
@@ -354,7 +354,7 @@ Necessário investigar o motivo da falha no backup.`,
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="text-slate-300 cursor-pointer hover:text-white"
+                  className="text-muted-foreground cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center">
@@ -363,7 +363,7 @@ Necessário investigar o motivo da falha no backup.`,
                   </div>
                 </TableHead>
                 <TableHead 
-                  className="text-slate-300 cursor-pointer hover:text-white"
+                  className="text-muted-foreground cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('starttime')}
                 >
                   <div className="flex items-center">
@@ -371,11 +371,11 @@ Necessário investigar o motivo da falha no backup.`,
                     {getSortIcon('starttime')}
                   </div>
                 </TableHead>
-                <TableHead className="text-slate-300">EndTime</TableHead>
-                <TableHead className="text-slate-300">Level</TableHead>
-                <TableHead className="text-slate-300">JobFiles</TableHead>
+                <TableHead className="text-muted-foreground">EndTime</TableHead>
+                <TableHead className="text-muted-foreground">Level</TableHead>
+                <TableHead className="text-muted-foreground">JobFiles</TableHead>
                 <TableHead 
-                  className="text-slate-300 cursor-pointer hover:text-white"
+                  className="text-muted-foreground cursor-pointer hover:text-foreground"
                   onClick={() => handleSort('client')}
                 >
                   <div className="flex items-center">
@@ -383,17 +383,17 @@ Necessário investigar o motivo da falha no backup.`,
                     {getSortIcon('client')}
                   </div>
                 </TableHead>
-                <TableHead className="text-slate-300">Size</TableHead>
-                <TableHead className="text-slate-300 w-20">Ações</TableHead>
+                <TableHead className="text-muted-foreground">Size</TableHead>
+                <TableHead className="text-muted-foreground w-20">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedJobs.map((job: any, index: number) => (
-                <TableRow key={job.jobid || index} className="border-slate-700 hover:bg-slate-700/50">
-                  <TableCell className="text-slate-300 font-mono text-sm">
+                <TableRow key={job.jobid || index} className="border-border hover:bg-secondary/50">
+                  <TableCell className="text-muted-foreground font-mono text-sm">
                     {job.jobid || '-'}
                   </TableCell>
-                  <TableCell className="font-medium text-slate-200">
+                  <TableCell className="font-medium text-foreground">
                     {job.name || job.jobname || job.job || '-'}
                   </TableCell>
                   <TableCell>
@@ -402,22 +402,22 @@ Necessário investigar o motivo da falha no backup.`,
                       {getJobStatusBadge(job.jobstatus)}
                     </div>
                   </TableCell>
-                  <TableCell className="text-slate-300 font-mono text-sm">
+                  <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDateTime(job.starttime || job.schedtime)}
                   </TableCell>
-                  <TableCell className="text-slate-300 font-mono text-sm">
+                  <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDateTime(job.endtime || job.realendtime)}
                   </TableCell>
                   <TableCell>
                     {getBackupTypeBadge(job)}
                   </TableCell>
-                  <TableCell className="text-slate-300">
+                  <TableCell className="text-muted-foreground">
                     {job.jobfiles || job.jobfilescount || '-'}
                   </TableCell>
-                  <TableCell className="text-slate-300 max-w-48 truncate">
+                  <TableCell className="text-muted-foreground max-w-48 truncate">
                     {job.client || job.clientname || job.clientid || '-'}
                   </TableCell>
-                  <TableCell className="text-slate-300">
+                  <TableCell className="text-muted-foreground">
                     {job.jobbytes ? formatBytes(job.jobbytes) : '-'}
                   </TableCell>
                   <TableCell>
@@ -439,8 +439,8 @@ Necessário investigar o motivo da falha no backup.`,
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700">
-            <span className="text-sm text-slate-400">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+            <span className="text-sm text-muted-foreground">
               Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedJobs.length)} de {sortedJobs.length}
             </span>
             <div className="flex items-center gap-2">
@@ -449,7 +449,7 @@ Necessário investigar o motivo da falha no backup.`,
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="border-border text-muted-foreground hover:bg-secondary"
               >
                 Anterior
               </Button>
@@ -472,7 +472,7 @@ Necessário investigar o motivo da falha no backup.`,
                     onClick={() => setCurrentPage(page)}
                     className={currentPage === page 
                       ? "bg-primary text-primary-foreground" 
-                      : "border-slate-600 text-slate-300 hover:bg-slate-700"}
+                      : "border-border text-muted-foreground hover:bg-secondary"}
                   >
                     {page}
                   </Button>
@@ -483,7 +483,7 @@ Necessário investigar o motivo da falha no backup.`,
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="border-border text-muted-foreground hover:bg-secondary"
               >
                 Próximo
               </Button>

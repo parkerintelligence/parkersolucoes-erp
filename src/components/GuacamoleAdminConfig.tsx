@@ -169,7 +169,7 @@ const GuacamoleAdminConfig = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <div className="h-8 w-8 bg-blue-500 rounded flex items-center justify-center">
-            <span className="text-white font-bold text-sm">G</span>
+            <span className="text-foreground font-bold text-sm">G</span>
           </div>
           Configuração do Guacamole
         </CardTitle>

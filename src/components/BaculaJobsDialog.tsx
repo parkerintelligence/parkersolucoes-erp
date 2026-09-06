@@ -16,15 +16,15 @@ export const BaculaJobsDialog: React.FC = () => {
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
-          className="bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+          className="bg-secondary border-border text-muted-foreground hover:bg-muted"
         >
           <Database className="mr-2 h-4 w-4" />
           Jobs
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-white">Jobs Cadastrados no Director</DialogTitle>
+          <DialogTitle className="text-foreground">Jobs Cadastrados no Director</DialogTitle>
         </DialogHeader>
         <div className="mt-4">
           <BaculaConfiguredJobsTable />

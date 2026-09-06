@@ -255,13 +255,13 @@ ${scheduleItem.description ? `📄 *Descrição:* ${scheduleItem.description}` :
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
+            <DialogTitle className="flex items-center gap-2 text-foreground">
               <MessageCircle className="h-5 w-5 text-green-600" />
               Enviar via WhatsApp
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Compartilhe os dados do agendamento de forma segura via WhatsApp
             </DialogDescription>
           </DialogHeader>
@@ -284,33 +284,33 @@ ${scheduleItem.description ? `📄 *Descrição:* ${scheduleItem.description}` :
 
             {/* Campo de número */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-white">Número do WhatsApp</Label>
+              <Label htmlFor="phone" className="text-foreground">Número do WhatsApp</Label>
               <div className="relative">
-                <User className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <User className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="phone"
                   type="tel"
                   placeholder="Ex: 5511999999999 ou 11999999999"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="pl-8 font-mono bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  className="pl-8 font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Digite o número com ou sem código do país (55). Mínimo 10 dígitos.
               </p>
             </div>
 
             {/* Modelo de mensagem */}
             <div className="space-y-2">
-              <Label htmlFor="template" className="text-white">Modelo de mensagem</Label>
+              <Label htmlFor="template" className="text-foreground">Modelo de mensagem</Label>
               <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                <SelectTrigger className="bg-secondary border-border text-foreground">
                   <SelectValue placeholder="Selecione um modelo" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
+                <SelectContent className="bg-secondary border-border">
                   {MESSAGE_TEMPLATES.map((template) => (
-                    <SelectItem key={template.id} value={template.id} className="text-white hover:bg-slate-600">
+                    <SelectItem key={template.id} value={template.id} className="text-foreground hover:bg-muted">
                       {template.name}
                     </SelectItem>
                   ))}
@@ -321,12 +321,12 @@ ${scheduleItem.description ? `📄 *Descrição:* ${scheduleItem.description}` :
             {/* Preview da mensagem */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-white">Preview da mensagem:</Label>
+                <Label className="text-foreground">Preview da mensagem:</Label>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={copyToClipboard}
-                  className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                  className="text-muted-foreground border-border hover:bg-secondary"
                 >
                   <Copy className="h-4 w-4 mr-1" />
                   Copiar
@@ -337,22 +337,22 @@ ${scheduleItem.description ? `📄 *Descrição:* ${scheduleItem.description}` :
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Digite sua mensagem ou selecione um modelo acima"
                 rows={8}
-                className="resize-none text-xs font-mono bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                className="resize-none text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 A mensagem será personalizada com os dados do agendamento
               </p>
             </div>
 
             {/* Resumo do agendamento */}
-            <div className="p-3 bg-slate-700 rounded-lg space-y-1 border border-slate-600">
-              <h4 className="text-sm font-medium text-white">Dados do agendamento:</h4>
-              <p className="text-xs text-slate-300"><strong>Título:</strong> {scheduleItem.title}</p>
-              <p className="text-xs text-slate-300"><strong>Empresa:</strong> {scheduleItem.company}</p>
-              <p className="text-xs text-slate-300"><strong>Vencimento:</strong> {format(new Date(scheduleItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-              <p className="text-xs text-slate-300"><strong>Tipo:</strong> {scheduleItem.type}</p>
+            <div className="p-3 bg-secondary rounded-lg space-y-1 border border-border">
+              <h4 className="text-sm font-medium text-foreground">Dados do agendamento:</h4>
+              <p className="text-xs text-muted-foreground"><strong>Título:</strong> {scheduleItem.title}</p>
+              <p className="text-xs text-muted-foreground"><strong>Empresa:</strong> {scheduleItem.company}</p>
+              <p className="text-xs text-muted-foreground"><strong>Vencimento:</strong> {format(new Date(scheduleItem.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+              <p className="text-xs text-muted-foreground"><strong>Tipo:</strong> {scheduleItem.type}</p>
               {scheduleItem.description && (
-                <p className="text-xs text-slate-300"><strong>Descrição:</strong> {scheduleItem.description}</p>
+                <p className="text-xs text-muted-foreground"><strong>Descrição:</strong> {scheduleItem.description}</p>
               )}
             </div>
 
@@ -362,7 +362,7 @@ ${scheduleItem.description ? `📄 *Descrição:* ${scheduleItem.description}` :
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 Cancelar
               </Button>

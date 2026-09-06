@@ -46,7 +46,7 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chamados Resolvidos */}
-        <div className="bg-emerald-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="bg-emerald-600 text-foreground rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-emerald-100 text-sm font-medium mb-1">Chamados Resolvidos</p>
@@ -54,13 +54,13 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
               <p className="text-emerald-200 text-xs mt-1">Finalizados</p>
             </div>
             <div className="bg-white/20 rounded-xl p-3">
-              <CheckCircle className="h-8 w-8 text-white" />
+              <CheckCircle className="h-8 w-8 text-foreground" />
             </div>
           </div>
         </div>
 
         {/* Total de Chamados */}
-        <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="bg-blue-600 text-foreground rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm font-medium mb-1">Total de Chamados</p>
@@ -68,7 +68,7 @@ export const GLPIKPIHeader = ({ tickets, problems, changes }: KPIData) => {
               <p className="text-blue-200 text-xs mt-1">No sistema</p>
             </div>
             <div className="bg-white/20 rounded-xl p-3">
-              <Activity className="h-8 w-8 text-white" />
+              <Activity className="h-8 w-8 text-foreground" />
             </div>
           </div>
         </div>

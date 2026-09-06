@@ -200,13 +200,13 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
+            <DialogTitle className="flex items-center gap-2 text-foreground">
               <MessageCircle className="h-5 w-5 text-green-600" />
               Enviar Anotação via WhatsApp
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-muted-foreground">
               Compartilhe esta anotação de forma segura via WhatsApp
             </DialogDescription>
           </DialogHeader>
@@ -214,16 +214,16 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
           <div className="space-y-4">
             {/* Campo de número */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-white">Número do WhatsApp</Label>
+              <Label htmlFor="phone" className="text-foreground">Número do WhatsApp</Label>
               <Input
                 id="phone"
                 type="tel"
                 placeholder="Ex: 5511999999999 ou 11999999999"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="font-mono bg-slate-700 border-slate-600 text-white"
+                className="font-mono bg-secondary border-border text-foreground"
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Digite o número com ou sem código do país (55). Mínimo 10 dígitos.
               </p>
             </div>
@@ -231,12 +231,12 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
             {/* Preview da mensagem */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-white">Preview da mensagem:</Label>
+                <Label className="text-foreground">Preview da mensagem:</Label>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={copyToClipboard}
-                  className="text-slate-300 border-slate-600 hover:bg-slate-700"
+                  className="text-muted-foreground border-border hover:bg-secondary"
                 >
                   <Copy className="h-4 w-4 mr-1" />
                   Copiar
@@ -246,7 +246,7 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
                 value={formatMessage()}
                 readOnly
                 rows={8}
-                className="resize-none text-xs font-mono bg-slate-700 border-slate-600 text-white"
+                className="resize-none text-xs font-mono bg-secondary border-border text-foreground"
               />
             </div>
 
@@ -256,7 +256,7 @@ export const WhatsAppAnnotationDialog = ({ open, onOpenChange, annotation }: Wha
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-border text-foreground hover:bg-secondary"
               >
                 Cancelar
               </Button>

@@ -56,67 +56,67 @@ export const BaculaAdvancedStats: React.FC<BaculaAdvancedStatsProps> = ({ jobs }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Taxa de Sucesso</CardTitle>
-          <TrendingUp className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Taxa de Sucesso</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-400">{stats.successRate.toFixed(1)}%</div>
           <Progress value={stats.successRate} className="mt-2" />
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {stats.successfulJobs} de {stats.totalJobs} jobs
           </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Volume Total</CardTitle>
-          <Database className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Volume Total</CardTitle>
+          <Database className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-400">{formatBytes(stats.totalBytes)}</div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             dados processados
           </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Tempo Médio</CardTitle>
-          <Clock className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Tempo Médio</CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-yellow-400">{formatDuration(stats.avgDuration)}</div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             duração média
           </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Jobs Ativos</CardTitle>
-          <Activity className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Jobs Ativos</CardTitle>
+          <Activity className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-purple-400">{stats.runningJobs}</div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             em execução
           </p>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-slate-200">Jobs com Falha</CardTitle>
-          <BarChart3 className="h-4 w-4 text-slate-400" />
+          <CardTitle className="text-sm font-medium text-foreground">Jobs com Falha</CardTitle>
+          <BarChart3 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-red-400">{stats.failedJobs}</div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             necessitam atenção
           </p>
         </CardContent>

@@ -29,7 +29,7 @@ export const ChatwootAgentSelector = ({ conversationId, currentAgentId }: Chatwo
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-400">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span>Carregando agentes...</span>
       </div>
@@ -39,7 +39,7 @@ export const ChatwootAgentSelector = ({ conversationId, currentAgentId }: Chatwo
   return (
     <div className="flex items-center gap-2">
       <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-        <SelectTrigger className="w-[200px] h-8 bg-slate-700 border-slate-600 text-white">
+        <SelectTrigger className="w-[200px] h-8 bg-secondary border-border text-foreground">
           <SelectValue placeholder="Selecionar agente">
             {selectedAgentId ? (
               <div className="flex items-center gap-2">
@@ -53,13 +53,13 @@ export const ChatwootAgentSelector = ({ conversationId, currentAgentId }: Chatwo
             )}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="bg-slate-700 border-slate-600">
+        <SelectContent className="bg-secondary border-border">
           {agents.map((agent) => (
-            <SelectItem key={agent.id} value={agent.id.toString()} className="text-white">
+            <SelectItem key={agent.id} value={agent.id.toString()} className="text-foreground">
               <div className="flex items-center gap-2">
                 <User className="h-3 w-3" />
                 <span>{agent.name}</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   ({agent.availability_status})
                 </span>
               </div>
@@ -72,7 +72,7 @@ export const ChatwootAgentSelector = ({ conversationId, currentAgentId }: Chatwo
           size="sm"
           onClick={handleAssign}
           disabled={assignAgent.isPending}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-foreground"
         >
           {assignAgent.isPending ? (
             <Loader2 className="h-3 w-3 animate-spin" />

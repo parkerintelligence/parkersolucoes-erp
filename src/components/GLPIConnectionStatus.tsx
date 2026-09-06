@@ -42,15 +42,15 @@ export const GLPIConnectionStatus = () => {
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700 mb-4">
+    <Card className="bg-card border-border mb-4">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               {getStatusIcon()}
-              <span className="font-medium text-white">Status da Conexão GLPI</span>
+              <span className="font-medium text-foreground">Status da Conexão GLPI</span>
             </div>
-            <Badge variant={getStatusColor()} className="bg-blue-600 text-white border-blue-500">
+            <Badge variant={getStatusColor()} className="bg-blue-600 text-foreground border-blue-500">
               {getStatusText()}
             </Badge>
             <Button 
@@ -58,7 +58,7 @@ export const GLPIConnectionStatus = () => {
               size="sm"
               onClick={() => initSession.mutate()}
               disabled={initSession.isPending}
-              className="border-slate-600 text-slate-200 hover:bg-slate-700 bg-slate-800"
+              className="border-border text-foreground hover:bg-secondary bg-card"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${initSession.isPending ? 'animate-spin' : ''}`} />
               {hasValidSession ? 'Renovar Sessão' : 'Iniciar Sessão'}
@@ -66,7 +66,7 @@ export const GLPIConnectionStatus = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-muted-foreground">
               {glpiIntegration.base_url}
             </span>
           </div>
@@ -79,7 +79,7 @@ export const GLPIConnectionStatus = () => {
         )}
         
         {hasValidSession && !tickets.isLoading && (
-          <div className="mt-2 text-sm text-slate-400">
+          <div className="mt-2 text-sm text-muted-foreground">
             Última atualização: {new Date().toLocaleTimeString('pt-BR')}
           </div>
         )}

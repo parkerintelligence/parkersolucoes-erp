@@ -97,7 +97,7 @@ const Contracts = () => {
       case 'expired':
         return <Badge className="bg-red-900/20 text-red-400 border-red-600">Expirado</Badge>;
       case 'cancelled':
-        return <Badge className="bg-gray-700 text-gray-400 border-gray-600">Cancelado</Badge>;
+        return <Badge className="bg-secondary text-muted-foreground border-border">Cancelado</Badge>;
       default:
         return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-600">Rascunho</Badge>;
     }
@@ -121,14 +121,14 @@ const Contracts = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex justify-center items-center">
-        <div className="text-gray-400">Carregando contratos...</div>
+      <div className="min-h-screen bg-background text-foreground flex justify-center items-center">
+        <div className="text-muted-foreground">Carregando contratos...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="space-y-6 p-6">
         <div className="flex justify-end">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -138,47 +138,47 @@ const Contracts = () => {
                 Novo Contrato
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 border-gray-700 sm:max-w-[500px]">
+            <DialogContent className="bg-card border-border sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle className="text-white">
+                <DialogTitle className="text-foreground">
                   {editingContract ? 'Editar Contrato' : 'Novo Contrato'}
                 </DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogDescription className="text-muted-foreground">
                   Preencha as informações do contrato.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="title" className="text-gray-200">Título *</Label>
+                  <Label htmlFor="title" className="text-foreground">Título *</Label>
                   <Input 
                     id="title" 
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                     placeholder="Nome do contrato"
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    className="bg-secondary border-border text-foreground placeholder-gray-400"
                   />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="contract_number" className="text-gray-200">Número do Contrato *</Label>
+                  <Label htmlFor="contract_number" className="text-foreground">Número do Contrato *</Label>
                   <Input 
                     id="contract_number" 
                     value={formData.contract_number}
                     onChange={(e) => setFormData({...formData, contract_number: e.target.value})}
                     placeholder="CONT-001"
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    className="bg-secondary border-border text-foreground placeholder-gray-400"
                   />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="company_id" className="text-gray-200">Empresa *</Label>
+                  <Label htmlFor="company_id" className="text-foreground">Empresa *</Label>
                   <Select value={formData.company_id} onValueChange={(value) => setFormData({...formData, company_id: value})}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger className="bg-secondary border-border text-foreground">
                       <SelectValue placeholder="Selecione uma empresa" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectContent className="bg-secondary border-border">
                       {companies.map((company) => (
-                        <SelectItem key={company.id} value={company.id} className="text-white hover:bg-gray-600">
+                        <SelectItem key={company.id} value={company.id} className="text-foreground hover:bg-muted">
                           {company.name}
                         </SelectItem>
                       ))}
@@ -187,19 +187,19 @@ const Contracts = () => {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="content" className="text-gray-200">Conteúdo *</Label>
+                  <Label htmlFor="content" className="text-foreground">Conteúdo *</Label>
                   <Textarea 
                     id="content" 
                     value={formData.content}
                     onChange={(e) => setFormData({...formData, content: e.target.value})}
                     placeholder="Conteúdo detalhado do contrato"
                     rows={3}
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    className="bg-secondary border-border text-foreground placeholder-gray-400"
                   />
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="total_value" className="text-gray-200">Valor Total</Label>
+                  <Label htmlFor="total_value" className="text-foreground">Valor Total</Label>
                   <Input 
                     id="total_value" 
                     type="number"
@@ -207,29 +207,29 @@ const Contracts = () => {
                     value={formData.total_value}
                     onChange={(e) => setFormData({...formData, total_value: parseFloat(e.target.value) || 0})}
                     placeholder="0,00"
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    className="bg-secondary border-border text-foreground placeholder-gray-400"
                   />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="start_date" className="text-gray-200">Data Início</Label>
+                    <Label htmlFor="start_date" className="text-foreground">Data Início</Label>
                     <Input 
                       id="start_date" 
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="end_date" className="text-gray-200">Data Fim</Label>
+                    <Label htmlFor="end_date" className="text-foreground">Data Fim</Label>
                     <Input 
                       id="end_date" 
                       type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-secondary border-border text-foreground"
                     />
                   </div>
                 </div>
@@ -253,7 +253,7 @@ const Contracts = () => {
                     budget_id: '',
                     signed_date: ''
                   });
-                }} className="border-gray-600 text-gray-200 hover:bg-gray-700">
+                }} className="border-border text-foreground hover:bg-secondary">
                   Cancelar
                 </Button>
               </div>
@@ -263,49 +263,49 @@ const Contracts = () => {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center gap-2 md:gap-3">
                 <FileText className="h-6 w-6 md:h-8 md:w-8 text-blue-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{contracts.length}</p>
-                  <p className="text-xs md:text-sm text-gray-400">Total</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">{contracts.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center gap-2 md:gap-3">
                 <Calendar className="h-6 w-6 md:h-8 md:w-8 text-green-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{activeContracts}</p>
-                  <p className="text-xs md:text-sm text-gray-400">Ativos</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">{activeContracts}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Ativos</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center gap-2 md:gap-3">
                 <Calendar className="h-6 w-6 md:h-8 md:w-8 text-red-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{expiredContracts}</p>
-                  <p className="text-xs md:text-sm text-gray-400">Expirados</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">{expiredContracts}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Expirados</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center gap-2 md:gap-3">
                 <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-purple-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xl md:text-2xl font-bold text-white">{formatCurrency(totalValue)}</p>
-                  <p className="text-xs md:text-sm text-gray-400">Valor Total</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">{formatCurrency(totalValue)}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Valor Total</p>
                 </div>
               </div>
             </CardContent>
@@ -313,50 +313,50 @@ const Contracts = () => {
         </div>
 
         {/* Contracts Table */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <FileText className="h-5 w-5" />
               Lista de Contratos
             </CardTitle>
-            <CardDescription className="text-gray-400">Gerencie todos os contratos da empresa</CardDescription>
+            <CardDescription className="text-muted-foreground">Gerencie todos os contratos da empresa</CardDescription>
           </CardHeader>
           <CardContent>
             {contracts.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <FileText className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-gray-400">Nenhum contrato cadastrado</p>
+                <p className="text-muted-foreground">Nenhum contrato cadastrado</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-gray-700 hover:bg-gray-800/50">
-                      <TableHead className="text-gray-300">Contrato</TableHead>
-                      <TableHead className="text-gray-300">Empresa</TableHead>
-                      <TableHead className="text-gray-300">Número</TableHead>
-                      <TableHead className="text-gray-300">Valor</TableHead>
-                      <TableHead className="text-gray-300">Período</TableHead>
-                      <TableHead className="text-gray-300">Status</TableHead>
-                      <TableHead className="text-right text-gray-300">Ações</TableHead>
+                    <TableRow className="border-border hover:bg-card/50">
+                      <TableHead className="text-muted-foreground">Contrato</TableHead>
+                      <TableHead className="text-muted-foreground">Empresa</TableHead>
+                      <TableHead className="text-muted-foreground">Número</TableHead>
+                      <TableHead className="text-muted-foreground">Valor</TableHead>
+                      <TableHead className="text-muted-foreground">Período</TableHead>
+                      <TableHead className="text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-right text-muted-foreground">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {contracts.map((contract) => (
-                      <TableRow key={contract.id} className="border-gray-700 hover:bg-gray-800/30">
+                      <TableRow key={contract.id} className="border-border hover:bg-card/30">
                         <TableCell>
                           <div>
-                            <div className="font-medium text-gray-200">{contract.title}</div>
+                            <div className="font-medium text-foreground">{contract.title}</div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-200">{getCompanyName(contract.company_id)}</TableCell>
-                        <TableCell className="text-gray-300">{contract.contract_number}</TableCell>
-                        <TableCell className="text-gray-200 font-medium">{formatCurrency(contract.total_value || 0)}</TableCell>
-                        <TableCell className="text-gray-300">
+                        <TableCell className="text-foreground">{getCompanyName(contract.company_id)}</TableCell>
+                        <TableCell className="text-muted-foreground">{contract.contract_number}</TableCell>
+                        <TableCell className="text-foreground font-medium">{formatCurrency(contract.total_value || 0)}</TableCell>
+                        <TableCell className="text-muted-foreground">
                           {contract.start_date && contract.end_date ? (
                             <div className="text-sm">
                               <div>{new Date(contract.start_date).toLocaleDateString('pt-BR')}</div>
-                              <div className="text-gray-400">até {new Date(contract.end_date).toLocaleDateString('pt-BR')}</div>
+                              <div className="text-muted-foreground">até {new Date(contract.end_date).toLocaleDateString('pt-BR')}</div>
                             </div>
                           ) : '-'}
                         </TableCell>
@@ -367,7 +367,7 @@ const Contracts = () => {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleEdit(contract)}
-                              className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                              className="border-border text-foreground hover:bg-secondary"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>

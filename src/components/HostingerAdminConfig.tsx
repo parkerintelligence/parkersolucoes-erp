@@ -126,9 +126,9 @@ export const HostingerAdminConfig = () => {
   return (
     <div className="space-y-6">
       {/* Formulário */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             <Server className="h-5 w-5 text-orange-500" />
             {editingId ? 'Editar Integração Hostinger' : 'Nova Integração Hostinger'}
           </CardTitle>
@@ -137,40 +137,40 @@ export const HostingerAdminConfig = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-slate-200">Nome da Integração</Label>
+                <Label htmlFor="name" className="text-foreground">Nome da Integração</Label>
                 <Input
                   id="name"
                   type="text"
                   placeholder="Ex: Hostinger Principal"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-secondary border-border text-foreground"
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="base_url" className="text-slate-200">URL da API</Label>
+                <Label htmlFor="base_url" className="text-foreground">URL da API</Label>
                 <Input
                   id="base_url"
                   type="url"
                   value={formData.base_url}
                   onChange={(e) => setFormData(prev => ({ ...prev, base_url: e.target.value }))}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-secondary border-border text-foreground"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="api_token" className="text-slate-200">Token da API</Label>
+              <Label htmlFor="api_token" className="text-foreground">Token da API</Label>
               <Input
                 id="api_token"
                 type="password"
                 placeholder="Seu token da API Hostinger"
                 value={formData.api_token}
                 onChange={(e) => setFormData(prev => ({ ...prev, api_token: e.target.value }))}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-secondary border-border text-foreground"
                 required
               />
             </div>
@@ -181,7 +181,7 @@ export const HostingerAdminConfig = () => {
                 checked={formData.is_active}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
               />
-              <Label htmlFor="is_active" className="text-slate-200">Integração Ativa</Label>
+              <Label htmlFor="is_active" className="text-foreground">Integração Ativa</Label>
             </div>
 
             <div className="flex gap-2">
@@ -205,27 +205,27 @@ export const HostingerAdminConfig = () => {
       </Card>
 
       {/* Lista de Integrações */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Integrações Hostinger Configuradas</CardTitle>
+          <CardTitle className="text-foreground">Integrações Hostinger Configuradas</CardTitle>
         </CardHeader>
         <CardContent>
           {hostingerIntegrations.length === 0 ? (
-            <p className="text-slate-400 text-center py-4">
+            <p className="text-muted-foreground text-center py-4">
               Nenhuma integração Hostinger configurada
             </p>
           ) : (
             <div className="space-y-4">
               {hostingerIntegrations.map((integration) => (
-                <div key={integration.id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                <div key={integration.id} className="flex items-center justify-between p-4 bg-secondary rounded-lg">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-white">{integration.name}</h3>
+                      <h3 className="font-semibold text-foreground">{integration.name}</h3>
                       <Badge variant={integration.is_active ? "default" : "secondary"}>
                         {integration.is_active ? 'Ativo' : 'Inativo'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-400">{integration.base_url}</p>
+                    <p className="text-sm text-muted-foreground">{integration.base_url}</p>
                     <p className="text-xs text-slate-500">
                       Token: {integration.api_token ? '••••••••' : 'Não configurado'}
                     </p>
@@ -236,7 +236,7 @@ export const HostingerAdminConfig = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleEdit(integration)}
-                      className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500"
+                      className="bg-muted border-border text-foreground hover:bg-slate-500"
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -245,7 +245,7 @@ export const HostingerAdminConfig = () => {
                       variant="outline"
                       onClick={() => handleDelete(integration.id)}
                       disabled={deleteIntegration.isPending}
-                      className="bg-red-600 border-red-500 text-white hover:bg-red-500"
+                      className="bg-red-600 border-red-500 text-foreground hover:bg-red-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

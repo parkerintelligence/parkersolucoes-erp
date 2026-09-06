@@ -12,7 +12,7 @@ const AutomationStatsLazy = React.lazy(() =>
 const LoadingFallback = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {[...Array(6)].map((_, i) => (
-      <Card key={i} className="bg-gray-800 border-gray-700">
+      <Card key={i} className="bg-card border-border">
         <CardContent className="p-6">
           <div className="flex items-center justify-center h-20">
             <Loader2 className="h-6 w-6 animate-spin text-blue-400" />

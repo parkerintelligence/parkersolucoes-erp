@@ -59,7 +59,7 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
       case 'request': return <Globe className="h-3.5 w-3.5 text-blue-400" />;
       case 'response': return <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />;
       case 'info': return <Info className="h-3.5 w-3.5 text-amber-400" />;
-      default: return <FileText className="h-3.5 w-3.5 text-slate-400" />;
+      default: return <FileText className="h-3.5 w-3.5 text-muted-foreground" />;
     }
   };
 
@@ -69,7 +69,7 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
       case 'request': return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
       case 'response': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
       case 'info': return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
-      default: return 'bg-slate-500/15 text-slate-400 border-slate-500/30';
+      default: return 'bg-slate-500/15 text-muted-foreground border-border/30';
     }
   };
 
@@ -95,36 +95,36 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
   };
 
   return (
-    <Card className="bg-slate-800 border-slate-700">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-blue-400" />
-            <CardTitle className="text-sm text-white">Logs de Conexão</CardTitle>
-            <Badge variant="secondary" className="bg-slate-700 text-slate-300 text-[10px]">
+            <CardTitle className="text-sm text-foreground">Logs de Conexão</CardTitle>
+            <Badge variant="secondary" className="bg-secondary text-muted-foreground text-[10px]">
               {filteredLogs.length}
             </Badge>
           </div>
           <div className="flex items-center gap-1.5">
             {/* Source filter */}
-            <div className="flex bg-slate-900 rounded-md p-0.5 gap-0.5">
+            <div className="flex bg-background rounded-md p-0.5 gap-0.5">
               {(['all', 'guacamole', 'rustdesk'] as const).map(f => (
                 <Button
                   key={f}
                   variant="ghost"
                   size="sm"
-                  className={`h-6 px-2 text-[10px] rounded-sm ${filter === f ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-300'}`}
+                  className={`h-6 px-2 text-[10px] rounded-sm ${filter === f ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-muted-foreground'}`}
                   onClick={() => setFilter(f)}
                 >
                   {f === 'all' ? 'Todos' : f === 'guacamole' ? 'Guacamole' : 'RustDesk'}
                 </Button>
               ))}
             </div>
-            <Button onClick={onRefresh} variant="outline" size="sm" className="h-6 px-2 text-[10px] border-slate-600 text-slate-300 hover:bg-slate-700">
+            <Button onClick={onRefresh} variant="outline" size="sm" className="h-6 px-2 text-[10px] border-border text-muted-foreground hover:bg-secondary">
               <RefreshCw className="h-3 w-3 mr-1" />
               Atualizar
             </Button>
-            <Button onClick={onClearLogs} variant="outline" size="sm" className="h-6 px-2 text-[10px] border-slate-600 text-slate-300 hover:bg-slate-700">
+            <Button onClick={onClearLogs} variant="outline" size="sm" className="h-6 px-2 text-[10px] border-border text-muted-foreground hover:bg-secondary">
               <Trash2 className="h-3 w-3 mr-1" />
               Limpar
             </Button>
@@ -135,29 +135,29 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
         {filteredLogs.length === 0 ? (
           <div className="text-center py-8">
             <FileText className="h-10 w-10 mx-auto mb-3 text-slate-600" />
-            <p className="text-sm text-slate-400">Nenhum log disponível</p>
+            <p className="text-sm text-muted-foreground">Nenhum log disponível</p>
             <p className="text-xs text-slate-500">Execute alguma ação para ver os logs</p>
           </div>
         ) : (
           <ScrollArea className="h-[500px]" id="logs-scroll-area">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-700 hover:bg-transparent">
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-16">Hora</TableHead>
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-20">Origem</TableHead>
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-20">Tipo</TableHead>
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-14">Método</TableHead>
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-14">Status</TableHead>
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7">Mensagem</TableHead>
-                  <TableHead className="text-slate-400 text-[10px] font-medium h-7 w-24">URL/Detalhes</TableHead>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7 w-16">Hora</TableHead>
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7 w-20">Origem</TableHead>
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7 w-20">Tipo</TableHead>
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7 w-14">Método</TableHead>
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7 w-14">Status</TableHead>
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7">Mensagem</TableHead>
+                  <TableHead className="text-muted-foreground text-[10px] font-medium h-7 w-24">URL/Detalhes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLogs.map((log) => (
-                  <TableRow key={log.id} className="border-slate-700/50 hover:bg-slate-750/50">
+                  <TableRow key={log.id} className="border-border/50 hover:bg-slate-750/50">
                     <TableCell className="py-1 px-2">
                       <div className="text-[10px] text-slate-500 whitespace-nowrap">
-                        <span className="text-slate-400">{formatTimestamp(log.timestamp)}</span>
+                        <span className="text-muted-foreground">{formatTimestamp(log.timestamp)}</span>
                         <br />
                         <span>{formatDate(log.timestamp)}</span>
                       </div>
@@ -177,7 +177,7 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
                     </TableCell>
                     <TableCell className="py-1 px-2">
                       {log.method && (
-                        <span className="text-[10px] font-mono text-slate-300 bg-slate-700/50 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-mono text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded">
                           {log.method}
                         </span>
                       )}
@@ -190,7 +190,7 @@ export const GuacamoleLogs = ({ logs, onClearLogs, onRefresh }: GuacamoleLogsPro
                       )}
                     </TableCell>
                     <TableCell className="py-1 px-2">
-                      <p className="text-xs text-slate-200 truncate max-w-[300px]" title={log.message}>
+                      <p className="text-xs text-foreground truncate max-w-[300px]" title={log.message}>
                         {log.message}
                       </p>
                     </TableCell>

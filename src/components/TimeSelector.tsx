@@ -71,14 +71,14 @@ export const TimeSelector = ({ value, onChange, onCustomCron }: TimeSelectorProp
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label className="text-white">Horário de Execução</Label>
+        <Label className="text-foreground">Horário de Execução</Label>
         <Select value={customMode ? 'custom' : value} onValueChange={handlePresetChange}>
-          <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+          <SelectTrigger className="bg-secondary border-border text-foreground">
             <SelectValue placeholder="Selecione um horário" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-700 border-gray-600">
+          <SelectContent className="bg-secondary border-border">
             {CRON_PRESETS.map((preset) => (
-              <SelectItem key={preset.value} value={preset.value} className="text-white hover:bg-gray-600">
+              <SelectItem key={preset.value} value={preset.value} className="text-foreground hover:bg-muted">
                 {preset.label}
               </SelectItem>
             ))}
@@ -87,22 +87,22 @@ export const TimeSelector = ({ value, onChange, onCustomCron }: TimeSelectorProp
       </div>
 
       {customMode && (
-        <div className="space-y-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
+        <div className="space-y-4 p-4 bg-secondary rounded-lg border border-border">
           <div className="flex items-center gap-2 mb-3">
             <Clock className="h-4 w-4 text-orange-500" />
-            <Label className="text-white font-medium">Configuração Personalizada</Label>
+            <Label className="text-foreground font-medium">Configuração Personalizada</Label>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-white">Hora</Label>
+              <Label className="text-foreground">Hora</Label>
               <Select value={hour} onValueChange={setHour}>
-                <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                <SelectTrigger className="bg-muted border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-600 border-gray-500">
+                <SelectContent className="bg-muted border-border">
                   {Array.from({ length: 24 }, (_, i) => (
-                    <SelectItem key={i} value={i.toString()} className="text-white hover:bg-gray-500">
+                    <SelectItem key={i} value={i.toString()} className="text-foreground hover:bg-gray-500">
                       {i.toString().padStart(2, '0')}:00
                     </SelectItem>
                   ))}
@@ -111,14 +111,14 @@ export const TimeSelector = ({ value, onChange, onCustomCron }: TimeSelectorProp
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white">Minuto</Label>
+              <Label className="text-foreground">Minuto</Label>
               <Select value={minute} onValueChange={setMinute}>
-                <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                <SelectTrigger className="bg-muted border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-600 border-gray-500">
+                <SelectContent className="bg-muted border-border">
                   {[0, 15, 30, 45].map((min) => (
-                    <SelectItem key={min} value={min.toString()} className="text-white hover:bg-gray-500">
+                    <SelectItem key={min} value={min.toString()} className="text-foreground hover:bg-gray-500">
                       :{min.toString().padStart(2, '0')}
                     </SelectItem>
                   ))}
@@ -128,37 +128,37 @@ export const TimeSelector = ({ value, onChange, onCustomCron }: TimeSelectorProp
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white">Frequência</Label>
+            <Label className="text-foreground">Frequência</Label>
             <Select value={frequency} onValueChange={setFrequency}>
-              <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+              <SelectTrigger className="bg-muted border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-600 border-gray-500">
-                <SelectItem value="daily" className="text-white hover:bg-gray-500">Todo dia</SelectItem>
-                <SelectItem value="weekdays" className="text-white hover:bg-gray-500">Segunda a Sexta</SelectItem>
-                <SelectItem value="weekly" className="text-white hover:bg-gray-500">Toda semana</SelectItem>
-                <SelectItem value="monthly" className="text-white hover:bg-gray-500">Todo mês</SelectItem>
+              <SelectContent className="bg-muted border-border">
+                <SelectItem value="daily" className="text-foreground hover:bg-gray-500">Todo dia</SelectItem>
+                <SelectItem value="weekdays" className="text-foreground hover:bg-gray-500">Segunda a Sexta</SelectItem>
+                <SelectItem value="weekly" className="text-foreground hover:bg-gray-500">Toda semana</SelectItem>
+                <SelectItem value="monthly" className="text-foreground hover:bg-gray-500">Todo mês</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white">Ou insira uma expressão cron personalizada:</Label>
+            <Label className="text-foreground">Ou insira uma expressão cron personalizada:</Label>
             <div className="flex gap-2">
               <Input
                 placeholder="Ex: 0 */2 * * *"
                 value={customCron}
                 onChange={(e) => setCustomCron(e.target.value)}
-                className="bg-gray-600 border-gray-500 text-white placeholder-gray-400"
+                className="bg-muted border-border text-foreground placeholder-gray-400"
               />
               <Button 
                 onClick={handleCustomCronSubmit}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-orange-600 hover:bg-orange-700 text-foreground"
               >
                 Aplicar
               </Button>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Formato: minuto hora dia mês dia-da-semana
             </p>
           </div>

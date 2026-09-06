@@ -374,7 +374,7 @@ export const BrandingSettingsPanel = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <ImageIcon className="h-12 w-12 mx-auto text-gray-400" />
+                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground" />
                 <div>
                   <p className="text-sm text-gray-600 mb-2">
                     Clique para selecionar uma imagem

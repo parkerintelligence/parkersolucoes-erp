@@ -104,7 +104,7 @@ const UniFiMonitoringDashboard = () => {
     return (
       <Alert className="border-yellow-500 bg-yellow-500/10">
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="text-white">
+        <AlertDescription className="text-foreground">
           Nenhuma integração UniFi ativa encontrada. Configure uma integração na página de Administração.
         </AlertDescription>
       </Alert>
@@ -149,8 +149,8 @@ const UniFiMonitoringDashboard = () => {
         <div className="flex items-center gap-3">
           <Wifi className="h-8 w-8 text-blue-400" />
           <div>
-            <h2 className="text-2xl font-bold text-white">Dashboard UniFi</h2>
-            <p className="text-slate-400">Monitoramento em tempo real da rede</p>
+            <h2 className="text-2xl font-bold text-foreground">Dashboard UniFi</h2>
+            <p className="text-muted-foreground">Monitoramento em tempo real da rede</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ const UniFiMonitoringDashboard = () => {
             onClick={() => setShowRealTimeStats(!showRealTimeStats)}
             variant="outline"
             size="sm"
-            className="border-slate-600 text-white hover:bg-slate-700"
+            className="border-border text-foreground hover:bg-secondary"
           >
             {showRealTimeStats ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {showRealTimeStats ? 'Ocultar' : 'Mostrar'} Stats
@@ -167,7 +167,7 @@ const UniFiMonitoringDashboard = () => {
             onClick={handleRefresh}
             variant="outline"
             size="sm"
-            className="border-slate-600 text-white hover:bg-slate-700"
+            className="border-border text-foreground hover:bg-secondary"
           >
             <RefreshCw className="h-4 w-4" />
             Atualizar
@@ -176,9 +176,9 @@ const UniFiMonitoringDashboard = () => {
       </div>
 
       {/* Integration Selector */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white">Seleção de Integração</CardTitle>
+          <CardTitle className="text-foreground">Seleção de Integração</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 flex-wrap">
@@ -191,7 +191,7 @@ const UniFiMonitoringDashboard = () => {
                 className={
                   selectedIntegration === integration.id 
                     ? "bg-blue-600 hover:bg-blue-700" 
-                    : "border-slate-600 text-white hover:bg-slate-700"
+                    : "border-border text-foreground hover:bg-secondary"
                 }
               >
                 <Server className="h-4 w-4 mr-2" />
@@ -223,13 +223,13 @@ const UniFiMonitoringDashboard = () => {
       {showRealTimeStats && stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {statsData.map((stat, index) => (
-            <Card key={index} className="bg-slate-800 border-slate-700">
+            <Card key={index} className="bg-card border-border">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm font-medium">{stat.title}</p>
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                    <p className="text-slate-400 text-xs">{stat.subtitle}</p>
+                    <p className="text-muted-foreground text-sm font-medium">{stat.title}</p>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-muted-foreground text-xs">{stat.subtitle}</p>
                   </div>
                   <div className={`${stat.color} opacity-75`}>
                     {stat.icon}

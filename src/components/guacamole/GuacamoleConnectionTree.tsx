@@ -110,7 +110,7 @@ export const GuacamoleConnectionTree = ({
       'ssh': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       'telnet': 'bg-orange-500/20 text-orange-400 border-orange-500/30'
     };
-    return colors[protocol.toLowerCase()] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+    return colors[protocol.toLowerCase()] || 'bg-slate-500/20 text-muted-foreground border-border/30';
   };
   const getConnectionStatus = (connection: GuacamoleConnection) => {
     // Lógica simplificada para status da conexão
@@ -137,13 +137,13 @@ export const GuacamoleConnectionTree = ({
       <div className="flex gap-4">
         {/* Campo de filtro/pesquisa */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Pesquisar por grupo ou nome da conexão..."
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+            className="pl-10 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
         
@@ -153,7 +153,7 @@ export const GuacamoleConnectionTree = ({
             variant="outline"
             size="sm"
             onClick={expandAll}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+            className="border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
           >
             <Expand className="h-4 w-4 mr-2" />
             Expandir Todos
@@ -162,7 +162,7 @@ export const GuacamoleConnectionTree = ({
             variant="outline"
             size="sm"
             onClick={collapseAll}
-            className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+            className="border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
           >
             <Minimize2 className="h-4 w-4 mr-2" />
             Recolher Todos
@@ -172,14 +172,14 @@ export const GuacamoleConnectionTree = ({
 
       {/* Lista de grupos e conexões */}
       <div className="space-y-2">
-      {groups.map(group => <Card key={group.identifier} className="bg-slate-800 border-slate-700">
+      {groups.map(group => <Card key={group.identifier} className="bg-card border-border">
           <div className="p-3">
-            <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-slate-700" onClick={() => toggleGroup(group.identifier)}>
+            <Button variant="ghost" className="w-full justify-start p-0 h-auto hover:bg-secondary" onClick={() => toggleGroup(group.identifier)}>
               <div className="flex items-center gap-2 text-left">
-                {expandedGroups.has(group.identifier) ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                {expandedGroups.has(group.identifier) ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 {expandedGroups.has(group.identifier) ? <FolderOpen className="h-4 w-4 text-yellow-400" /> : <Folder className="h-4 w-4 text-yellow-400" />}
-                <span className="text-white font-medium">{group.name}</span>
-                <Badge variant="secondary" className="ml-auto bg-slate-700 text-slate-300">
+                <span className="text-foreground font-medium">{group.name}</span>
+                <Badge variant="secondary" className="ml-auto bg-secondary text-muted-foreground">
                   {group.connections.length}
                 </Badge>
               </div>
@@ -189,23 +189,23 @@ export const GuacamoleConnectionTree = ({
                 {group.connections.length === 0 ? <div className="ml-6 py-4 text-center text-slate-500 text-sm">
                     Nenhuma conexão neste grupo
                   </div> : <div className="ml-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                    {group.connections.map(connection => <Card key={connection.identifier} className="bg-slate-700 border-slate-600 min-w-0">
-                      <CardContent className="p-3 bg-gray-900 rounded-xl">
+                    {group.connections.map(connection => <Card key={connection.identifier} className="bg-secondary border-border min-w-0">
+                      <CardContent className="p-3 bg-background rounded-xl">
                         <div className="space-y-2">
                           {/* Header com ícone e nome */}
                           <div className="flex items-center gap-2">
                             <Monitor className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                            <h4 className="text-sm font-medium text-white truncate flex-1">
+                            <h4 className="text-sm font-medium text-foreground truncate flex-1">
                               {extractGroupFromConnectionName(connection.name).connectionDisplayName}
                             </h4>
                           </div>
 
                           {/* Botões de ação */}
                           <div className="flex items-center gap-1 justify-end">
-                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-6 w-6 p-0 text-slate-300 hover:bg-slate-600 hover:text-white">
+                            <Button variant="ghost" size="sm" onClick={() => onEdit(connection)} className="h-6 w-6 p-0 text-muted-foreground hover:bg-muted hover:text-foreground">
                               <Edit className="h-3 w-3" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-6 w-6 p-0 text-slate-300 hover:bg-red-600 hover:text-white">
+                            <Button variant="ghost" size="sm" onClick={() => onDelete(connection.identifier)} disabled={isDeleting} className="h-6 w-6 p-0 text-muted-foreground hover:bg-red-600 hover:text-foreground">
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -235,7 +235,7 @@ export const GuacamoleConnectionTree = ({
                             variant="outline" 
                             size="sm" 
                             onClick={() => onConnect(connection)} 
-                            className="w-full h-6 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-white"
+                            className="w-full h-6 text-xs bg-green-600 hover:bg-green-700 border-green-600 text-foreground"
                           >
                             Conectar
                           </Button>
