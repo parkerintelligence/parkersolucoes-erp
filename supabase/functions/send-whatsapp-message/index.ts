@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { sendWhatsAppViaConfiguredInstance } from '../_shared/evolutionGo.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,10 +8,11 @@ const corsHeaders = {
 };
 
 interface WhatsAppMessageRequest {
-  integrationId: string;
   phoneNumber: string;
   message: string;
-  instanceName?: string; // Override para usar instância específica da screen config
+  /** @deprecated mantidos por compatibilidade; o sistema usa a instância única de Administração */
+  integrationId?: string;
+  instanceName?: string;
 }
 
 serve(async (req) => {
