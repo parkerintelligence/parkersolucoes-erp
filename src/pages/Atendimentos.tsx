@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3, Mail, Inbox } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
-import { useWhatsAppAvatar } from '@/hooks/useWhatsAppAvatar';
 import { useWhatsAppAvatars, avatarForPhone } from '@/hooks/useWhatsAppAvatars';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
@@ -59,7 +58,7 @@ const Atendimentos = () => {
     refetchConversations, markConversationAsRead
   } = useChatwootAPI();
 
-  const { data: whatsappAvatar } = useWhatsAppAvatar(selectedConversation?.meta?.sender?.phone_number);
+
 
   const { agents, isLoading: agentsLoading } = useChatwootAgents();
   const { labels: availableLabels } = useChatwootLabels(integrationId);
@@ -209,7 +208,7 @@ const Atendimentos = () => {
     );
   };
 
-  const selectedAvatar = avatarFor(selectedConversation) || whatsappAvatar || undefined;
+  const selectedAvatar = || whatsappAvatar || undefined;
 
 
   const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
