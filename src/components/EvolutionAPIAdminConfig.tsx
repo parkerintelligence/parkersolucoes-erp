@@ -265,7 +265,9 @@ export const EvolutionAPIAdminConfig = () => {
       setBridgeUrl(data?.webhookUrl ?? null);
       toast({
         title: "Chatwoot conectado",
-        description: `Caixa de entrada "${data?.inboxName}" pronta. Copie o endereço gerado e cole no webhook do Evolution Go.`,
+        description: data?.webhookApplied
+          ? `Caixa "${data?.inboxName}" pronta e webhook ativado na instância. Envie uma mensagem de teste do celular.`
+          : `Caixa "${data?.inboxName}" pronta. Copie o endereço gerado e cole no webhook (WEBHOOK_URL) do Evolution Go.`,
       });
     } catch (error: any) {
       toast({ title: "Erro ao conectar o Chatwoot", description: error?.message || 'Falha na configuração.', variant: "destructive" });

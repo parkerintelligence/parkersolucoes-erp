@@ -15,21 +15,28 @@ const digits = (v: string) => String(v || '').replace(/\D/g, '');
 
 const jidToPhone = (jid: string) => digits(String(jid || '').split('@')[0].split(':')[0]);
 
-/** Extrai telefone + texto de payloads do Evolution Go / Evolution API */
+/** Extrai telefone + texto de payloads do Evolution Go (nativo whatsmeow) / Evolution API */
 function parseEvolutionMessage(payload: any): { phone: string; text: string; name?: string; fromMe: boolean } | null {
   const data = payload?.data ?? payload?.message ?? payload;
+  const info = data?.Info ?? data?.info ?? {};
   const key = data?.key ?? payload?.key ?? {};
   const jid =
-    key?.remoteJid || data?.remoteJid || data?.chatId || data?.from || payload?.from || payload?.sender || '';
+    key?.remoteJid || data?.remoteJid || data?.chatId || data?.from ||
+    info?.Chat || info?.chat || info?.Sender || info?.sender ||
+    payload?.from || payload?.sender || payload?.jid || '';
   const phone = jidToPhone(jid);
   if (!phone) return null;
-  if (jid.includes('@g.us')) return null; // ignora grupos
+  if (String(jid).includes('@g.us')) return null; // ignora grupos
 
-  const msg = data?.message ?? data?.msg ?? {};
+  const msg = data?.Message ?? data?.message ?? data?.msg ?? {};
   const text =
     (typeof data?.text === 'string' ? data.text : null) ||
     msg?.conversation ||
+    msg?.Conversation ||
     msg?.extendedTextMessage?.text ||
+    msg?.extendedTextMessage?.Text ||
+    msg?.ExtendedTextMessage?.text ||
+    msg?.ExtendedTextMessage?.Text ||
     msg?.imageMessage?.caption ||
     msg?.videoMessage?.caption ||
     msg?.documentMessage?.caption ||
@@ -40,10 +47,11 @@ function parseEvolutionMessage(payload: any): { phone: string; text: string; nam
   return {
     phone,
     text: String(text || '').trim(),
-    name: data?.pushName || payload?.pushName || undefined,
-    fromMe: Boolean(key?.fromMe ?? data?.fromMe ?? false),
+    name: data?.pushName || info?.PushName || info?.pushName || payload?.pushName || undefined,
+    fromMe: Boolean(key?.fromMe ?? data?.fromMe ?? info?.IsFromMe ?? info?.isFromMe ?? false),
   };
 }
+
 
 async function chatwootFetch(baseUrl: string, token: string, path: string, method = 'GET', body?: unknown) {
   const res = await fetch(`${baseUrl.replace(/\/+$/, '')}${path}`, {
@@ -120,7 +128,21 @@ Deno.serve(async (req) => {
 
     // ---------- Evolution Go -> Chatwoot ----------
     const parsed = parseEvolutionMessage(payload);
-    if (!parsed || parsed.fromMe || !parsed.text) return json({ ignored: true });
+    if (!parsed || parsed.fromMe || !parsed.text) {
+      // Guarda o motivo para diagnóstico na tela de Administração
+      await supabase
+        .from('chatwoot_bridge_config')
+        .update({
+          last_error: !parsed
+            ? `Evento sem telefone reconhecido: ${JSON.stringify(payload).slice(0, 250)}`
+            : parsed.fromMe
+              ? null
+              : `Evento sem texto: ${JSON.stringify(payload).slice(0, 250)}`,
+        })
+        .eq('id', config.id);
+      return json({ ignored: true });
+    }
+
 
     const { data: chatwoot } = await supabase
       .from('integrations')

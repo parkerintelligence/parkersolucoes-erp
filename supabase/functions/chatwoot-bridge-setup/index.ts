@@ -1,7 +1,7 @@
 // Configura automaticamente a caixa de entrada do Chatwoot para a instância do Evolution Go
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getWhatsAppIntegration } from '../_shared/evolutionGo.ts';
+import { getWhatsAppIntegration, normalizeEvolutionBaseUrl, resolveInstanceToken } from '../_shared/evolutionGo.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -155,6 +155,32 @@ Deno.serve(async (req) => {
 
 
 
+    // Registra o webhook direto na instância do Evolution Go (POST /instance/connect aceita webhookUrl)
+    let webhookApplied = false;
+    let webhookDetails: unknown = null;
+    try {
+      const goBase = normalizeEvolutionBaseUrl(evolution.base_url || '');
+      const instanceToken =
+        evolution.user_token ||
+        (await resolveInstanceToken(goBase, evolution.api_token || '', evolution.instance_name));
+      const res = await fetch(`${goBase}/instance/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: instanceToken },
+        body: JSON.stringify({
+          instanceId: evolution.instance_name,
+          webhookUrl,
+          subscribe: ['MESSAGE', 'MESSAGES_UPSERT', 'CONNECTED', 'DISCONNECTED'],
+          immediate: true,
+        }),
+      });
+      const raw = await res.text();
+      webhookApplied = res.ok;
+      try { webhookDetails = JSON.parse(raw); } catch { webhookDetails = raw.slice(0, 300); }
+      console.log('🔗 [bridge-setup] /instance/connect:', res.status, raw.slice(0, 300));
+    } catch (e) {
+      webhookDetails = (e as Error).message;
+    }
+
     const record = {
       evolution_integration_id: evolution.id,
       chatwoot_integration_id: chatwoot.id,
@@ -180,9 +206,13 @@ Deno.serve(async (req) => {
       inboxName,
       inboxId: inbox?.id ?? null,
       agentsAdded,
-      instructions:
-        'Cole este endereço na variável de webhook do servidor Evolution Go (WEBHOOK_URL / WEBHOOK_GLOBAL_URL) e reinicie o serviço.',
+      webhookApplied,
+      webhookDetails,
+      instructions: webhookApplied
+        ? 'Webhook registrado automaticamente na instância do Evolution Go. Envie uma mensagem de teste do celular.'
+        : 'Não foi possível registrar o webhook pela API: cole este endereço na variável WEBHOOK_URL do servidor Evolution Go e reinicie o serviço.',
     });
+
   } catch (error) {
     console.error('❌ [chatwoot-bridge-setup] erro:', error);
     return json({ error: (error as Error).message }, 500);
