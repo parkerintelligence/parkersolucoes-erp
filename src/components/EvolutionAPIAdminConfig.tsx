@@ -185,21 +185,53 @@ export const EvolutionAPIAdminConfig = () => {
     }
   };
 
-  const handleCheckState = async () => {
-    setIsWorking(true);
+  const checkState = async (silent = false) => {
+    if (!silent) setIsWorking(true);
     try {
       const payload = await callProxy(`/instance/connectionState/${formData.instance_name}`, 'GET');
       const raw = payload?.data ?? payload;
       const state = (raw?.state || raw?.instance?.state || raw?.status || 'unknown') as ConnState;
       setConnState(state);
+      setConnError(null);
+      setLastCheckedAt(new Date());
       if (state === 'open') { setQrCode(null); setPairCode(null); }
-      toast({ title: "Status da instância", description: `Estado: ${state}` });
+      if (!silent) toast({ title: "Status da instância", description: `Estado: ${state}` });
     } catch (error: any) {
-      toast({ title: "Erro ao consultar status", description: error?.message || 'Falha.', variant: "destructive" });
+      const msg = error?.message || 'Falha na consulta.';
+      setConnError(msg);
+      setLastCheckedAt(new Date());
+      if (!silent) toast({ title: "Erro ao consultar status", description: msg, variant: "destructive" });
     } finally {
-      setIsWorking(false);
+      if (!silent) setIsWorking(false);
     }
   };
+
+  const handleCheckState = () => checkState(false);
+
+  const fetchLastSend = async () => {
+    try {
+      const { data } = await supabase
+        .from('scheduled_reports_logs')
+        .select('execution_date, status, scheduled_reports(name)')
+        .order('execution_date', { ascending: false })
+        .limit(1);
+      const row = data?.[0] as any;
+      if (row) {
+        setLastSend({ date: row.execution_date, status: row.status, name: row.scheduled_reports?.name });
+      }
+    } catch {
+      // silencioso — histórico pode não existir
+    }
+  };
+
+  useEffect(() => {
+    if (!evolutionIntegration?.id || !formData.instance_name) return;
+    checkState(true);
+    fetchLastSend();
+    const interval = setInterval(() => { checkState(true); fetchLastSend(); }, 60000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evolutionIntegration?.id, formData.instance_name]);
 
   const handleLogout = async () => {
     setIsWorking(true);
