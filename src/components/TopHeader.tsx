@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Lock, Sun, Moon } from 'lucide-react';
-import { useTheme } from '@/hooks/useTheme';
+import { LogOut, Lock } from 'lucide-react';
+import { WhatsAppStatusIndicator } from '@/components/WhatsAppStatusIndicator';
 import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
@@ -12,7 +12,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 export const TopHeader = () => {
   const { user, userProfile, logout } = useAuth();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   const handleLogout = async () => {
