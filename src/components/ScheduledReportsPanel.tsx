@@ -30,6 +30,7 @@ export const ScheduledReportsPanel = () => {
   const toggleActive = useToggleScheduledReportActive();
   const testReport = useTestScheduledReport();
   const { toast } = useToast();
+  const { confirm } = useConfirmDialog();
 
   const activeReports = scheduledReports.filter(r => r.is_active).length;
 
