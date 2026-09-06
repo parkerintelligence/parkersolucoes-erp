@@ -372,6 +372,57 @@ export type Database = {
           },
         ]
       }
+      chatwoot_bridge_config: {
+        Row: {
+          account_id: string | null
+          chatwoot_integration_id: string | null
+          created_at: string
+          evolution_integration_id: string | null
+          id: string
+          inbox_id: string | null
+          inbox_identifier: string | null
+          instance_name: string | null
+          is_active: boolean
+          last_error: string | null
+          last_inbound_at: string | null
+          last_outbound_at: string | null
+          updated_at: string
+          webhook_token: string
+        }
+        Insert: {
+          account_id?: string | null
+          chatwoot_integration_id?: string | null
+          created_at?: string
+          evolution_integration_id?: string | null
+          id?: string
+          inbox_id?: string | null
+          inbox_identifier?: string | null
+          instance_name?: string | null
+          is_active?: boolean
+          last_error?: string | null
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          updated_at?: string
+          webhook_token?: string
+        }
+        Update: {
+          account_id?: string | null
+          chatwoot_integration_id?: string | null
+          created_at?: string
+          evolution_integration_id?: string | null
+          id?: string
+          inbox_id?: string | null
+          inbox_identifier?: string | null
+          instance_name?: string | null
+          is_active?: boolean
+          last_error?: string | null
+          last_inbound_at?: string | null
+          last_outbound_at?: string | null
+          updated_at?: string
+          webhook_token?: string
+        }
+        Relationships: []
+      }
       chatwoot_events: {
         Row: {
           account_id: number
