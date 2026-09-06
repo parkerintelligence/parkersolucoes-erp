@@ -115,6 +115,8 @@ export const EvolutionAPIAdminConfig = () => {
       });
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
+      setConnError('Não foi possível conectar. Verifique URL e token.');
+      setLastCheckedAt(new Date());
       toast({ title: "❌ Erro na conexão", description: "Não foi possível conectar. Verifique URL e token.", variant: "destructive" });
     } finally {
       setIsTestingConnection(false);
