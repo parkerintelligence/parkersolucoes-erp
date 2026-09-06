@@ -137,25 +137,44 @@ serve(async (req) => {
       // Garante que a instância iniciou o fluxo de conexão antes de pedir o código
       await goFetch('/instance/connect', 'POST', token, {});
       const extractCode = (d: any) =>
-        d?.pairCode || d?.PairCode || d?.pairingCode || d?.code || d?.Code || null;
-      const attempts: Array<() => Promise<{ status: number; ok: boolean; data: any }>> = [
-        () => goFetch('/instance/pair', 'POST', token, { phone }),
-        () => goFetch(`/instance/pair?phone=${encodeURIComponent(phone)}`, 'GET', token),
-        () => goFetch(`/instance/connect?phone=${encodeURIComponent(phone)}`, 'POST', token, {}),
-        () => goFetch('/instance/connect', 'POST', token, { phone }),
+        d?.pairCode || d?.PairCode || d?.pairingCode || d?.PairingCode || d?.LinkingCode ||
+        d?.linkingCode || d?.code || d?.Code || null;
+
+      type Attempt = { path: string; method: string; body?: unknown };
+      const attempts: Attempt[] = [
+        { path: '/instance/pairphone', method: 'POST', body: { phone } },
+        { path: `/instance/pairphone?phone=${encodeURIComponent(phone)}`, method: 'GET' },
+        { path: '/instance/paircode', method: 'POST', body: { phone } },
+        { path: '/instance/pair', method: 'POST', body: { phone } },
+        { path: `/instance/pair?phone=${encodeURIComponent(phone)}`, method: 'GET' },
+        { path: '/session/pairphone', method: 'POST', body: { phone } },
+        { path: `/session/pairphone?phone=${encodeURIComponent(phone)}`, method: 'GET' },
+        { path: '/instance/connect', method: 'POST', body: { phone, pairCode: true } },
+        { path: `/instance/connect?phone=${encodeURIComponent(phone)}`, method: 'POST', body: {} },
       ];
+
+      const tried: string[] = [];
       let last: { status: number; data: any } = { status: 502, data: null };
       for (const attempt of attempts) {
         try {
-          const r = await attempt();
+          const r = await goFetch(attempt.path, attempt.method, token, attempt.body);
+          tried.push(`${attempt.method} ${attempt.path} → ${r.status}`);
           const code = extractCode(r.data);
           if (r.ok && code) return json({ pairingCode: code, phone });
-          last = { status: r.status, data: r.data };
+          // 404 = rota inexistente nesta versão; continua tentando as outras
+          if (r.status !== 404) last = { status: r.status, data: r.data };
         } catch (e) {
           console.error('Pair attempt failed:', e);
+          tried.push(`${attempt.method} ${attempt.path} → exception`);
         }
       }
-      return json({ error: 'O servidor não retornou um código de pareamento.', details: last.data }, last.status === 200 ? 502 : last.status);
+      console.log('Pair attempts:', tried.join(' | '));
+      return json({
+        error: 'Este servidor Evolution Go não oferece conexão por código de pareamento. Use o QR Code.',
+        details: last.data ?? 'Nenhuma rota de pareamento disponível no servidor.',
+        tried,
+      }, 501);
+
     }
 
     // ---- Estado da conexão ----
