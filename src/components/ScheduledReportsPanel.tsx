@@ -43,7 +43,7 @@ export const ScheduledReportsPanel = () => {
     const report = scheduledReports.find(r => r.id === id);
     const confirmed = await confirm({
       title: 'Excluir automação',
-      description: `Tem certeza que deseja excluir "${report?.name ?? 'esta automação'}"? Esta ação não pode ser desfeita.`,
+      description: `Tem certeza que deseja excluir "${report?.name ?? 'esta automação'}"? Você terá alguns segundos para desfazer.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
       variant: 'destructive',
@@ -52,9 +52,41 @@ export const ScheduledReportsPanel = () => {
     if (!confirmed) return;
     try {
       await deleteReport.mutateAsync(id);
-      toast({ title: 'Automação excluída', description: `"${report?.name ?? 'Automação'}" foi removida com sucesso.` });
+      sonnerToast.success(`"${report?.name ?? 'Automação'}" foi excluída`, {
+        description: 'Você pode desfazer esta exclusão por 10 segundos.',
+        duration: 10000,
+        action: report
+          ? {
+              label: 'Desfazer',
+              onClick: () => { void handleUndoDelete(report); },
+            }
+          : undefined,
+      });
     }
     catch (error: any) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); }
+  };
+
+  const handleUndoDelete = async (report: ScheduledReport) => {
+    try {
+      const { error } = await supabase.from('scheduled_reports').insert({
+        id: report.id,
+        user_id: report.user_id,
+        name: report.name,
+        report_type: report.report_type,
+        phone_number: report.phone_number,
+        cron_expression: report.cron_expression,
+        is_active: report.is_active,
+        settings: report.settings ?? null,
+        execution_count: report.execution_count ?? 0,
+        last_execution: report.last_execution ?? null,
+        next_execution: report.next_execution ?? null,
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['scheduled-reports'] });
+      sonnerToast.success('Exclusão desfeita', { description: `"${report.name}" foi restaurada.` });
+    } catch (error: any) {
+      sonnerToast.error('Não foi possível desfazer', { description: error.message });
+    }
   };
 
   const handleToggleActive = async (report: ScheduledReport) => {
