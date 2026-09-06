@@ -159,6 +159,29 @@ export const EvolutionAPIAdminConfig = () => {
     }
   };
 
+  const handlePairCode = async () => {
+    const phone = formData.phone_number.replace(/\D/g, '');
+    if (!phone) {
+      toast({ title: "Número obrigatório", description: "Preencha o campo Número do WhatsApp (DDD + número) e salve.", variant: "destructive" });
+      return;
+    }
+    setIsWorking(true);
+    try {
+      const payload = await callProxy(`/instance/pair/${formData.instance_name}`, 'POST', { phone });
+      const raw = payload?.data ?? payload;
+      const code = raw?.pairingCode || raw?.pairCode || null;
+      if (!code) throw new Error(raw?.error || 'O servidor não retornou um código.');
+      setPairCode(code);
+      setQrCode(null);
+      setConnState('connecting');
+      toast({ title: "Código gerado", description: "No WhatsApp: Aparelhos conectados → Conectar com número de telefone." });
+    } catch (error: any) {
+      toast({ title: "Erro ao gerar código", description: error?.message || 'Falha.', variant: "destructive" });
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
   const handleCheckState = async () => {
     setIsWorking(true);
     try {
