@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, AlertTriangle, CheckCircle, QrCode, RefreshCw, Eye, EyeOff, Power } from 'lucide-react';
+import { Loader2, MessageCircle, AlertTriangle, CheckCircle, QrCode, RefreshCw, Eye, EyeOff, Power, KeyRound, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type ConnState = 'unknown' | 'open' | 'connecting' | 'close';
@@ -24,6 +24,7 @@ export const EvolutionAPIAdminConfig = () => {
   const [isWorking, setIsWorking] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [pairCode, setPairCode] = useState<string | null>(null);
   const [connState, setConnState] = useState<ConnState>('unknown');
 
   const [formData, setFormData] = useState({
