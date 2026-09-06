@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Search, RefreshCw, Send, AlertCircle, Loader2, CheckCircle2, AlertTriangle, Clock, MessageCircle, X, ChevronRight, User, TrendingUp, Tag, Ticket, Bell, BellOff, BarChart3, Mail, Inbox } from 'lucide-react';
 import { useChatwootAPI, ChatwootConversation } from '@/hooks/useChatwootAPI';
 import { useWhatsAppAvatar } from '@/hooks/useWhatsAppAvatar';
+import { useWhatsAppAvatars, avatarForPhone } from '@/hooks/useWhatsAppAvatars';
 import { useConversationMessages } from '@/hooks/useConversationMessages';
 import { useChatwootRealtime, useChatwootMessageNotifications } from '@/hooks/useChatwootRealtime';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -59,11 +60,6 @@ const Atendimentos = () => {
   } = useChatwootAPI();
 
   const { data: whatsappAvatar } = useWhatsAppAvatar(selectedConversation?.meta?.sender?.phone_number);
-  const selectedAvatar =
-    selectedConversation?.meta?.sender?.avatar_url ||
-    selectedConversation?.meta?.sender?.thumbnail ||
-    whatsappAvatar ||
-    undefined;
 
   const { agents, isLoading: agentsLoading } = useChatwootAgents();
   const { labels: availableLabels } = useChatwootLabels(integrationId);
@@ -198,6 +194,23 @@ const Atendimentos = () => {
         return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
     }
   });
+
+  const { data: whatsappAvatars } = useWhatsAppAvatars(
+    filteredConversations.slice(0, 25).map(conv => conv.meta?.sender?.phone_number),
+  );
+
+  const avatarFor = (conv?: ChatwootConversation | null) => {
+    if (!conv) return undefined;
+    return (
+      conv.meta?.sender?.avatar_url ||
+      conv.meta?.sender?.thumbnail ||
+      avatarForPhone(whatsappAvatars, conv.meta?.sender?.phone_number) ||
+      undefined
+    );
+  };
+
+  const selectedAvatar = avatarFor(selectedConversation) || whatsappAvatar || undefined;
+
 
   const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
   const unassignedCount = safeConversations.filter(c => !c.assignee || c.assignee === null).length;
@@ -582,7 +595,7 @@ const Atendimentos = () => {
                         >
                           <div className="flex items-start gap-2">
                             <Avatar className="h-7 w-7 flex-shrink-0">
-                              <AvatarImage src={conversation.meta?.sender?.avatar_url || conversation.meta?.sender?.thumbnail} />
+                              <AvatarImage src={avatarFor(conversation)} alt={conversation.meta?.sender?.name || 'Contato'} />
                               <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-bold">
                                 {getInitials(conversation.meta?.sender?.name)}
                               </AvatarFallback>

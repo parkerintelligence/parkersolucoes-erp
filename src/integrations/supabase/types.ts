@@ -1613,6 +1613,27 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_avatars: {
+        Row: {
+          avatar_url: string | null
+          checked_at: string
+          has_photo: boolean
+          phone: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          checked_at?: string
+          has_photo?: boolean
+          phone: string
+        }
+        Update: {
+          avatar_url?: string | null
+          checked_at?: string
+          has_photo?: boolean
+          phone?: string
+        }
+        Relationships: []
+      }
       whatsapp_conversations: {
         Row: {
           contact_name: string
