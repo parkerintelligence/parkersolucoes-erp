@@ -59,6 +59,7 @@ const MasterRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <AuthProvider>
         <MikrotikProvider>
           <ConfirmDialogProvider>
