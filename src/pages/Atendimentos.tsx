@@ -720,8 +720,17 @@ const Atendimentos = () => {
                         const isOutgoing = message.message_type === 1;
                         const showSenderName = !isOutgoing && message.sender?.name;
                         return (
-                          <div key={`${message.id}-${index}`} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                          <div key={`${message.id}-${index}`} className={`flex items-end gap-1.5 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                            {!isOutgoing && (
+                              <Avatar className="h-6 w-6 flex-shrink-0">
+                                <AvatarImage src={selectedAvatar} alt={selectedConversation.meta?.sender?.name || 'Contato'} />
+                                <AvatarFallback className="bg-primary/20 text-primary text-[9px] font-bold">
+                                  {getInitials(selectedConversation.meta?.sender?.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
                             <div className="max-w-[70%]">
+
                               <div className={`rounded-lg p-2 shadow-sm ${
                                 isOutgoing
                                   ? 'bg-primary text-primary-foreground'
