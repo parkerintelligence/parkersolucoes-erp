@@ -286,6 +286,19 @@ serve(async (req) => {
       const result = await sendWhatsAppText(integration, (body as any)?.number, (body as any)?.text, name);
       return json(result.data, result.ok ? 200 : result.status);
     }
+    // ---- Foto de perfil (nunca falha: devolve null quando o servidor demora) ----
+    if (endpoint.startsWith('/user/avatar')) {
+      const token = await resolveInstanceToken(baseUrl, globalKey, integration.instance_name);
+      try {
+        const result = await goFetch(endpoint, method, token, body);
+        if (!result.ok) return json({ url: null, unavailable: true });
+        return json(result.data);
+      } catch (e) {
+        console.log('avatar lookup falhou:', (e as Error).message);
+        return json({ url: null, unavailable: true });
+      }
+    }
+
 
     // ---- Passthrough para qualquer outro endpoint do Evolution Go ----
     const token = await resolveInstanceToken(baseUrl, globalKey, integration.instance_name);
