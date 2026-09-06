@@ -363,6 +363,49 @@ export const EvolutionAPIAdminConfig = () => {
           </Button>
         </div>
 
+        {evolutionIntegration && (
+          <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
+            <div className="flex items-start gap-2">
+              {connState === 'open'
+                ? <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-500" />
+                : connState === 'close' || connError
+                  ? <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
+                  : <RefreshCw className="mt-0.5 h-4 w-4 text-amber-500" />}
+              <div>
+                <p className="text-xs font-medium">Status da instância</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {connState === 'open' ? 'Conectado'
+                    : connState === 'connecting' ? 'Aguardando conexão'
+                    : connState === 'close' ? 'Desconectado' : 'Desconhecido'}
+                  {lastCheckedAt && ` · verificado ${lastCheckedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Send className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs font-medium">Último envio</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {lastSend
+                    ? `${new Date(lastSend.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${lastSend.status === 'success' ? 'sucesso' : lastSend.status}${lastSend.name ? ` · ${lastSend.name}` : ''}`
+                    : 'Nenhum envio registrado'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Clock className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs font-medium">Erro de conexão</p>
+                <p className={`text-[10px] ${connError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {connError || 'Nenhum erro registrado'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {qrCode && (
           <div className="flex flex-col items-center gap-2 rounded-lg border p-4">
             <p className="text-xs text-muted-foreground">Escaneie no WhatsApp: Aparelhos conectados → Conectar aparelho</p>
