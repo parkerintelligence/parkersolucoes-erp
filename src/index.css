@@ -52,13 +52,13 @@
     --nav-card-hover: 222 30% 20%;
 
     /* Sidebar - Rich dark with subtle gradient feel */
-    --sidebar-background: 225 44% 13%;
-    --sidebar-foreground: 215 20% 65%;
+    --sidebar-background: 226 45% 10%;
+    --sidebar-foreground: 214 32% 85%;
     --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 43 90% 55%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 222 20% 18%;
+    --sidebar-border: 224 28% 20%;
     --sidebar-ring: 160 84% 39%;
 
     /* Chart colors */
@@ -81,7 +81,7 @@
     /* Gradient tokens */
     --gradient-primary: linear-gradient(135deg, hsl(160 84% 39%), hsl(199 89% 48%));
     --gradient-accent: linear-gradient(135deg, hsl(43 90% 55%), hsl(35 95% 50%));
-    --gradient-sidebar: linear-gradient(180deg, hsl(225 44% 15%), hsl(225 44% 10%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(226 45% 12%), hsl(226 45% 8%));
 
     /* PWA and Responsive Variables */
     --header-height: 4rem;
