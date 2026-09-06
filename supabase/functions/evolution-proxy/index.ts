@@ -111,12 +111,40 @@ serve(async (req) => {
       if (!name || typeof name !== 'string') {
         return json({ error: 'Nome da instância é obrigatório.' }, 400);
       }
+      const normalizedName = name.trim();
+      const existingInstances = await listGoInstances(baseUrl, globalKey);
+      const existing = existingInstances.find(
+        (item: any) => String(item?.name ?? item?.instanceName ?? '').toLowerCase() === normalizedName.toLowerCase(),
+      );
+      if (existing) {
+        const existingToken = existing.token || globalKey;
+        const status = await goFetch('/instance/status', 'GET', existingToken);
+        const info = status.data as any;
+        const isOpen = status.ok && info?.Connected === true && info?.LoggedIn === true;
+        if (isOpen) {
+          return json({
+            instance: { instanceName: normalizedName, instanceId: existing.id, status: 'open' },
+            state: 'open',
+            alreadyExisted: true,
+            base64: null,
+          });
+        }
+        await goFetch('/instance/connect', 'POST', existingToken, {});
+        const qr = await goFetch('/instance/qr', 'GET', existingToken);
+        const qrCode = (qr.data as any)?.Qrcode || (qr.data as any)?.qrcode || null;
+        return json({
+          instance: { instanceName: normalizedName, instanceId: existing.id, status: 'connecting' },
+          state: 'connecting',
+          alreadyExisted: true,
+          base64: qrCode,
+        });
+      }
       const requestedToken = (body as any)?.token;
       const generatedToken = crypto.randomUUID().replaceAll('-', '');
       const instanceToken = typeof requestedToken === 'string' && requestedToken.trim()
         ? requestedToken.trim()
         : generatedToken;
-      const created = await goFetch('/instance/create', 'POST', globalKey, { name: name.trim(), token: instanceToken });
+      const created = await goFetch('/instance/create', 'POST', globalKey, { name: normalizedName, token: instanceToken });
       if (!created.ok) return json(created.data, created.status);
 
       const effectiveToken = (created.data as any)?.token || instanceToken;
