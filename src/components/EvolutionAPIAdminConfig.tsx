@@ -26,6 +26,9 @@ export const EvolutionAPIAdminConfig = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairCode, setPairCode] = useState<string | null>(null);
   const [connState, setConnState] = useState<ConnState>('unknown');
+  const [connError, setConnError] = useState<string | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  const [lastSend, setLastSend] = useState<{ date: string; status: string; name?: string } | null>(null);
 
   const [formData, setFormData] = useState({
     name: 'Evolution Go WhatsApp',
