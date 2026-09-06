@@ -108,17 +108,25 @@ serve(async (req) => {
     // ---- Criar instância ----
     if (endpoint.startsWith('/instance/create')) {
       const name = (body as any)?.instanceName || (body as any)?.name;
-      const created = await goFetch('/instance/create', 'POST', globalKey, { name });
+      if (!name || typeof name !== 'string') {
+        return json({ error: 'Nome da instância é obrigatório.' }, 400);
+      }
+      const requestedToken = (body as any)?.token;
+      const generatedToken = crypto.randomUUID().replaceAll('-', '');
+      const instanceToken = typeof requestedToken === 'string' && requestedToken.trim()
+        ? requestedToken.trim()
+        : generatedToken;
+      const created = await goFetch('/instance/create', 'POST', globalKey, { name: name.trim(), token: instanceToken });
       if (!created.ok) return json(created.data, created.status);
 
-      const instanceToken = (created.data as any)?.token || globalKey;
-      await goFetch('/instance/connect', 'POST', instanceToken, {});
-      const qr = await goFetch('/instance/qr', 'GET', instanceToken);
+      const effectiveToken = (created.data as any)?.token || instanceToken;
+      await goFetch('/instance/connect', 'POST', effectiveToken, {});
+      const qr = await goFetch('/instance/qr', 'GET', effectiveToken);
       const qrCode = (qr.data as any)?.Qrcode || (qr.data as any)?.qrcode || null;
 
       return json({
         instance: { instanceName: name, instanceId: (created.data as any)?.id, status: 'connecting' },
-        token: instanceToken,
+        token: effectiveToken,
         base64: qrCode,
       });
     }
