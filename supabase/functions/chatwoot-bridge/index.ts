@@ -128,7 +128,21 @@ Deno.serve(async (req) => {
 
     // ---------- Evolution Go -> Chatwoot ----------
     const parsed = parseEvolutionMessage(payload);
-    if (!parsed || parsed.fromMe || !parsed.text) return json({ ignored: true });
+    if (!parsed || parsed.fromMe || !parsed.text) {
+      // Guarda o motivo para diagnóstico na tela de Administração
+      await supabase
+        .from('chatwoot_bridge_config')
+        .update({
+          last_error: !parsed
+            ? `Evento sem telefone reconhecido: ${JSON.stringify(payload).slice(0, 250)}`
+            : parsed.fromMe
+              ? null
+              : `Evento sem texto: ${JSON.stringify(payload).slice(0, 250)}`,
+        })
+        .eq('id', config.id);
+      return json({ ignored: true });
+    }
+
 
     const { data: chatwoot } = await supabase
       .from('integrations')
