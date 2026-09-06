@@ -194,6 +194,23 @@ const Atendimentos = () => {
     }
   });
 
+  const { data: whatsappAvatars } = useWhatsAppAvatars(
+    filteredConversations.slice(0, 25).map(conv => conv.meta?.sender?.phone_number),
+  );
+
+  const avatarFor = (conv?: ChatwootConversation | null) => {
+    if (!conv) return undefined;
+    return (
+      conv.meta?.sender?.avatar_url ||
+      conv.meta?.sender?.thumbnail ||
+      avatarForPhone(whatsappAvatars, conv.meta?.sender?.phone_number) ||
+      undefined
+    );
+  };
+
+  const selectedAvatar = avatarFor(selectedConversation) || whatsappAvatar || undefined;
+
+
   const myConversationsCount = safeConversations.filter(c => c.assignee?.id === currentUserId).length;
   const unassignedCount = safeConversations.filter(c => !c.assignee || c.assignee === null).length;
   const openCount = safeConversations.filter(c => c.status === 'open').length;
