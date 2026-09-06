@@ -52,7 +52,7 @@ interface AdminButton {
 
 const integrationButtons: AdminButton[] = [
   { id: "chatwoot", label: "Chatwoot", icon: <MessageCircle className="h-4 w-4" />, component: ChatwootSimpleConfig, description: "Atendimento" },
-  { id: "evolution", label: "Evolution API", icon: <MessageCircle className="h-4 w-4" />, component: EvolutionAPIAdminConfig, description: "WhatsApp" },
+  { id: "evolution", label: "WhatsApp (Evolution Go)", icon: <MessageCircle className="h-4 w-4" />, component: EvolutionAPIAdminConfig, description: "Instância única de envio" },
   { id: "wasabi", label: "Wasabi", icon: <Cloud className="h-4 w-4" />, component: WasabiAdminConfig, description: "Storage S3" },
   { id: "grafana", label: "Grafana", icon: <BarChart3 className="h-4 w-4" />, component: GrafanaAdminConfig, description: "Dashboards" },
   { id: "zabbix", label: "Zabbix", icon: <Shield className="h-4 w-4" />, component: ZabbixAdminConfig, description: "Monitoramento" },
