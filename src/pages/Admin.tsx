@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BomControleAdminConfig } from "@/components/BomControleAdminConfig";
 import { ChatwootSimpleConfig } from "@/components/ChatwootSimpleConfig";
 import { EvolutionAPIAdminConfig } from "@/components/EvolutionAPIAdminConfig";
 import { WasabiAdminConfig } from "@/components/WasabiAdminConfig";
@@ -62,7 +61,6 @@ const integrationButtons: AdminButton[] = [
   { id: "guacamole", label: "Guacamole", icon: <Server className="h-4 w-4" />, component: GuacamoleAdminConfig, description: "Acesso Remoto" },
   { id: "bacula", label: "Bacula", icon: <Archive className="h-4 w-4" />, component: BaculaAdminConfig, description: "Backup" },
   { id: "hostinger", label: "Hostinger", icon: <Server className="h-4 w-4" />, component: HostingerAdminConfig, description: "VPS" },
-  { id: "bomcontrole", label: "BomControle", icon: <Activity className="h-4 w-4" />, component: BomControleAdminConfig, description: "ERP" },
   { id: "unifi", label: "UniFi", icon: <Wifi className="h-4 w-4" />, component: UniFiAdminConfig, description: "Rede Wi-Fi" },
   { id: "mikrotik", label: "Winbox", icon: <Router className="h-4 w-4" />, component: MikrotikAdminConfig, description: "Roteadores" },
   { id: "rustdesk", label: "RustDesk", icon: <Monitor className="h-4 w-4" />, component: RustDeskAdminConfig, description: "Desktop Remoto" },
