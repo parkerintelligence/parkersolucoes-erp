@@ -42,9 +42,9 @@ const fetchAvatar = async (
   phone: string,
 ): Promise<{ url: string | null; retryable: boolean }> => {
   // O servidor Evolution Go às vezes demora ("info query timed out"): tentamos algumas vezes.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+    const timer = setTimeout(() => controller.abort(), 25000);
     try {
       const res = await fetch(`${baseUrl}/user/avatar`, {
         method: 'POST',
@@ -129,7 +129,7 @@ serve(async (req) => {
       if (baseUrl && globalKey) {
         const token = await resolveInstanceToken(baseUrl, globalKey, integration?.instance_name);
         const batches: string[][] = [];
-        for (let i = 0; i < pending.length; i += 5) batches.push(pending.slice(i, i + 5));
+        for (let i = 0; i < pending.length; i += 4) batches.push(pending.slice(i, i + 4));
 
         for (const batch of batches) {
           const settled = await Promise.all(
