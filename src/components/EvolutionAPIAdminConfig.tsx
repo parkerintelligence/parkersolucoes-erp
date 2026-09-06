@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIntegrations, useCreateIntegration, useUpdateIntegration } from '@/hooks/useIntegrations';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MessageCircle, AlertTriangle, CheckCircle, QrCode, RefreshCw, Eye, EyeOff, Power, KeyRound, Copy } from 'lucide-react';
+import { Loader2, MessageCircle, AlertTriangle, CheckCircle, QrCode, RefreshCw, Eye, EyeOff, Power, KeyRound, Copy, Clock, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type ConnState = 'unknown' | 'open' | 'connecting' | 'close';
@@ -26,6 +26,9 @@ export const EvolutionAPIAdminConfig = () => {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairCode, setPairCode] = useState<string | null>(null);
   const [connState, setConnState] = useState<ConnState>('unknown');
+  const [connError, setConnError] = useState<string | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  const [lastSend, setLastSend] = useState<{ date: string; status: string; name?: string } | null>(null);
 
   const [formData, setFormData] = useState({
     name: 'Evolution Go WhatsApp',
@@ -112,6 +115,8 @@ export const EvolutionAPIAdminConfig = () => {
       });
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
+      setConnError('Não foi possível conectar. Verifique URL e token.');
+      setLastCheckedAt(new Date());
       toast({ title: "❌ Erro na conexão", description: "Não foi possível conectar. Verifique URL e token.", variant: "destructive" });
     } finally {
       setIsTestingConnection(false);
@@ -182,21 +187,53 @@ export const EvolutionAPIAdminConfig = () => {
     }
   };
 
-  const handleCheckState = async () => {
-    setIsWorking(true);
+  const checkState = async (silent = false) => {
+    if (!silent) setIsWorking(true);
     try {
       const payload = await callProxy(`/instance/connectionState/${formData.instance_name}`, 'GET');
       const raw = payload?.data ?? payload;
       const state = (raw?.state || raw?.instance?.state || raw?.status || 'unknown') as ConnState;
       setConnState(state);
+      setConnError(null);
+      setLastCheckedAt(new Date());
       if (state === 'open') { setQrCode(null); setPairCode(null); }
-      toast({ title: "Status da instância", description: `Estado: ${state}` });
+      if (!silent) toast({ title: "Status da instância", description: `Estado: ${state}` });
     } catch (error: any) {
-      toast({ title: "Erro ao consultar status", description: error?.message || 'Falha.', variant: "destructive" });
+      const msg = error?.message || 'Falha na consulta.';
+      setConnError(msg);
+      setLastCheckedAt(new Date());
+      if (!silent) toast({ title: "Erro ao consultar status", description: msg, variant: "destructive" });
     } finally {
-      setIsWorking(false);
+      if (!silent) setIsWorking(false);
     }
   };
+
+  const handleCheckState = () => checkState(false);
+
+  const fetchLastSend = async () => {
+    try {
+      const { data } = await supabase
+        .from('scheduled_reports_logs')
+        .select('execution_date, status, scheduled_reports(name)')
+        .order('execution_date', { ascending: false })
+        .limit(1);
+      const row = data?.[0] as any;
+      if (row) {
+        setLastSend({ date: row.execution_date, status: row.status, name: row.scheduled_reports?.name });
+      }
+    } catch {
+      // silencioso — histórico pode não existir
+    }
+  };
+
+  useEffect(() => {
+    if (!evolutionIntegration?.id || !formData.instance_name) return;
+    checkState(true);
+    fetchLastSend();
+    const interval = setInterval(() => { checkState(true); fetchLastSend(); }, 60000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evolutionIntegration?.id, formData.instance_name]);
 
   const handleLogout = async () => {
     setIsWorking(true);
@@ -327,6 +364,49 @@ export const EvolutionAPIAdminConfig = () => {
             <Power className="mr-2 h-3.5 w-3.5" />Desconectar
           </Button>
         </div>
+
+        {evolutionIntegration && (
+          <div className="grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
+            <div className="flex items-start gap-2">
+              {connState === 'open'
+                ? <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-500" />
+                : connState === 'close' || connError
+                  ? <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
+                  : <RefreshCw className="mt-0.5 h-4 w-4 text-amber-500" />}
+              <div>
+                <p className="text-xs font-medium">Status da instância</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {connState === 'open' ? 'Conectado'
+                    : connState === 'connecting' ? 'Aguardando conexão'
+                    : connState === 'close' ? 'Desconectado' : 'Desconhecido'}
+                  {lastCheckedAt && ` · verificado ${lastCheckedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Send className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs font-medium">Último envio</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {lastSend
+                    ? `${new Date(lastSend.date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${lastSend.status === 'success' ? 'sucesso' : lastSend.status}${lastSend.name ? ` · ${lastSend.name}` : ''}`
+                    : 'Nenhum envio registrado'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2">
+              <Clock className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs font-medium">Erro de conexão</p>
+                <p className={`text-[10px] ${connError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {connError || 'Nenhum erro registrado'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {qrCode && (
           <div className="flex flex-col items-center gap-2 rounded-lg border p-4">
