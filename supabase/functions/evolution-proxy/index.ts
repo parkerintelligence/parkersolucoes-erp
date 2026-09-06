@@ -180,46 +180,70 @@ serve(async (req) => {
       const phone = String((body as any)?.phone || integration.phone_number || '').replace(/\D/g, '');
       if (!phone) return json({ error: 'Informe o número do WhatsApp (DDD + número) para gerar o código.' }, 400);
       const token = await resolveInstanceToken(baseUrl, globalKey, name);
-      // Garante que a instância iniciou o fluxo de conexão antes de pedir o código
-      await goFetch('/instance/connect', 'POST', token, {});
+
+      // Já conectado? Não há o que parear.
+      const preStatus = await goFetch('/instance/status', 'GET', token);
+      const preInfo = preStatus.data as any;
+      if (preStatus.ok && preInfo?.Connected === true && preInfo?.LoggedIn === true) {
+        return json({ state: 'open', instance: { instanceName: name, state: 'open' }, alreadyConnected: true });
+      }
+
       const extractCode = (d: any) =>
         d?.pairCode || d?.PairCode || d?.pairingCode || d?.PairingCode || d?.LinkingCode ||
         d?.linkingCode || d?.code || d?.Code || null;
 
       type Attempt = { path: string; method: string; body?: unknown };
       const attempts: Attempt[] = [
-        { path: '/instance/pairphone', method: 'POST', body: { phone } },
-        { path: `/instance/pairphone?phone=${encodeURIComponent(phone)}`, method: 'GET' },
-        { path: '/instance/paircode', method: 'POST', body: { phone } },
         { path: '/instance/pair', method: 'POST', body: { phone } },
+        { path: '/instance/pairphone', method: 'POST', body: { phone } },
+        { path: '/instance/paircode', method: 'POST', body: { phone } },
         { path: `/instance/pair?phone=${encodeURIComponent(phone)}`, method: 'GET' },
-        { path: '/session/pairphone', method: 'POST', body: { phone } },
-        { path: `/session/pairphone?phone=${encodeURIComponent(phone)}`, method: 'GET' },
-        { path: '/instance/connect', method: 'POST', body: { phone, pairCode: true } },
-        { path: `/instance/connect?phone=${encodeURIComponent(phone)}`, method: 'POST', body: {} },
       ];
 
-      const tried: string[] = [];
-      let last: { status: number; data: any } = { status: 502, data: null };
-      for (const attempt of attempts) {
-        try {
-          const r = await goFetch(attempt.path, attempt.method, token, attempt.body);
-          tried.push(`${attempt.method} ${attempt.path} → ${r.status}`);
-          const code = extractCode(r.data);
-          if (r.ok && code) return json({ pairingCode: code, phone });
-          // 404 = rota inexistente nesta versão; continua tentando as outras
-          if (r.status !== 404) last = { status: r.status, data: r.data };
-        } catch (e) {
-          console.error('Pair attempt failed:', e);
-          tried.push(`${attempt.method} ${attempt.path} → exception`);
+      const errText = (d: any) => String(d?.error ?? d?.message ?? '').toLowerCase();
+
+      const runAttempts = async () => {
+        const tried: string[] = [];
+        let last: { status: number; data: any } = { status: 502, data: null };
+        for (const attempt of attempts) {
+          try {
+            const r = await goFetch(attempt.path, attempt.method, token, attempt.body);
+            tried.push(`${attempt.method} ${attempt.path} → ${r.status}`);
+            const code = extractCode(r.data);
+            if (r.ok && code) return { code, tried, last };
+            if (r.status !== 404) last = { status: r.status, data: r.data };
+          } catch (e) {
+            console.error('Pair attempt failed:', e);
+            tried.push(`${attempt.method} ${attempt.path} → exception`);
+          }
         }
+        return { code: null as string | null, tried, last };
+      };
+
+      let result = await runAttempts();
+      if (result.code) return json({ pairingCode: result.code, phone });
+
+      // Sessão antiga travada ("already authenticated" / websocket caído): limpa e tenta 1x
+      const msg = errText(result.last.data);
+      if (msg.includes('already authenticated') || msg.includes('websocket')) {
+        await goFetch('/instance/logout', 'DELETE', token);
+        await new Promise((r) => setTimeout(r, 1500));
+        await goFetch('/instance/connect', 'POST', token, {});
+        await new Promise((r) => setTimeout(r, 1500));
+        result = await runAttempts();
+        if (result.code) return json({ pairingCode: result.code, phone });
       }
-      console.log('Pair attempts:', tried.join(' | '));
+
+      console.log('Pair attempts:', result.tried.join(' | '));
+      const finalMsg = errText(result.last.data);
       return json({
-        error: 'Este servidor Evolution Go não oferece conexão por código de pareamento. Use o QR Code.',
-        details: last.data ?? 'Nenhuma rota de pareamento disponível no servidor.',
-        tried,
-      }, 501);
+        error: finalMsg.includes('already authenticated')
+          ? 'Esta instância já está autenticada no WhatsApp. Clique em Desconectar e depois gere o código novamente.'
+          : 'Não foi possível gerar o código de pareamento agora. Use o QR Code.',
+        details: result.last.data ?? 'Nenhuma rota de pareamento disponível no servidor.',
+        tried: result.tried,
+      }, 409);
+
 
     }
 
