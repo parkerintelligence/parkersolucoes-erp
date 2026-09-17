@@ -128,16 +128,14 @@ Deno.serve(async (req) => {
 
     // ---------- Evolution Go -> Chatwoot ----------
     const parsed = parseEvolutionMessage(payload);
-    if (!parsed || parsed.fromMe || !parsed.text) {
+    if (!parsed || !parsed.text) {
       // Guarda o motivo para diagnóstico na tela de Administração
       await supabase
         .from('chatwoot_bridge_config')
         .update({
           last_error: !parsed
             ? `Evento sem telefone reconhecido: ${JSON.stringify(payload).slice(0, 250)}`
-            : parsed.fromMe
-              ? null
-              : `Evento sem texto: ${JSON.stringify(payload).slice(0, 250)}`,
+            : `Evento sem texto: ${JSON.stringify(payload).slice(0, 250)}`,
         })
         .eq('id', config.id);
       return json({ ignored: true });
@@ -219,12 +217,34 @@ Deno.serve(async (req) => {
       if (!conversationId) return json({ error: 'Falha ao criar conversa no Chatwoot', details: newConv.data }, 502);
     }
 
-    // 4. registrar a mensagem recebida
+    // 4. registrar a mensagem (recebida do contato ou enviada pelo nosso número)
+    if (parsed.fromMe) {
+      // Evita duplicar mensagens que o próprio Chatwoot acabou de enviar
+      const existing = await chatwootFetch(
+        base, key,
+        `/api/v1/accounts/${acc}/conversations/${conversationId}/messages`,
+      );
+      const recent = (existing.data?.payload ?? []) as any[];
+      const cutoff = Date.now() / 1000 - 180;
+      const duplicate = recent.some(
+        (m) =>
+          Number(m?.message_type) === 1 &&
+          String(m?.content || '').trim() === parsed.text &&
+          Number(m?.created_at || 0) >= cutoff,
+      );
+      if (duplicate) return json({ ignored: true, reason: 'eco da mensagem enviada pelo Chatwoot' });
+    }
+
     const message = await chatwootFetch(
       base, key,
       `/api/v1/accounts/${acc}/conversations/${conversationId}/messages`,
       'POST',
-      { content: parsed.text, message_type: 'incoming', private: false, source_id: sourceId },
+      {
+        content: parsed.text,
+        message_type: parsed.fromMe ? 'outgoing' : 'incoming',
+        private: false,
+        source_id: sourceId,
+      },
     );
 
     await supabase
